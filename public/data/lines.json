@@ -1,0 +1,480 @@
+{
+  "generatedAt": "2026-08-31T19:57:18+00:00",
+  "note": "Generato da scripts/convert-gpkg.py. I campi officialName e status non esistono nel dataset GIS: vanno compilati solo su fonte ufficiale verificabile.",
+  "lines": [
+    {
+      "id": "1",
+      "name": "Linea 1",
+      "officialName": null,
+      "officialNameSource": "non disponibile nel dataset GIS - da inserire manualmente se confermato da fonte ufficiale",
+      "color": "#e31a1c",
+      "colorSource": "simbologia QGIS (Pesaro2026.qgz)",
+      "colorNeedsConfirmation": false,
+      "colorConflictsWith": [],
+      "status": "unknown",
+      "statusNote": "il dataset non contiene un campo di stato",
+      "lengthMeters": 3833.3,
+      "lengthKm": 3.83,
+      "segments": 1,
+      "contiguous": true,
+      "endpoints": [
+        {
+          "start": [
+            12.91797,
+            43.913746
+          ],
+          "end": [
+            12.907739,
+            43.921038
+          ]
+        }
+      ],
+      "estimatedMinutes": 15.3,
+      "estimatedMinutesNote": "stima a 15.0 km/h"
+    },
+    {
+      "id": "2",
+      "name": "Linea 2",
+      "officialName": null,
+      "officialNameSource": "non disponibile nel dataset GIS - da inserire manualmente se confermato da fonte ufficiale",
+      "color": "#1f78b4",
+      "colorSource": "simbologia QGIS (Pesaro2026.qgz)",
+      "colorNeedsConfirmation": false,
+      "colorConflictsWith": [
+        "5"
+      ],
+      "status": "unknown",
+      "statusNote": "il dataset non contiene un campo di stato",
+      "lengthMeters": 6257.8,
+      "lengthKm": 6.26,
+      "segments": 1,
+      "contiguous": true,
+      "endpoints": [
+        {
+          "start": [
+            12.907746,
+            43.921036
+          ],
+          "end": [
+            12.962082,
+            43.880968
+          ]
+        }
+      ],
+      "estimatedMinutes": 25.0,
+      "estimatedMinutesNote": "stima a 15.0 km/h"
+    },
+    {
+      "id": "3",
+      "name": "Linea 3",
+      "officialName": null,
+      "officialNameSource": "non disponibile nel dataset GIS - da inserire manualmente se confermato da fonte ufficiale",
+      "color": "#33a02c",
+      "colorSource": "simbologia QGIS (Pesaro2026.qgz)",
+      "colorNeedsConfirmation": false,
+      "colorConflictsWith": [],
+      "status": "unknown",
+      "statusNote": "il dataset non contiene un campo di stato",
+      "lengthMeters": 9543.4,
+      "lengthKm": 9.54,
+      "segments": 1,
+      "contiguous": true,
+      "endpoints": [
+        {
+          "start": [
+            12.897202,
+            43.921571
+          ],
+          "end": [
+            12.840301,
+            43.895518
+          ]
+        }
+      ],
+      "estimatedMinutes": 38.2,
+      "estimatedMinutesNote": "stima a 15.0 km/h"
+    },
+    {
+      "id": "4",
+      "name": "Linea 4",
+      "officialName": null,
+      "officialNameSource": "non disponibile nel dataset GIS - da inserire manualmente se confermato da fonte ufficiale",
+      "color": "#a6c78a",
+      "colorSource": "simbologia QGIS (Pesaro2026.qgz)",
+      "colorNeedsConfirmation": false,
+      "colorConflictsWith": [],
+      "status": "unknown",
+      "statusNote": "il dataset non contiene un campo di stato",
+      "lengthMeters": 2576.5,
+      "lengthKm": 2.58,
+      "segments": 1,
+      "contiguous": true,
+      "endpoints": [
+        {
+          "start": [
+            12.915068,
+            43.908788
+          ],
+          "end": [
+            12.926883,
+            43.891945
+          ]
+        }
+      ],
+      "estimatedMinutes": 10.3,
+      "estimatedMinutesNote": "stima a 15.0 km/h"
+    },
+    {
+      "id": "5",
+      "name": "Linea 5",
+      "officialName": null,
+      "officialNameSource": "non disponibile nel dataset GIS - da inserire manualmente se confermato da fonte ufficiale",
+      "color": "#1f78b4",
+      "colorSource": "simbologia QGIS (Pesaro2026.qgz)",
+      "colorNeedsConfirmation": false,
+      "colorConflictsWith": [
+        "2"
+      ],
+      "status": "unknown",
+      "statusNote": "il dataset non contiene un campo di stato",
+      "lengthMeters": 6209.7,
+      "lengthKm": 6.21,
+      "segments": 2,
+      "contiguous": false,
+      "endpoints": [
+        {
+          "start": [
+            12.907893,
+            43.889644
+          ],
+          "end": [
+            12.894856,
+            43.893815
+          ]
+        },
+        {
+          "start": [
+            12.931256,
+            43.90358
+          ],
+          "end": [
+            12.905141,
+            43.882071
+          ]
+        }
+      ],
+      "estimatedMinutes": 24.8,
+      "estimatedMinutesNote": "stima a 15.0 km/h"
+    },
+    {
+      "id": "6",
+      "name": "Linea 6",
+      "officialName": null,
+      "officialNameSource": "non disponibile nel dataset GIS - da inserire manualmente se confermato da fonte ufficiale",
+      "color": "#f6e953",
+      "colorSource": "simbologia QGIS (Pesaro2026.qgz)",
+      "colorNeedsConfirmation": false,
+      "colorConflictsWith": [],
+      "status": "unknown",
+      "statusNote": "il dataset non contiene un campo di stato",
+      "lengthMeters": 1152.6,
+      "lengthKm": 1.15,
+      "segments": 1,
+      "contiguous": true,
+      "endpoints": [
+        {
+          "start": [
+            12.907579,
+            43.905852
+          ],
+          "end": [
+            12.908657,
+            43.897424
+          ]
+        }
+      ],
+      "estimatedMinutes": 4.6,
+      "estimatedMinutesNote": "stima a 15.0 km/h"
+    },
+    {
+      "id": "7",
+      "name": "Linea 7",
+      "officialName": null,
+      "officialNameSource": "non disponibile nel dataset GIS - da inserire manualmente se confermato da fonte ufficiale",
+      "color": "#d029b2",
+      "colorSource": "simbologia QGIS (Pesaro2026.qgz)",
+      "colorNeedsConfirmation": false,
+      "colorConflictsWith": [],
+      "status": "unknown",
+      "statusNote": "il dataset non contiene un campo di stato",
+      "lengthMeters": 5358.3,
+      "lengthKm": 5.36,
+      "segments": 2,
+      "contiguous": false,
+      "endpoints": [
+        {
+          "start": [
+            12.899393,
+            43.893095
+          ],
+          "end": [
+            12.873139,
+            43.888143
+          ]
+        },
+        {
+          "start": [
+            12.904553,
+            43.903808
+          ],
+          "end": [
+            12.90826,
+            43.891466
+          ]
+        }
+      ],
+      "estimatedMinutes": 21.4,
+      "estimatedMinutesNote": "stima a 15.0 km/h"
+    },
+    {
+      "id": "8",
+      "name": "Linea 8",
+      "officialName": null,
+      "officialNameSource": "non disponibile nel dataset GIS - da inserire manualmente se confermato da fonte ufficiale",
+      "color": "#cc4ec3",
+      "colorSource": "simbologia QGIS (Pesaro2026.qgz)",
+      "colorNeedsConfirmation": false,
+      "colorConflictsWith": [],
+      "status": "unknown",
+      "statusNote": "il dataset non contiene un campo di stato",
+      "lengthMeters": 1796.4,
+      "lengthKm": 1.8,
+      "segments": 1,
+      "contiguous": true,
+      "endpoints": [
+        {
+          "start": [
+            12.907305,
+            43.905923
+          ],
+          "end": [
+            12.893565,
+            43.895
+          ]
+        }
+      ],
+      "estimatedMinutes": 7.2,
+      "estimatedMinutesNote": "stima a 15.0 km/h"
+    },
+    {
+      "id": "9",
+      "name": "Linea 9",
+      "officialName": null,
+      "officialNameSource": "non disponibile nel dataset GIS - da inserire manualmente se confermato da fonte ufficiale",
+      "color": "#daa7ce",
+      "colorSource": "simbologia QGIS (Pesaro2026.qgz)",
+      "colorNeedsConfirmation": false,
+      "colorConflictsWith": [],
+      "status": "unknown",
+      "statusNote": "il dataset non contiene un campo di stato",
+      "lengthMeters": 2247.2,
+      "lengthKm": 2.25,
+      "segments": 1,
+      "contiguous": true,
+      "endpoints": [
+        {
+          "start": [
+            12.904603,
+            43.903796
+          ],
+          "end": [
+            12.885098,
+            43.895632
+          ]
+        }
+      ],
+      "estimatedMinutes": 9.0,
+      "estimatedMinutesNote": "stima a 15.0 km/h"
+    },
+    {
+      "id": "10",
+      "name": "Linea 10",
+      "officialName": null,
+      "officialNameSource": "non disponibile nel dataset GIS - da inserire manualmente se confermato da fonte ufficiale",
+      "color": "#1c5119",
+      "colorSource": "simbologia QGIS (Pesaro2026.qgz)",
+      "colorNeedsConfirmation": false,
+      "colorConflictsWith": [],
+      "status": "unknown",
+      "statusNote": "il dataset non contiene un campo di stato",
+      "lengthMeters": 2446.0,
+      "lengthKm": 2.45,
+      "segments": 1,
+      "contiguous": true,
+      "endpoints": [
+        {
+          "start": [
+            12.895571,
+            43.909868
+          ],
+          "end": [
+            12.884975,
+            43.895554
+          ]
+        }
+      ],
+      "estimatedMinutes": 9.8,
+      "estimatedMinutesNote": "stima a 15.0 km/h"
+    },
+    {
+      "id": "11",
+      "name": "Linea 11",
+      "officialName": null,
+      "officialNameSource": "non disponibile nel dataset GIS - da inserire manualmente se confermato da fonte ufficiale",
+      "color": "#a0100e",
+      "colorSource": "simbologia QGIS (Pesaro2026.qgz)",
+      "colorNeedsConfirmation": false,
+      "colorConflictsWith": [],
+      "status": "unknown",
+      "statusNote": "il dataset non contiene un campo di stato",
+      "lengthMeters": 2642.6,
+      "lengthKm": 2.64,
+      "segments": 1,
+      "contiguous": true,
+      "endpoints": [
+        {
+          "start": [
+            12.906011,
+            43.90641
+          ],
+          "end": [
+            12.877093,
+            43.910944
+          ]
+        }
+      ],
+      "estimatedMinutes": 10.6,
+      "estimatedMinutesNote": "stima a 15.0 km/h"
+    },
+    {
+      "id": "12",
+      "name": "Linea 12",
+      "officialName": null,
+      "officialNameSource": "non disponibile nel dataset GIS - da inserire manualmente se confermato da fonte ufficiale",
+      "color": "#fdbf6f",
+      "colorSource": "simbologia QGIS (Pesaro2026.qgz)",
+      "colorNeedsConfirmation": false,
+      "colorConflictsWith": [],
+      "status": "unknown",
+      "statusNote": "il dataset non contiene un campo di stato",
+      "lengthMeters": 1531.8,
+      "lengthKm": 1.53,
+      "segments": 1,
+      "contiguous": true,
+      "endpoints": [
+        {
+          "start": [
+            12.869384,
+            43.910242
+          ],
+          "end": [
+            12.875999,
+            43.907823
+          ]
+        }
+      ],
+      "estimatedMinutes": 6.1,
+      "estimatedMinutesNote": "stima a 15.0 km/h"
+    },
+    {
+      "id": "13",
+      "name": "Linea 13",
+      "officialName": null,
+      "officialNameSource": "non disponibile nel dataset GIS - da inserire manualmente se confermato da fonte ufficiale",
+      "color": "#00a0b0",
+      "colorSource": "colore di ripiego generato - da confermare con fonte ufficiale",
+      "colorNeedsConfirmation": true,
+      "colorConflictsWith": [],
+      "status": "unknown",
+      "statusNote": "il dataset non contiene un campo di stato",
+      "lengthMeters": 6157.4,
+      "lengthKm": 6.16,
+      "segments": 1,
+      "contiguous": true,
+      "endpoints": [
+        {
+          "start": [
+            12.860561,
+            43.916146
+          ],
+          "end": [
+            12.919495,
+            43.896851
+          ]
+        }
+      ],
+      "estimatedMinutes": 24.6,
+      "estimatedMinutesNote": "stima a 15.0 km/h"
+    },
+    {
+      "id": "A",
+      "name": "Linea A",
+      "officialName": null,
+      "officialNameSource": "non disponibile nel dataset GIS - da inserire manualmente se confermato da fonte ufficiale",
+      "color": "#ff7f00",
+      "colorSource": "simbologia QGIS (Pesaro2026.qgz)",
+      "colorNeedsConfirmation": false,
+      "colorConflictsWith": [],
+      "status": "unknown",
+      "statusNote": "il dataset non contiene un campo di stato",
+      "lengthMeters": 6270.9,
+      "lengthKm": 6.27,
+      "segments": 1,
+      "contiguous": true,
+      "endpoints": [
+        {
+          "start": [
+            12.860586,
+            43.916123
+          ],
+          "end": [
+            12.921164,
+            43.897324
+          ]
+        }
+      ],
+      "estimatedMinutes": 25.1,
+      "estimatedMinutesNote": "stima a 15.0 km/h"
+    },
+    {
+      "id": "B",
+      "name": "Linea B",
+      "officialName": null,
+      "officialNameSource": "non disponibile nel dataset GIS - da inserire manualmente se confermato da fonte ufficiale",
+      "color": "#68532b",
+      "colorSource": "simbologia QGIS (Pesaro2026.qgz)",
+      "colorNeedsConfirmation": false,
+      "colorConflictsWith": [],
+      "status": "unknown",
+      "statusNote": "il dataset non contiene un campo di stato",
+      "lengthMeters": 3034.8,
+      "lengthKm": 3.03,
+      "segments": 1,
+      "contiguous": true,
+      "endpoints": [
+        {
+          "start": [
+            12.899402,
+            43.890068
+          ],
+          "end": [
+            12.932461,
+            43.887102
+          ]
+        }
+      ],
+      "estimatedMinutes": 12.1,
+      "estimatedMinutesNote": "stima a 15.0 km/h"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "_nota": "SCHEMA DI ESEMPIO — non viene letto dall'applicazione. Per attivare le segnalazioni rinominare il file in `incidents.json` ed eseguire `npm run data`, che lo pubblica in public/data/. L'app mostra SOLO le voci che dichiarano una `source` verificabile: senza fonte, l'incidente viene ignorato. Non inserire chiusure o lavori non confermati da una fonte ufficiale.",
+  "incidents": [
+    {
+      "id": "esempio-1",
+      "lineId": "3",
+      "type": "closure",
+      "description": "Descrizione sintetica dell'interruzione, come riportata dalla fonte.",
+      "start": "2026-01-01T00:00:00Z",
+      "end": "2026-01-31T00:00:00Z",
+      "source": "Nome della fonte ufficiale (obbligatorio)",
+      "url": "https://esempio.comune.pesaro.pu.it/avviso"
+    }
+  ]
+}

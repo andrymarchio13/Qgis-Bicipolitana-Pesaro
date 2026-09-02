@@ -1,0 +1,1556 @@
+{
+  "generated_at": "2026-08-31T19:57:16+00:00",
+  "project": "Bicipolitana Pesaro",
+  "source_project": "Pesaro2026.qgz",
+  "crs_source": "EPSG:3004",
+  "crs_web": "EPSG:4326",
+  "layers": [
+    {
+      "key": "linee",
+      "file": "Linee_bicipolitana.gpkg",
+      "layer": "linee_bicipolitana",
+      "feature_count": 18,
+      "geometry_types": {
+        "MultiLineString": 18
+      },
+      "crs_declared": "EPSG:3004",
+      "crs_matches_project": true,
+      "bbox_metric_epsg3004": [
+        2346251.08,
+        4860685.25,
+        2356289.41,
+        4865420.7
+      ],
+      "bbox_wgs84": [
+        12.837214,
+        43.878672,
+        12.960627,
+        43.923577
+      ],
+      "null_geometries": [],
+      "empty_geometries": [
+        3
+      ],
+      "invalid_geometries": [],
+      "attribute_fields_total": 1,
+      "attribute_fields_populated": 1,
+      "populated_fields": {
+        "Nome_Linea": 18
+      },
+      "total_length_m": 61058.7,
+      "exact_duplicate_geometries": []
+    },
+    {
+      "key": "servizi",
+      "file": "servizi_bicipolitana.gpkg",
+      "layer": "servizi_bicipolitana",
+      "feature_count": 35,
+      "geometry_types": {
+        "Point": 35
+      },
+      "crs_declared": "EPSG:3004",
+      "crs_matches_project": true,
+      "bbox_metric_epsg3004": [
+        2349086.25,
+        4861911.26,
+        2354771.44,
+        4865012.87
+      ],
+      "bbox_wgs84": [
+        12.872086,
+        43.890365,
+        12.941857,
+        43.919568
+      ],
+      "null_geometries": [],
+      "empty_geometries": [],
+      "invalid_geometries": [],
+      "attribute_fields_total": 30,
+      "attribute_fields_populated": 30,
+      "populated_fields": {
+        "full_id": 35,
+        "osm_id": 35,
+        "osm_type": 35,
+        "amenity": 31,
+        "man_made": 10,
+        "name": 5,
+        "check_date": 4,
+        "shop": 4,
+        "wheelchair": 3,
+        "addr:street": 3,
+        "covered": 2,
+        "bicycle_parking": 2,
+        "addr:postcode": 2,
+        "fee": 2,
+        "access": 2,
+        "addr:housenumber": 2,
+        "operator": 2,
+        "network": 2,
+        "addr:city": 1,
+        "capacity": 1,
+        "bottle": 1,
+        "service:bicycle:repair": 1,
+        "service:bicycle:pump": 1,
+        "payment:debit_cards": 1,
+        "payment:credit_cards": 1,
+        "payment:cash": 1,
+        "internet_access": 1,
+        "currency:EUR": 1,
+        "description": 1,
+        "bicycle_rental": 1
+      },
+      "exact_duplicate_geometries": []
+    },
+    {
+      "key": "ostacoli",
+      "file": "Ostacoli.gpkg",
+      "layer": "ostacoli_bicipolitana",
+      "feature_count": 31,
+      "geometry_types": {
+        "Point": 31
+      },
+      "crs_declared": "EPSG:3004",
+      "crs_matches_project": true,
+      "bbox_metric_epsg3004": [
+        2350219.23,
+        4862054.29,
+        2353154.11,
+        4865395.31
+      ],
+      "bbox_wgs84": [
+        12.886136,
+        43.891914,
+        12.921605,
+        43.922645
+      ],
+      "null_geometries": [],
+      "empty_geometries": [],
+      "invalid_geometries": [],
+      "attribute_fields_total": 12,
+      "attribute_fields_populated": 12,
+      "populated_fields": {
+        "full_id": 31,
+        "osm_id": 31,
+        "osm_type": 31,
+        "barrier": 31,
+        "foot": 26,
+        "bicycle": 23,
+        "maxwidth": 3,
+        "cycle_barrier:installation": 3,
+        "cycle_barrier": 3,
+        "locked": 2,
+        "access": 2,
+        "barrier:type": 1
+      },
+      "exact_duplicate_geometries": []
+    },
+    {
+      "key": "svago",
+      "file": "Svago.gpkg",
+      "layer": "punti_svago",
+      "feature_count": 12,
+      "geometry_types": {
+        "Point": 12
+      },
+      "crs_declared": "EPSG:3004",
+      "crs_matches_project": true,
+      "bbox_metric_epsg3004": [
+        2349577.05,
+        4861767.11,
+        2355147.42,
+        4866026.98
+      ],
+      "bbox_wgs84": [
+        12.878239,
+        43.889182,
+        12.946223,
+        43.928777
+      ],
+      "null_geometries": [],
+      "empty_geometries": [],
+      "invalid_geometries": [],
+      "attribute_fields_total": 14,
+      "attribute_fields_populated": 14,
+      "populated_fields": {
+        "full_id": 12,
+        "osm_id": 12,
+        "osm_type": 12,
+        "tourism": 9,
+        "leisure": 3,
+        "wheelchair": 2,
+        "description:it": 2,
+        "viewpoint": 1,
+        "fee": 1,
+        "man_made": 1,
+        "direction": 1,
+        "material": 1,
+        "backrest": 1,
+        "amenity": 1
+      },
+      "exact_duplicate_geometries": []
+    },
+    {
+      "key": "strade",
+      "file": "Strade_Pesaro.gpkg",
+      "layer": "strade",
+      "feature_count": 5208,
+      "geometry_types": {
+        "LineString": 5208
+      },
+      "crs_declared": "EPSG:3004",
+      "crs_matches_project": true,
+      "bbox_metric_epsg3004": [
+        2345795.62,
+        4856034.41,
+        2358939.17,
+        4866930.05
+      ],
+      "bbox_wgs84": [
+        12.833065,
+        43.83672,
+        12.993157,
+        43.937742
+      ],
+      "null_geometries": [],
+      "empty_geometries": [],
+      "invalid_geometries": [],
+      "attribute_fields_total": 123,
+      "attribute_fields_populated": 123,
+      "populated_fields": {
+        "full_id": 5208,
+        "osm_id": 5208,
+        "osm_type": 5208,
+        "highway": 5208,
+        "surface": 3752,
+        "name": 2588,
+        "oneway": 1693,
+        "lit": 1072,
+        "service": 735,
+        "lanes": 712,
+        "foot": 447,
+        "maxspeed": 409,
+        "segregated": 356,
+        "bicycle": 259,
+        "sidewalk": 239,
+        "ref": 201,
+        "lane_markings": 145,
+        "cycleway:both": 136,
+        "maxspeed:type": 126,
+        "layer": 125,
+        "alt_name": 119,
+        "cycleway:right": 87,
+        "junction": 87,
+        "short_name": 83,
+        "check_date:surface": 82,
+        "nat_name": 77,
+        "access": 76,
+        "width": 70,
+        "cycleway:surface": 70,
+        "bridge": 69,
+        "smoothness": 66,
+        "reg_name": 60,
+        "footway:surface": 59,
+        "cycleway": 56,
+        "tunnel": 50,
+        "mtb:scale": 42,
+        "sidewalk:both": 42,
+        "tracktype": 40,
+        "lanes:forward": 38,
+        "lanes:backward": 34,
+        "maxheight": 32,
+        "old_ref": 29,
+        "horse": 22,
+        "motor_vehicle": 20,
+        "vehicle": 19,
+        "sac_scale": 19,
+        "hgv": 18,
+        "covered": 17,
+        "cycleway:left": 17,
+        "oneway:bicycle": 15,
+        "maxweight:signed": 13,
+        "source:maxspeed": 12,
+        "parking:lane:both": 12,
+        "parking:right": 12,
+        "shoulder": 12,
+        "motorcycle": 11,
+        "trail_visibility": 11,
+        "parking:right:orientation": 11,
+        "check_date:cycleway:surface": 10,
+        "cutting": 10,
+        "maxweight": 10,
+        "check_date:footway:surface": 9,
+        "embankment": 9,
+        "mtb:scale:uphill": 9,
+        "parking:both:orientation": 8,
+        "parking:both": 8,
+        "parking:lane:right": 8,
+        "psv": 8,
+        "incline": 8,
+        "bus": 7,
+        "access:conditional": 6,
+        "bridge:name": 6,
+        "oneway:bus": 5,
+        "busway:left": 5,
+        "parking:lane:left": 5,
+        "maxheight:signed": 4,
+        "cycleway:right:lane": 4,
+        "mtb:scale:imba": 3,
+        "parking:left": 3,
+        "cycleway:width": 3,
+        "parking:condition:both:vehicles": 3,
+        "oneway:psv": 3,
+        "cycleway:both:lane": 3,
+        "parking:condition:both": 3,
+        "informal": 2,
+        "toilets": 2,
+        "path": 2,
+        "lanes:bus:backward": 2,
+        "bicycle:lanes:backward": 2,
+        "access:lanes:backward": 2,
+        "old_name": 2,
+        "tourist_bus": 2,
+        "maxwidth": 2,
+        "motor_vehicle:conditional": 2,
+        "bridge:structure": 2,
+        "abandoned:highway": 2,
+        "cycleway:left:oneway": 2,
+        "name:etymology:wikidata": 2,
+        "description": 1,
+        "maxweightrating": 1,
+        "height": 1,
+        "oneway:emergency": 1,
+        "bus:lanes:backward": 1,
+        "maxweightrating:hgv": 1,
+        "sidewalk:right:surface": 1,
+        "sidewalk:right": 1,
+        "motorhome": 1,
+        "parking:left:orientation": 1,
+        "emergency": 1,
+        "cycleway:left:lanes": 1,
+        "parking:condition:right": 1,
+        "cycleway:right:oneway": 1,
+        "taxi": 1,
+        "busway:right": 1,
+        "maxspeed:conditional": 1,
+        "wheelchair": 1,
+        "priority": 1,
+        "flood_prone": 1,
+        "check_date:smoothness": 1,
+        "wikipedia": 1,
+        "wikidata": 1,
+        "name:bridge": 1,
+        "disused:highway": 1
+      },
+      "total_length_m": 678802.2,
+      "exact_duplicate_geometries": []
+    }
+  ],
+  "qgis_symbology": {
+    "layers": {
+      "Linee_Bicipolitana": {
+        "renderer": "categorizedSymbol",
+        "attribute": "Nome_Linea",
+        "categories": {
+          "1": {
+            "label": "1",
+            "symbol": "0",
+            "render": "true"
+          },
+          "2": {
+            "label": "2",
+            "symbol": "1",
+            "render": "true"
+          },
+          "3": {
+            "label": "3",
+            "symbol": "2",
+            "render": "true"
+          },
+          "4": {
+            "label": "4",
+            "symbol": "3",
+            "render": "true"
+          },
+          "5": {
+            "label": "5",
+            "symbol": "4",
+            "render": "true"
+          },
+          "6": {
+            "label": "6",
+            "symbol": "5",
+            "render": "true"
+          },
+          "7": {
+            "label": "7",
+            "symbol": "6",
+            "render": "true"
+          },
+          "8": {
+            "label": "8",
+            "symbol": "7",
+            "render": "true"
+          },
+          "9": {
+            "label": "9",
+            "symbol": "8",
+            "render": "true"
+          },
+          "10": {
+            "label": "10",
+            "symbol": "9",
+            "render": "true"
+          },
+          "11": {
+            "label": "11",
+            "symbol": "10",
+            "render": "true"
+          },
+          "12": {
+            "label": "12",
+            "symbol": "11",
+            "render": "true"
+          },
+          "A": {
+            "label": "A",
+            "symbol": "12",
+            "render": "true"
+          },
+          "B": {
+            "label": "B",
+            "symbol": "13",
+            "render": "true"
+          }
+        },
+        "symbol_colors": {
+          "0": "227,26,28,255,rgb:0.8901961,0.1019608,0.1098039,1",
+          "1": "31,120,180,255,rgb:0.1215686,0.4705882,0.7058824,1",
+          "10": "160,16,14,255,hsv:0.00186111111111111,0.91242847333485921,0.62609292744335088,1",
+          "11": "253,191,111,255,rgb:0.9921569,0.7490196,0.4352941,1",
+          "12": "255,127,0,255,rgb:1,0.4980392,0,1",
+          "13": "104,83,43,255,hsv:0.108,0.58355077439536129,0.40744640268558785,1",
+          "2": "51,160,44,255,rgb:0.2,0.627451,0.172549,1",
+          "3": "166,199,138,255,hsv:0.25488888888888889,0.30592813000686658,0.77857633325703823,1",
+          "4": "31,120,180,255,rgb:0.1215686,0.4705882,0.7058824,1",
+          "5": "246,233,83,255,hsv:0.15294444444444444,0.66274509803921566,0.96470588235294119,1",
+          "6": "208,41,178,255,hsv:0.86319444444444449,0.80210574502174414,0.81687647821774623,1",
+          "7": "204,78,195,255,hsv:0.84516666666666662,0.61568627450980395,0.80000000000000004,1",
+          "8": "218,167,206,255,hsv:0.87369444444444444,0.23759822995345997,0.85661097123674368,1",
+          "9": "28,81,25,255,hsv:0.32327777777777778,0.69196612497138932,0.31723506523231859,1"
+        }
+      },
+      "Ostacoli_bicipolitana": {
+        "renderer": "RuleRenderer",
+        "attribute": null,
+        "categories": {},
+        "symbol_colors": {
+          "0": "35,35,35,255,rgb:0.1372549,0.1372549,0.1372549,1",
+          "1": "0,0,0,255,rgb:0,0,0,1",
+          "2": "227,26,28,255,rgb:0.8901961,0.1019608,0.1098039,1"
+        }
+      },
+      "Punti_svago": {
+        "renderer": "RuleRenderer",
+        "attribute": null,
+        "categories": {},
+        "symbol_colors": {
+          "0": "114,155,111,255,rgb:0.4470588,0.6078431,0.4352941,1",
+          "1": "18,82,75,255,hsv:0.48072222222222222,0.7766231784542611,0.32159914549477381,1",
+          "2": "253,191,111,255,rgb:0.9921569,0.7490196,0.4352941,1",
+          "3": "196,206,94,255,hsv:0.18194444444444444,0.54641031509880211,0.80968947890440224,1"
+        }
+      },
+      "Servizi_bicipolitana": {
+        "renderer": "RuleRenderer",
+        "attribute": null,
+        "categories": {},
+        "symbol_colors": {
+          "0": "31,120,180,255,rgb:0.1215686,0.4705882,0.7058824,1",
+          "1": "51,160,44,255,rgb:0.2,0.627451,0.172549,1",
+          "2": "255,127,0,255,rgb:1,0.4980392,0,1",
+          "3": "16,114,166,255,hsv:0.55738888888888893,0.90214389257648586,0.65038529030289161,1"
+        }
+      },
+      "Strade": {
+        "renderer": "singleSymbol",
+        "attribute": null,
+        "categories": {},
+        "symbol_colors": {
+          "0": "220,197,186,255,hsv:0.05483333333333333,0.15371938658731976,0.86303501945525296,1"
+        }
+      }
+    },
+    "readable": true
+  },
+  "bicipolitana_topology": {
+    "snap_tolerance_m": 5.0,
+    "gap_report_threshold_m": 30.0,
+    "distinct_lines": 15,
+    "line_ids": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "11",
+      "12",
+      "13",
+      "A",
+      "B"
+    ],
+    "lines": [
+      {
+        "id": "1",
+        "source_features": [
+          0
+        ],
+        "empty_features": [],
+        "raw_parts": 1,
+        "merged_parts": 1,
+        "contiguous": true,
+        "length_m": 3833.3,
+        "length_km": 3.83,
+        "endpoints": [
+          {
+            "start": [
+              12.91797,
+              43.913746
+            ],
+            "end": [
+              12.907739,
+              43.921038
+            ]
+          }
+        ],
+        "internal_gaps": [],
+        "color_from_qgis": "#e31a1c",
+        "has_qgis_category": true
+      },
+      {
+        "id": "2",
+        "source_features": [
+          1
+        ],
+        "empty_features": [],
+        "raw_parts": 1,
+        "merged_parts": 1,
+        "contiguous": true,
+        "length_m": 6257.8,
+        "length_km": 6.26,
+        "endpoints": [
+          {
+            "start": [
+              12.907746,
+              43.921036
+            ],
+            "end": [
+              12.962082,
+              43.880968
+            ]
+          }
+        ],
+        "internal_gaps": [],
+        "color_from_qgis": "#1f78b4",
+        "has_qgis_category": true
+      },
+      {
+        "id": "3",
+        "source_features": [
+          2
+        ],
+        "empty_features": [
+          3
+        ],
+        "raw_parts": 1,
+        "merged_parts": 1,
+        "contiguous": true,
+        "length_m": 9543.4,
+        "length_km": 9.54,
+        "endpoints": [
+          {
+            "start": [
+              12.897202,
+              43.921571
+            ],
+            "end": [
+              12.840301,
+              43.895518
+            ]
+          }
+        ],
+        "internal_gaps": [],
+        "color_from_qgis": "#33a02c",
+        "has_qgis_category": true
+      },
+      {
+        "id": "4",
+        "source_features": [
+          4
+        ],
+        "empty_features": [],
+        "raw_parts": 1,
+        "merged_parts": 1,
+        "contiguous": true,
+        "length_m": 2576.5,
+        "length_km": 2.58,
+        "endpoints": [
+          {
+            "start": [
+              12.915068,
+              43.908788
+            ],
+            "end": [
+              12.926883,
+              43.891945
+            ]
+          }
+        ],
+        "internal_gaps": [],
+        "color_from_qgis": "#a6c78a",
+        "has_qgis_category": true
+      },
+      {
+        "id": "5",
+        "source_features": [
+          5,
+          6
+        ],
+        "empty_features": [],
+        "raw_parts": 2,
+        "merged_parts": 2,
+        "contiguous": false,
+        "length_m": 6209.7,
+        "length_km": 6.21,
+        "endpoints": [
+          {
+            "start": [
+              12.907893,
+              43.889644
+            ],
+            "end": [
+              12.894856,
+              43.893815
+            ]
+          },
+          {
+            "start": [
+              12.931256,
+              43.90358
+            ],
+            "end": [
+              12.905141,
+              43.882071
+            ]
+          }
+        ],
+        "internal_gaps": [
+          {
+            "between_parts": [
+              0,
+              1
+            ],
+            "distance_m": 0.0,
+            "within_snap_tolerance": true
+          }
+        ],
+        "color_from_qgis": "#1f78b4",
+        "has_qgis_category": true
+      },
+      {
+        "id": "6",
+        "source_features": [
+          7
+        ],
+        "empty_features": [],
+        "raw_parts": 1,
+        "merged_parts": 1,
+        "contiguous": true,
+        "length_m": 1152.6,
+        "length_km": 1.15,
+        "endpoints": [
+          {
+            "start": [
+              12.907579,
+              43.905852
+            ],
+            "end": [
+              12.908657,
+              43.897424
+            ]
+          }
+        ],
+        "internal_gaps": [],
+        "color_from_qgis": "#f6e953",
+        "has_qgis_category": true
+      },
+      {
+        "id": "7",
+        "source_features": [
+          8,
+          9
+        ],
+        "empty_features": [],
+        "raw_parts": 2,
+        "merged_parts": 2,
+        "contiguous": false,
+        "length_m": 5358.3,
+        "length_km": 5.36,
+        "endpoints": [
+          {
+            "start": [
+              12.899393,
+              43.893095
+            ],
+            "end": [
+              12.873139,
+              43.888143
+            ]
+          },
+          {
+            "start": [
+              12.904553,
+              43.903808
+            ],
+            "end": [
+              12.90826,
+              43.891466
+            ]
+          }
+        ],
+        "internal_gaps": [
+          {
+            "between_parts": [
+              0,
+              1
+            ],
+            "distance_m": 0.0,
+            "within_snap_tolerance": true
+          }
+        ],
+        "color_from_qgis": "#d029b2",
+        "has_qgis_category": true
+      },
+      {
+        "id": "8",
+        "source_features": [
+          10
+        ],
+        "empty_features": [],
+        "raw_parts": 1,
+        "merged_parts": 1,
+        "contiguous": true,
+        "length_m": 1796.4,
+        "length_km": 1.8,
+        "endpoints": [
+          {
+            "start": [
+              12.907305,
+              43.905923
+            ],
+            "end": [
+              12.893565,
+              43.895
+            ]
+          }
+        ],
+        "internal_gaps": [],
+        "color_from_qgis": "#cc4ec3",
+        "has_qgis_category": true
+      },
+      {
+        "id": "9",
+        "source_features": [
+          11
+        ],
+        "empty_features": [],
+        "raw_parts": 1,
+        "merged_parts": 1,
+        "contiguous": true,
+        "length_m": 2247.2,
+        "length_km": 2.25,
+        "endpoints": [
+          {
+            "start": [
+              12.904603,
+              43.903796
+            ],
+            "end": [
+              12.885098,
+              43.895632
+            ]
+          }
+        ],
+        "internal_gaps": [],
+        "color_from_qgis": "#daa7ce",
+        "has_qgis_category": true
+      },
+      {
+        "id": "10",
+        "source_features": [
+          12
+        ],
+        "empty_features": [],
+        "raw_parts": 1,
+        "merged_parts": 1,
+        "contiguous": true,
+        "length_m": 2446.0,
+        "length_km": 2.45,
+        "endpoints": [
+          {
+            "start": [
+              12.895571,
+              43.909868
+            ],
+            "end": [
+              12.884975,
+              43.895554
+            ]
+          }
+        ],
+        "internal_gaps": [],
+        "color_from_qgis": "#1c5119",
+        "has_qgis_category": true
+      },
+      {
+        "id": "11",
+        "source_features": [
+          13
+        ],
+        "empty_features": [],
+        "raw_parts": 1,
+        "merged_parts": 1,
+        "contiguous": true,
+        "length_m": 2642.6,
+        "length_km": 2.64,
+        "endpoints": [
+          {
+            "start": [
+              12.906011,
+              43.90641
+            ],
+            "end": [
+              12.877093,
+              43.910944
+            ]
+          }
+        ],
+        "internal_gaps": [],
+        "color_from_qgis": "#a0100e",
+        "has_qgis_category": true
+      },
+      {
+        "id": "12",
+        "source_features": [
+          14
+        ],
+        "empty_features": [],
+        "raw_parts": 1,
+        "merged_parts": 1,
+        "contiguous": true,
+        "length_m": 1531.8,
+        "length_km": 1.53,
+        "endpoints": [
+          {
+            "start": [
+              12.869384,
+              43.910242
+            ],
+            "end": [
+              12.875999,
+              43.907823
+            ]
+          }
+        ],
+        "internal_gaps": [],
+        "color_from_qgis": "#fdbf6f",
+        "has_qgis_category": true
+      },
+      {
+        "id": "13",
+        "source_features": [
+          15
+        ],
+        "empty_features": [],
+        "raw_parts": 1,
+        "merged_parts": 1,
+        "contiguous": true,
+        "length_m": 6157.4,
+        "length_km": 6.16,
+        "endpoints": [
+          {
+            "start": [
+              12.860561,
+              43.916146
+            ],
+            "end": [
+              12.919495,
+              43.896851
+            ]
+          }
+        ],
+        "internal_gaps": [],
+        "color_from_qgis": null,
+        "has_qgis_category": false
+      },
+      {
+        "id": "A",
+        "source_features": [
+          16
+        ],
+        "empty_features": [],
+        "raw_parts": 1,
+        "merged_parts": 1,
+        "contiguous": true,
+        "length_m": 6270.9,
+        "length_km": 6.27,
+        "endpoints": [
+          {
+            "start": [
+              12.860586,
+              43.916123
+            ],
+            "end": [
+              12.921164,
+              43.897324
+            ]
+          }
+        ],
+        "internal_gaps": [],
+        "color_from_qgis": "#ff7f00",
+        "has_qgis_category": true
+      },
+      {
+        "id": "B",
+        "source_features": [
+          17
+        ],
+        "empty_features": [],
+        "raw_parts": 1,
+        "merged_parts": 1,
+        "contiguous": true,
+        "length_m": 3034.8,
+        "length_km": 3.03,
+        "endpoints": [
+          {
+            "start": [
+              12.899402,
+              43.890068
+            ],
+            "end": [
+              12.932461,
+              43.887102
+            ]
+          }
+        ],
+        "internal_gaps": [],
+        "color_from_qgis": "#68532b",
+        "has_qgis_category": true
+      }
+    ],
+    "unusable_features": [
+      {
+        "feature": 3,
+        "line": "3",
+        "reason": "geometria nulla o vuota - esclusa dal routing"
+      }
+    ],
+    "intersections": [
+      {
+        "lines": [
+          "1",
+          "11"
+        ],
+        "type": "near-miss (entro tolleranza di snap)",
+        "distance_m": 2.48,
+        "point_wgs84": [
+          12.903252,
+          43.911406
+        ]
+      },
+      {
+        "lines": [
+          "1",
+          "2"
+        ],
+        "type": "crossing",
+        "distance_m": 0.0,
+        "point_wgs84": [
+          12.917939,
+          43.913724
+        ]
+      },
+      {
+        "lines": [
+          "1",
+          "4"
+        ],
+        "type": "crossing",
+        "distance_m": 0.0,
+        "point_wgs84": [
+          12.915069,
+          43.908777
+        ]
+      },
+      {
+        "lines": [
+          "1",
+          "6"
+        ],
+        "type": "near-miss (entro tolleranza di snap)",
+        "distance_m": 1.35,
+        "point_wgs84": [
+          12.907593,
+          43.905862
+        ]
+      },
+      {
+        "lines": [
+          "1",
+          "8"
+        ],
+        "type": "near-miss (entro tolleranza di snap)",
+        "distance_m": 3.0,
+        "point_wgs84": [
+          12.906346,
+          43.906137
+        ]
+      },
+      {
+        "lines": [
+          "10",
+          "11"
+        ],
+        "type": "crossing",
+        "distance_m": 0.0,
+        "point_wgs84": [
+          12.894669,
+          43.908827
+        ]
+      },
+      {
+        "lines": [
+          "10",
+          "13"
+        ],
+        "type": "crossing",
+        "distance_m": 0.0,
+        "point_wgs84": [
+          12.890313,
+          43.904426
+        ]
+      },
+      {
+        "lines": [
+          "10",
+          "3"
+        ],
+        "type": "crossing",
+        "distance_m": 0.0,
+        "point_wgs84": [
+          12.891226,
+          43.903919
+        ]
+      },
+      {
+        "lines": [
+          "10",
+          "A"
+        ],
+        "type": "crossing",
+        "distance_m": 0.0,
+        "point_wgs84": [
+          12.889652,
+          43.905429
+        ]
+      },
+      {
+        "lines": [
+          "11",
+          "3"
+        ],
+        "type": "crossing",
+        "distance_m": 0.0,
+        "point_wgs84": [
+          12.897103,
+          43.908013
+        ]
+      },
+      {
+        "lines": [
+          "12",
+          "13"
+        ],
+        "type": "crossing",
+        "distance_m": 0.0,
+        "point_wgs84": [
+          12.870826,
+          43.909039
+        ]
+      },
+      {
+        "lines": [
+          "12",
+          "3"
+        ],
+        "type": "crossing",
+        "distance_m": 0.0,
+        "point_wgs84": [
+          12.875991,
+          43.907817
+        ]
+      },
+      {
+        "lines": [
+          "12",
+          "A"
+        ],
+        "type": "crossing",
+        "distance_m": 0.0,
+        "point_wgs84": [
+          12.870608,
+          43.90897
+        ]
+      },
+      {
+        "lines": [
+          "13",
+          "3"
+        ],
+        "type": "crossing",
+        "distance_m": 0.0,
+        "point_wgs84": [
+          12.89123,
+          43.903921
+        ]
+      },
+      {
+        "lines": [
+          "13",
+          "5"
+        ],
+        "type": "crossing",
+        "distance_m": 0.0,
+        "point_wgs84": [
+          12.910595,
+          43.89598
+        ]
+      },
+      {
+        "lines": [
+          "13",
+          "7"
+        ],
+        "type": "crossing",
+        "distance_m": 0.0,
+        "point_wgs84": [
+          12.898567,
+          43.899022
+        ]
+      },
+      {
+        "lines": [
+          "13",
+          "8"
+        ],
+        "type": "crossing",
+        "distance_m": 0.0,
+        "point_wgs84": [
+          12.897837,
+          43.899501
+        ]
+      },
+      {
+        "lines": [
+          "13",
+          "9"
+        ],
+        "type": "crossing",
+        "distance_m": 0.0,
+        "point_wgs84": [
+          12.894094,
+          43.902138
+        ]
+      },
+      {
+        "lines": [
+          "13",
+          "A"
+        ],
+        "type": "crossing",
+        "distance_m": 0.0,
+        "point_wgs84": [
+          12.883129,
+          43.906659
+        ]
+      },
+      {
+        "lines": [
+          "2",
+          "5"
+        ],
+        "type": "crossing",
+        "distance_m": 0.0,
+        "point_wgs84": [
+          12.930981,
+          43.90452
+        ]
+      },
+      {
+        "lines": [
+          "3",
+          "A"
+        ],
+        "type": "crossing",
+        "distance_m": 0.0,
+        "point_wgs84": [
+          12.891336,
+          43.904029
+        ]
+      },
+      {
+        "lines": [
+          "4",
+          "5"
+        ],
+        "type": "crossing",
+        "distance_m": 0.0,
+        "point_wgs84": [
+          12.917672,
+          43.904693
+        ]
+      },
+      {
+        "lines": [
+          "5",
+          "7"
+        ],
+        "type": "crossing",
+        "distance_m": 0.0,
+        "point_wgs84": [
+          12.908245,
+          43.891481
+        ]
+      },
+      {
+        "lines": [
+          "5",
+          "A"
+        ],
+        "type": "crossing",
+        "distance_m": 0.0,
+        "point_wgs84": [
+          12.910597,
+          43.895987
+        ]
+      },
+      {
+        "lines": [
+          "5",
+          "B"
+        ],
+        "type": "crossing",
+        "distance_m": 0.0,
+        "point_wgs84": [
+          12.909452,
+          43.887149
+        ]
+      },
+      {
+        "lines": [
+          "7",
+          "8"
+        ],
+        "type": "near-miss (entro tolleranza di snap)",
+        "distance_m": 1.91,
+        "point_wgs84": [
+          12.893536,
+          43.894998
+        ]
+      },
+      {
+        "lines": [
+          "7",
+          "9"
+        ],
+        "type": "crossing",
+        "distance_m": 0.0,
+        "point_wgs84": [
+          12.902955,
+          43.90265
+        ]
+      },
+      {
+        "lines": [
+          "7",
+          "A"
+        ],
+        "type": "crossing",
+        "distance_m": 0.0,
+        "point_wgs84": [
+          12.898547,
+          43.899058
+        ]
+      },
+      {
+        "lines": [
+          "8",
+          "9"
+        ],
+        "type": "crossing",
+        "distance_m": 0.0,
+        "point_wgs84": [
+          12.902422,
+          43.902245
+        ]
+      },
+      {
+        "lines": [
+          "8",
+          "A"
+        ],
+        "type": "crossing",
+        "distance_m": 0.0,
+        "point_wgs84": [
+          12.897829,
+          43.899495
+        ]
+      },
+      {
+        "lines": [
+          "9",
+          "A"
+        ],
+        "type": "crossing",
+        "distance_m": 0.0,
+        "point_wgs84": [
+          12.894133,
+          43.902153
+        ]
+      }
+    ],
+    "network_nodes_approx": 31,
+    "network_edges_approx": 17,
+    "endpoint_connected_components": 14,
+    "endpoint_component_sizes": [
+      3,
+      3,
+      3,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2
+    ],
+    "lines_without_qgis_color": [
+      "13"
+    ],
+    "duplicate_colors": [
+      {
+        "color": "#1f78b4",
+        "lines": [
+          "2",
+          "5"
+        ]
+      }
+    ]
+  },
+  "road_network": {
+    "edges": 5208,
+    "length_km": 678.8,
+    "highway": {
+      "service": 1724,
+      "residential": 1543,
+      "unclassified": 456,
+      "tertiary": 376,
+      "cycleway": 355,
+      "path": 252,
+      "primary": 243,
+      "track": 155,
+      "secondary": 98,
+      "services": 5,
+      "secondary_link": 1
+    },
+    "named_edges": 2588,
+    "cycling_tags": {
+      "bicycle": {
+        "designated": 185,
+        "yes": 36,
+        "no": 18,
+        "permissive": 13,
+        "dismount": 4,
+        "destination": 1,
+        "private": 1,
+        "permit": 1
+      },
+      "cycleway": {
+        "crossing": 45,
+        "no": 5,
+        "lane": 4,
+        "separate": 2
+      },
+      "cycleway:both": {
+        "no": 103,
+        "shoulder": 29,
+        "lane": 3,
+        "separate": 1
+      },
+      "cycleway:left": {
+        "share_busway": 6,
+        "separate": 5,
+        "lane": 5,
+        "no": 1
+      },
+      "cycleway:right": {
+        "no": 62,
+        "lane": 18,
+        "separate": 7
+      },
+      "surface": {
+        "asphalt": 3277,
+        "sett": 185,
+        "paved": 115,
+        "unpaved": 32,
+        "concrete": 29,
+        "ground": 28,
+        "paving_stones": 25,
+        "compacted": 25,
+        "fine_gravel": 10,
+        "gravel": 7,
+        "earth": 7,
+        "grass": 6
+      },
+      "maxspeed": {
+        "50": 226,
+        "30": 145,
+        "20": 20,
+        "70": 9,
+        "40": 4,
+        "60": 3,
+        "5": 2
+      },
+      "oneway": {
+        "yes": 1496,
+        "no": 196,
+        "alternating": 1
+      },
+      "access": {
+        "private": 47,
+        "no": 18,
+        "destination": 6,
+        "customers": 2,
+        "yes": 1,
+        "permissive": 1,
+        "permit": 1
+      },
+      "segregated": {
+        "no": 232,
+        "yes": 124
+      },
+      "lit": {
+        "yes": 1053,
+        "no": 19
+      },
+      "smoothness": {
+        "good": 45,
+        "excellent": 7,
+        "intermediate": 7,
+        "very_bad": 3,
+        "bad": 2,
+        "horrible": 2
+      }
+    }
+  },
+  "poi_categories": {
+    "servizi": {
+      "amenity": {
+        "drinking_water": 26,
+        "bicycle_parking": 3,
+        "bicycle_rental": 2
+      },
+      "shop": {
+        "bicycle": 4
+      },
+      "man_made": {
+        "water_tap": 10
+      },
+      "bicycle_parking": {
+        "stands": 2
+      },
+      "bicycle_rental": {
+        "dropoff_point": 1
+      },
+      "service:bicycle:repair": {
+        "yes": 1
+      },
+      "service:bicycle:pump": {
+        "yes": 1
+      },
+      "access": {
+        "yes": 2
+      },
+      "fee": {
+        "no": 2
+      }
+    },
+    "ostacoli": {
+      "barrier": {
+        "cycle_barrier": 31
+      },
+      "cycle_barrier": {
+        "double": 2,
+        "triple": 1
+      },
+      "bicycle": {
+        "yes": 16,
+        "dismount": 6,
+        "no": 1
+      },
+      "foot": {
+        "yes": 26
+      },
+      "access": {
+        "no": 2
+      },
+      "maxwidth": {
+        "1": 3
+      },
+      "locked": {
+        "no": 2
+      }
+    },
+    "svago": {
+      "leisure": {
+        "park": 3
+      },
+      "tourism": {
+        "viewpoint": 8,
+        "picnic_site": 1
+      },
+      "amenity": {
+        "bench": 1
+      },
+      "man_made": {
+        "optical_viewer": 1
+      }
+    }
+  },
+  "blocking_issues": [],
+  "warnings": [
+    "Layer `linee_bicipolitana`: 0 geometrie nulle e 1 vuote — escluse dalle elaborazioni.",
+    "Linee prive di colore nella simbologia QGIS: 13",
+    "Colore #1f78b4 condiviso da linee 2, 5.",
+    "La rete Bicipolitana ha 14 componenti non connesse a livello di estremi; la connessione effettiva passa dai 31 attraversamenti fra linee, nodalizzati nel grafo di routing."
+  ],
+  "passed": true
+}

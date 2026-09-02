@@ -1,0 +1,89 @@
+name: Build e deploy su GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  # Permette di lanciare il deploy a mano dalla scheda Actions.
+  workflow_dispatch:
+
+# Un solo deploy alla volta; una nuova push non annulla quella in corso.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    name: Lint, test e build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del repository
+        uses: actions/checkout@v4
+
+      - name: Configura Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Installa le dipendenze
+        run: npm ci
+
+      - name: Verifica che i dati pubblicati siano presenti
+        # I dati sono versionati: la pipeline Python gira in locale, non in CI.
+        # Qui si verifica solo che non manchi nulla al frontend.
+        run: |
+          for file in graph.json lines.json metadata.json \
+                      linee_bicipolitana.geojson servizi.geojson \
+                      ostacoli.geojson svago.geojson strade.geojson; do
+            if [ ! -f "public/data/$file" ]; then
+              echo "::error::File dati mancante: public/data/$file — esegui 'npm run data' in locale."
+              exit 1
+            fi
+          done
+          echo "Tutti i file dati sono presenti."
+
+      - name: Controllo statico del codice
+        run: npm run lint
+
+      - name: Controllo dei tipi
+        run: npx tsc --noEmit
+
+      - name: Test
+        run: npm test
+
+      - name: Build di produzione
+        # Il percorso base corrisponde al nome del repository, così il sito
+        # funziona nella sottocartella servita da GitHub Pages.
+        run: npm run build
+        env:
+          BASE_PATH: /${{ github.event.repository.name }}/
+
+      - name: Pagina 404 per il fallback delle rotte
+        # L'app usa HashRouter, ma una 404 coerente evita pagine bianche se
+        # qualcuno apre un URL non previsto.
+        run: cp dist/index.html dist/404.html
+
+      - name: Configura GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Carica l'artefatto
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    name: Pubblicazione
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy su GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

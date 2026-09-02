@@ -1,0 +1,29 @@
+# dipendenze
+node_modules/
+
+# build
+dist/
+dist-ssr/
+*.local
+
+# ambiente: mai committare chiavi o segreti
+.env
+certs/
+.env.*
+!.env.example
+
+# editor / sistema
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# output intermedi della pipeline GIS (rigenerabili con `npm run data`)
+data/processed/

@@ -1,0 +1,96 @@
+{
+  "project": "Bicipolitana Pesaro",
+  "generatedAt": "2026-08-31T19:57:25+00:00",
+  "pipeline": [
+    {
+      "step": "validate-gis.py",
+      "generatedAt": "2026-08-31T19:57:16+00:00",
+      "passed": true,
+      "warnings": 4,
+      "blocking": 0
+    },
+    {
+      "step": "convert-gpkg.py",
+      "generatedAt": "2026-08-31T19:57:18+00:00",
+      "counts": {
+        "lines": 15,
+        "lineFeatures": 15,
+        "servizi": 35,
+        "ostacoli": 31,
+        "svago": 12,
+        "stradeRouting": 5208,
+        "stradeCiclabiliVisualizzate": 499
+      }
+    },
+    {
+      "step": "build-routing-graph.py",
+      "generatedAt": "2026-08-31T19:57:24+00:00",
+      "nodes": 9335,
+      "edges": 12674,
+      "components": 1
+    }
+  ],
+  "crs": {
+    "original": "EPSG:3004",
+    "web": "EPSG:4326"
+  },
+  "sources": [
+    "Comune di Pesaro (rete Bicipolitana digitalizzata nel progetto QGIS)",
+    "OpenStreetMap contributors (rete stradale, servizi, ostacoli, punti di svago)",
+    "Regione Marche (ortofoto/CTR di supporto alla digitalizzazione)"
+  ],
+  "attribution": "© OpenStreetMap contributors",
+  "estimates": {
+    "cyclingSpeedKmh": 15.0,
+    "note": "I tempi mostrati nell'app sono stime basate su una velocita' media costante, non su misure di percorrenza reali."
+  },
+  "publishedFiles": [
+    {
+      "file": "linee_bicipolitana.geojson",
+      "bytes": 21356,
+      "gzipBytes": 6190
+    },
+    {
+      "file": "servizi.geojson",
+      "bytes": 12425,
+      "gzipBytes": 1961
+    },
+    {
+      "file": "ostacoli.geojson",
+      "bytes": 14015,
+      "gzipBytes": 1437
+    },
+    {
+      "file": "svago.geojson",
+      "bytes": 3952,
+      "gzipBytes": 796
+    },
+    {
+      "file": "strade.geojson",
+      "bytes": 166481,
+      "gzipBytes": 25142
+    },
+    {
+      "file": "lines.json",
+      "bytes": 13709,
+      "gzipBytes": 1396
+    },
+    {
+      "file": "metadata.json",
+      "bytes": 1851,
+      "gzipBytes": 822
+    },
+    {
+      "file": "graph.json",
+      "bytes": 2282572,
+      "gzipBytes": 467718
+    }
+  ],
+  "totalBytes": 2516361,
+  "totalGzipBytes": 505462,
+  "notPublished": {
+    "data/processed/strade_routing.geojson": "rete stradale completa: usata solo per costruire il grafo",
+    "data/raw/*.gpkg": "dati GIS originali: conservati intatti nel repository, non serviti al browser",
+    "RASTER/*.tif": "ortofoto e CTR: utili in QGIS, non necessari al frontend"
+  }
+}

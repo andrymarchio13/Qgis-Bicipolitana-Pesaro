@@ -1,0 +1,70 @@
+{
+  "project": "Bicipolitana Pesaro",
+  "source": "QGIS project Pesaro2026",
+  "sourceFiles": [
+    "Linee_bicipolitana.gpkg",
+    "servizi_bicipolitana.gpkg",
+    "Ostacoli.gpkg",
+    "Svago.gpkg",
+    "Strade_Pesaro.gpkg"
+  ],
+  "crsOriginal": "EPSG:3004",
+  "webCrs": "EPSG:4326",
+  "metricCrs": "EPSG:3004",
+  "simplifyToleranceMeters": 1.0,
+  "generatedAt": "2026-08-31T19:57:18+00:00",
+  "sources": [
+    "Comune di Pesaro (rete Bicipolitana digitalizzata nel progetto QGIS)",
+    "OpenStreetMap contributors (rete stradale, servizi, ostacoli, punti di svago)",
+    "Regione Marche (ortofoto/CTR di supporto alla digitalizzazione)"
+  ],
+  "attribution": "© OpenStreetMap contributors",
+  "counts": {
+    "lines": 15,
+    "lineFeatures": 15,
+    "servizi": 35,
+    "ostacoli": 31,
+    "svago": 12,
+    "stradeRouting": 5208,
+    "stradeCiclabiliVisualizzate": 499
+  },
+  "categories": {
+    "servizi": {
+      "negozio_bici": 3,
+      "fontanella": 26,
+      "noleggio": 2,
+      "officina": 1,
+      "parcheggio_bici": 3
+    },
+    "ostacoli": {
+      "barriera_ciclabile": 27,
+      "barriera_tripla": 1,
+      "chicane": 1,
+      "barriera_doppia": 2
+    },
+    "svago": {
+      "area_picnic": 1,
+      "belvedere": 8,
+      "parco": 3
+    }
+  },
+  "excludedFeatures": [
+    {
+      "feature": 3,
+      "line": "3",
+      "reason": "geometria vuota"
+    }
+  ],
+  "fileSizesBytes": {
+    "linee_bicipolitana.geojson": 21356,
+    "servizi.geojson": 12425,
+    "ostacoli.geojson": 14015,
+    "svago.geojson": 3952,
+    "strade.geojson": 166481,
+    "processed/strade_routing.geojson": 1594189
+  },
+  "estimates": {
+    "cyclingSpeedKmh": 15.0,
+    "note": "I tempi mostrati nell'app sono stime basate su una velocita' media costante, non su misure di percorrenza reali."
+  }
+}

@@ -1,0 +1,1533 @@
+{
+  "generatedAt": "2026-08-31T19:57:24+00:00",
+  "parameters": {
+    "snapToleranceMeters": 5.0,
+    "nearMissToleranceRoadToRoadMeters": 0.5,
+    "nearMissToleranceBicipolitanaMeters": 5.0,
+    "obstacleInfluenceRadiusMeters": 12.0,
+    "simplifyToleranceMeters": 1.0,
+    "cyclingSpeedKmh": 15.0,
+    "minEdgeLengthMeters": 0.3,
+    "note": "Velocita', punteggi di sicurezza e fattori di superficie sono stime euristiche documentate, non misure di campo. La pendenza non e' disponibile: il progetto GIS non contiene un modello digitale del terreno."
+  },
+  "input": {
+    "sourceEdges": 5148,
+    "bicipolitanaSourceEdges": 17,
+    "roadSourceEdges": 5131,
+    "skippedBicipolitana": [
+      {
+        "feature": 3,
+        "line": "3",
+        "reason": "geometria vuota"
+      }
+    ],
+    "skippedRoadsCount": 77,
+    "skippedRoadsReasons": {
+      "access=private": 46,
+      "bicycle=no e nessun transito a piedi": 17,
+      "access=no": 14
+    }
+  },
+  "graph": {
+    "nodes": 9335,
+    "edges": 12674,
+    "bicipolitanaEdges": 1906,
+    "roadEdges": 9979,
+    "connectorEdges": 791,
+    "mergedCoincidentNodes": 564,
+    "intersectionPoints": 8734,
+    "nearMissPairs": 1623,
+    "totalLengthKm": 716.65,
+    "bicipolitanaLengthKm": 61.05
+  },
+  "pruning": {
+    "enabled": true,
+    "componentsBefore": 517,
+    "removedComponents": 516,
+    "removedNodes": 677,
+    "removedEdges": 168,
+    "removedLengthKm": 16.76,
+    "note": "archi non raggiungibili dalla componente principale, esclusi dal grafo esportato per evitare percorsi impossibili"
+  },
+  "connectivity": {
+    "components": 1,
+    "largestComponentNodes": 9335,
+    "largestComponentShare": 1.0,
+    "isolatedNodes": 0,
+    "componentSizesTop10": [
+      9335
+    ],
+    "bicipolitanaInMainComponentKm": 61.05,
+    "bicipolitanaInMainComponentShare": 1.0,
+    "perLine": {
+      "1": {
+        "totalKm": 3.83,
+        "inMainComponentKm": 3.83,
+        "share": 1.0
+      },
+      "2": {
+        "totalKm": 6.26,
+        "inMainComponentKm": 6.26,
+        "share": 1.0
+      },
+      "3": {
+        "totalKm": 9.54,
+        "inMainComponentKm": 9.54,
+        "share": 1.0
+      },
+      "4": {
+        "totalKm": 2.58,
+        "inMainComponentKm": 2.58,
+        "share": 1.0
+      },
+      "5": {
+        "totalKm": 6.21,
+        "inMainComponentKm": 6.21,
+        "share": 1.0
+      },
+      "6": {
+        "totalKm": 1.15,
+        "inMainComponentKm": 1.15,
+        "share": 1.0
+      },
+      "7": {
+        "totalKm": 5.36,
+        "inMainComponentKm": 5.36,
+        "share": 1.0
+      },
+      "8": {
+        "totalKm": 1.8,
+        "inMainComponentKm": 1.8,
+        "share": 1.0
+      },
+      "9": {
+        "totalKm": 2.25,
+        "inMainComponentKm": 2.25,
+        "share": 1.0
+      },
+      "10": {
+        "totalKm": 2.45,
+        "inMainComponentKm": 2.45,
+        "share": 1.0
+      },
+      "11": {
+        "totalKm": 2.64,
+        "inMainComponentKm": 2.64,
+        "share": 1.0
+      },
+      "12": {
+        "totalKm": 1.53,
+        "inMainComponentKm": 1.53,
+        "share": 1.0
+      },
+      "13": {
+        "totalKm": 6.16,
+        "inMainComponentKm": 6.16,
+        "share": 1.0
+      },
+      "A": {
+        "totalKm": 6.27,
+        "inMainComponentKm": 6.27,
+        "share": 1.0
+      },
+      "B": {
+        "totalKm": 3.03,
+        "inMainComponentKm": 3.03,
+        "share": 1.0
+      }
+    }
+  },
+  "nearMissTolerances": {
+    "roadToRoadMeters": 0.5,
+    "bicipolitanaMeters": 5.0
+  },
+  "nearMiss": [
+    {
+      "edges": [
+        14,
+        267
+      ],
+      "distance_m": 4.999,
+      "at": [
+        6157.228024315368,
+        0.0
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "13",
+        null
+      ],
+      "point_wgs84": [
+        12.91949,
+        43.89685
+      ]
+    },
+    {
+      "edges": [
+        0,
+        1864
+      ],
+      "distance_m": 4.99,
+      "at": [
+        2609.2801624935482,
+        7.366461198818927
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "1",
+        null
+      ],
+      "point_wgs84": [
+        12.90399,
+        43.9138
+      ]
+    },
+    {
+      "edges": [
+        7,
+        4472
+      ],
+      "distance_m": 4.961,
+      "at": [
+        1245.5327989003765,
+        0.0
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "7",
+        null
+      ],
+      "point_wgs84": [
+        12.89719,
+        43.8961
+      ]
+    },
+    {
+      "edges": [
+        13,
+        3181
+      ],
+      "distance_m": 4.96,
+      "at": [
+        802.1942569618276,
+        0.0
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "12",
+        null
+      ],
+      "point_wgs84": [
+        12.8694,
+        43.90872
+      ]
+    },
+    {
+      "edges": [
+        7,
+        335
+      ],
+      "distance_m": 4.956,
+      "at": [
+        1657.456783985531,
+        13.73455962400177
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "7",
+        null
+      ],
+      "point_wgs84": [
+        12.89937,
+        43.89311
+      ]
+    },
+    {
+      "edges": [
+        3,
+        1085
+      ],
+      "distance_m": 4.955,
+      "at": [
+        120.02769260108185,
+        311.74212031801954
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "4",
+        null
+      ],
+      "point_wgs84": [
+        12.91595,
+        43.90797
+      ]
+    },
+    {
+      "edges": [
+        7,
+        4660
+      ],
+      "distance_m": 4.955,
+      "at": [
+        2361.941175124847,
+        12.244683184191148
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "7",
+        null
+      ],
+      "point_wgs84": [
+        12.90764,
+        43.89176
+      ]
+    },
+    {
+      "edges": [
+        7,
+        4473
+      ],
+      "distance_m": 4.952,
+      "at": [
+        1259.4431663457735,
+        0.0
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "7",
+        null
+      ],
+      "point_wgs84": [
+        12.89731,
+        43.89602
+      ]
+    },
+    {
+      "edges": [
+        14,
+        3001
+      ],
+      "distance_m": 4.936,
+      "at": [
+        4425.059665206309,
+        0.0
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "13",
+        null
+      ],
+      "point_wgs84": [
+        12.89912,
+        43.89856
+      ]
+    },
+    {
+      "edges": [
+        7,
+        4471
+      ],
+      "distance_m": 4.931,
+      "at": [
+        1282.638674908494,
+        0.0
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "7",
+        null
+      ],
+      "point_wgs84": [
+        12.89752,
+        43.89587
+      ]
+    },
+    {
+      "edges": [
+        2,
+        430
+      ],
+      "distance_m": 4.93,
+      "at": [
+        1671.147806314749,
+        17.043537550186976
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "3",
+        null
+      ],
+      "point_wgs84": [
+        12.90155,
+        43.91112
+      ]
+    },
+    {
+      "edges": [
+        7,
+        4470
+      ],
+      "distance_m": 4.921,
+      "at": [
+        1299.2559697923364,
+        0.0
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "7",
+        null
+      ],
+      "point_wgs84": [
+        12.89767,
+        43.89577
+      ]
+    },
+    {
+      "edges": [
+        15,
+        4074
+      ],
+      "distance_m": 4.906,
+      "at": [
+        3144.5169155165495,
+        0.0
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "A",
+        null
+      ],
+      "point_wgs84": [
+        12.88866,
+        43.90604
+      ]
+    },
+    {
+      "edges": [
+        15,
+        1720
+      ],
+      "distance_m": 4.906,
+      "at": [
+        3144.5169155165495,
+        43.52107594789206
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "A",
+        null
+      ],
+      "point_wgs84": [
+        12.88866,
+        43.90604
+      ]
+    },
+    {
+      "edges": [
+        7,
+        4469
+      ],
+      "distance_m": 4.903,
+      "at": [
+        1316.3475111346208,
+        0.0
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "7",
+        null
+      ],
+      "point_wgs84": [
+        12.89783,
+        43.89566
+      ]
+    },
+    {
+      "edges": [
+        12,
+        1713
+      ],
+      "distance_m": 4.901,
+      "at": [
+        771.2185781772315,
+        0.0
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "11",
+        null
+      ],
+      "point_wgs84": [
+        12.89702,
+        43.90802
+      ]
+    },
+    {
+      "edges": [
+        14,
+        4103
+      ],
+      "distance_m": 4.901,
+      "at": [
+        5411.496917757674,
+        9.727299099517213
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "13",
+        null
+      ],
+      "point_wgs84": [
+        12.91051,
+        43.89614
+      ]
+    },
+    {
+      "edges": [
+        7,
+        4468
+      ],
+      "distance_m": 4.895,
+      "at": [
+        1333.0631722730773,
+        0.0
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "7",
+        null
+      ],
+      "point_wgs84": [
+        12.89798,
+        43.89556
+      ]
+    },
+    {
+      "edges": [
+        8,
+        2046
+      ],
+      "distance_m": 4.891,
+      "at": [
+        359.3439952136178,
+        0.0
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "7",
+        null
+      ],
+      "point_wgs84": [
+        12.89647,
+        43.89333
+      ]
+    },
+    {
+      "edges": [
+        0,
+        4694
+      ],
+      "distance_m": 4.888,
+      "at": [
+        3753.9975552516235,
+        1.941537857139133
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "1",
+        null
+      ],
+      "point_wgs84": [
+        12.90704,
+        43.92154
+      ]
+    },
+    {
+      "edges": [
+        3,
+        4520
+      ],
+      "distance_m": 4.883,
+      "at": [
+        2517.320345041212,
+        44.32748950459881
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "4",
+        null
+      ],
+      "point_wgs84": [
+        12.92618,
+        43.89181
+      ]
+    },
+    {
+      "edges": [
+        1,
+        1438
+      ],
+      "distance_m": 4.86,
+      "at": [
+        3533.069678087745,
+        266.5314773605918
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "2",
+        null
+      ],
+      "point_wgs84": [
+        12.93896,
+        43.8989
+      ]
+    },
+    {
+      "edges": [
+        8,
+        54
+      ],
+      "distance_m": 4.86,
+      "at": [
+        1709.8659481892605,
+        134.5163383036125
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "7",
+        null
+      ],
+      "point_wgs84": [
+        12.8843,
+        43.88983
+      ]
+    },
+    {
+      "edges": [
+        14,
+        102
+      ],
+      "distance_m": 4.858,
+      "at": [
+        1826.261570717846,
+        35.66574980433786
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "13",
+        null
+      ],
+      "point_wgs84": [
+        12.8737,
+        43.90792
+      ]
+    },
+    {
+      "edges": [
+        2,
+        1294
+      ],
+      "distance_m": 4.852,
+      "at": [
+        810.5810761683349,
+        8.047935337879297
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "3",
+        null
+      ],
+      "point_wgs84": [
+        12.90271,
+        43.91867
+      ]
+    },
+    {
+      "edges": [
+        5,
+        1029
+      ],
+      "distance_m": 4.842,
+      "at": [
+        1202.2008062332243,
+        36.10160091090921
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "5",
+        null
+      ],
+      "point_wgs84": [
+        12.89879,
+        43.89189
+      ]
+    },
+    {
+      "edges": [
+        11,
+        869
+      ],
+      "distance_m": 4.826,
+      "at": [
+        1205.296618746729,
+        0.0
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "10",
+        null
+      ],
+      "point_wgs84": [
+        12.89232,
+        43.90256
+      ]
+    },
+    {
+      "edges": [
+        11,
+        1686
+      ],
+      "distance_m": 4.826,
+      "at": [
+        1205.296618746729,
+        0.0
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "10",
+        null
+      ],
+      "point_wgs84": [
+        12.89232,
+        43.90256
+      ]
+    },
+    {
+      "edges": [
+        5,
+        2061
+      ],
+      "distance_m": 4.823,
+      "at": [
+        1135.6125945404713,
+        0.0
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "5",
+        null
+      ],
+      "point_wgs84": [
+        12.89933,
+        43.89191
+      ]
+    },
+    {
+      "edges": [
+        14,
+        4669
+      ],
+      "distance_m": 4.823,
+      "at": [
+        6157.228024315368,
+        273.9316727643902
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "13",
+        null
+      ],
+      "point_wgs84": [
+        12.91949,
+        43.89685
+      ]
+    },
+    {
+      "edges": [
+        2,
+        3140
+      ],
+      "distance_m": 4.798,
+      "at": [
+        1111.018817223286,
+        3.2905776656239354
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "3",
+        null
+      ],
+      "point_wgs84": [
+        12.90276,
+        43.916
+      ]
+    },
+    {
+      "edges": [
+        11,
+        1596
+      ],
+      "distance_m": 4.789,
+      "at": [
+        700.9723573233218,
+        45.904011184197415
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "10",
+        null
+      ],
+      "point_wgs84": [
+        12.88983,
+        43.90536
+      ]
+    },
+    {
+      "edges": [
+        15,
+        4757
+      ],
+      "distance_m": 4.78,
+      "at": [
+        5646.895746391829,
+        0.0
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "A",
+        null
+      ],
+      "point_wgs84": [
+        12.91365,
+        43.89602
+      ]
+    },
+    {
+      "edges": [
+        14,
+        996
+      ],
+      "distance_m": 4.779,
+      "at": [
+        4182.309324996608,
+        0.0
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "13",
+        null
+      ],
+      "point_wgs84": [
+        12.89699,
+        43.90003
+      ]
+    },
+    {
+      "edges": [
+        0,
+        1308
+      ],
+      "distance_m": 4.773,
+      "at": [
+        0.0,
+        0.0
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "1",
+        null
+      ],
+      "point_wgs84": [
+        12.91797,
+        43.91375
+      ]
+    },
+    {
+      "edges": [
+        14,
+        1808
+      ],
+      "distance_m": 4.772,
+      "at": [
+        3646.5371517183876,
+        583.7095453642368
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "13",
+        null
+      ],
+      "point_wgs84": [
+        12.89223,
+        43.9034
+      ]
+    },
+    {
+      "edges": [
+        14,
+        3136
+      ],
+      "distance_m": 4.772,
+      "at": [
+        3646.5371517183876,
+        11.392929016950399
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "13",
+        null
+      ],
+      "point_wgs84": [
+        12.89223,
+        43.9034
+      ]
+    },
+    {
+      "edges": [
+        0,
+        3191
+      ],
+      "distance_m": 4.763,
+      "at": [
+        0.0,
+        82.02486516515532
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "1",
+        null
+      ],
+      "point_wgs84": [
+        12.91797,
+        43.91375
+      ]
+    },
+    {
+      "edges": [
+        3,
+        750
+      ],
+      "distance_m": 4.759,
+      "at": [
+        185.56920073579855,
+        311.6395219913004
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "4",
+        null
+      ],
+      "point_wgs84": [
+        12.91653,
+        43.90756
+      ]
+    },
+    {
+      "edges": [
+        11,
+        4556
+      ],
+      "distance_m": 4.756,
+      "at": [
+        908.9677632500071,
+        9.011018188714662
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "10",
+        null
+      ],
+      "point_wgs84": [
+        12.89032,
+        43.90434
+      ]
+    },
+    {
+      "edges": [
+        14,
+        97
+      ],
+      "distance_m": 4.75,
+      "at": [
+        1763.0871566707358,
+        41.901036633125656
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "13",
+        null
+      ],
+      "point_wgs84": [
+        12.87314,
+        43.9077
+      ]
+    },
+    {
+      "edges": [
+        2,
+        2390
+      ],
+      "distance_m": 4.733,
+      "at": [
+        278.4213802198038,
+        0.0
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "3",
+        null
+      ],
+      "point_wgs84": [
+        12.90043,
+        43.92232
+      ]
+    },
+    {
+      "edges": [
+        15,
+        102
+      ],
+      "distance_m": 4.725,
+      "at": [
+        1814.4489628612537,
+        29.614118734085555
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "A",
+        null
+      ],
+      "point_wgs84": [
+        12.87378,
+        43.90793
+      ]
+    },
+    {
+      "edges": [
+        2,
+        4024
+      ],
+      "distance_m": 4.711,
+      "at": [
+        1068.1215070604574,
+        0.0
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "3",
+        null
+      ],
+      "point_wgs84": [
+        12.90292,
+        43.91635
+      ]
+    },
+    {
+      "edges": [
+        15,
+        514
+      ],
+      "distance_m": 4.701,
+      "at": [
+        5734.332089021206,
+        407.91544519272344
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "A",
+        null
+      ],
+      "point_wgs84": [
+        12.91473,
+        43.89609
+      ]
+    },
+    {
+      "edges": [
+        15,
+        2591
+      ],
+      "distance_m": 4.698,
+      "at": [
+        5866.2659036324,
+        0.0
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "A",
+        null
+      ],
+      "point_wgs84": [
+        12.91634,
+        43.89634
+      ]
+    },
+    {
+      "edges": [
+        6,
+        740
+      ],
+      "distance_m": 4.693,
+      "at": [
+        137.7864278720646,
+        0.0
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "6",
+        null
+      ],
+      "point_wgs84": [
+        12.90922,
+        43.90548
+      ]
+    },
+    {
+      "edges": [
+        6,
+        1870
+      ],
+      "distance_m": 4.693,
+      "at": [
+        137.7864278720646,
+        0.0
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "6",
+        null
+      ],
+      "point_wgs84": [
+        12.90922,
+        43.90548
+      ]
+    },
+    {
+      "edges": [
+        6,
+        1417
+      ],
+      "distance_m": 4.693,
+      "at": [
+        137.7864278720646,
+        114.93652026377445
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "6",
+        null
+      ],
+      "point_wgs84": [
+        12.90922,
+        43.90548
+      ]
+    },
+    {
+      "edges": [
+        5,
+        2178
+      ],
+      "distance_m": 4.692,
+      "at": [
+        617.0622559762461,
+        15.647232007509695
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "5",
+        null
+      ],
+      "point_wgs84": [
+        12.90513,
+        43.8914
+      ]
+    },
+    {
+      "edges": [
+        15,
+        2488
+      ],
+      "distance_m": 4.678,
+      "at": [
+        0.0,
+        8.475291484294456
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "A",
+        null
+      ],
+      "point_wgs84": [
+        12.86059,
+        43.91612
+      ]
+    },
+    {
+      "edges": [
+        15,
+        2923
+      ],
+      "distance_m": 4.667,
+      "at": [
+        5298.992691774833,
+        0.0
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "A",
+        null
+      ],
+      "point_wgs84": [
+        12.9095,
+        43.89606
+      ]
+    },
+    {
+      "edges": [
+        4,
+        4345
+      ],
+      "distance_m": 4.662,
+      "at": [
+        1479.1024648630273,
+        19.96799518107927
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "5",
+        null
+      ],
+      "point_wgs84": [
+        12.91632,
+        43.90442
+      ]
+    },
+    {
+      "edges": [
+        11,
+        4624
+      ],
+      "distance_m": 4.659,
+      "at": [
+        431.2832333526002,
+        0.0
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "10",
+        null
+      ],
+      "point_wgs84": [
+        12.89248,
+        43.90672
+      ]
+    },
+    {
+      "edges": [
+        3,
+        2528
+      ],
+      "distance_m": 4.654,
+      "at": [
+        1844.465520625438,
+        163.37559588769562
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "4",
+        null
+      ],
+      "point_wgs84": [
+        12.92331,
+        43.89714
+      ]
+    },
+    {
+      "edges": [
+        2,
+        1296
+      ],
+      "distance_m": 4.623,
+      "at": [
+        1077.856064167233,
+        0.0
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "3",
+        null
+      ],
+      "point_wgs84": [
+        12.90291,
+        43.91627
+      ]
+    },
+    {
+      "edges": [
+        3,
+        2134
+      ],
+      "distance_m": 4.623,
+      "at": [
+        645.9089495365447,
+        19.082064747749765
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "4",
+        null
+      ],
+      "point_wgs84": [
+        12.91764,
+        43.90472
+      ]
+    },
+    {
+      "edges": [
+        14,
+        1721
+      ],
+      "distance_m": 4.618,
+      "at": [
+        3125.998742040453,
+        36.60233060218021
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "13",
+        null
+      ],
+      "point_wgs84": [
+        12.8883,
+        43.90624
+      ]
+    },
+    {
+      "edges": [
+        10,
+        3337
+      ],
+      "distance_m": 4.615,
+      "at": [
+        1628.8971369976118,
+        11.522352885670525
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "9",
+        null
+      ],
+      "point_wgs84": [
+        12.89154,
+        43.89845
+      ]
+    },
+    {
+      "edges": [
+        7,
+        1467
+      ],
+      "distance_m": 4.61,
+      "at": [
+        614.6016760505778,
+        0.0
+      ],
+      "kinds": [
+        "bicipolitana",
+        "road"
+      ],
+      "lines": [
+        "7",
+        null
+      ],
+      "point_wgs84": [
+        12.90005,
+        43.90004
+      ]
+    }
+  ],
+  "obstacles": {
+    "total": 31,
+    "attachedToEdges": 29,
+    "edgesWithObstacles": 107,
+    "edgesWithDismount": 15,
+    "edgesBlocked": 2
+  }
+}
