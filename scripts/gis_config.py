@@ -15,8 +15,9 @@ GEOJSON = ROOT / "data" / "geojson"
 METADATA = ROOT / "data" / "metadata"
 ROUTING = ROOT / "data" / "routing"
 PUBLIC_DATA = ROOT / "public" / "data"
+DOCS = ROOT / "docs"
 
-for _p in (PROCESSED, GEOJSON, METADATA, ROUTING):
+for _p in (PROCESSED, GEOJSON, METADATA, ROUTING, DOCS):
     _p.mkdir(parents=True, exist_ok=True)
 
 # --- CRS -------------------------------------------------------------------

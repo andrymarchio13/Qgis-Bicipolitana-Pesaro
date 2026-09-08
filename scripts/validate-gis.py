@@ -5,7 +5,7 @@ FASE 1 - Analisi e validazione del materiale GIS originale.
 Non modifica nulla: legge i GeoPackage in data/raw/ (copie dei file del
 progetto QGIS Pesaro2026) e produce:
 
-  data_audit_report.md            report leggibile
+  docs/data_audit_report.md       report leggibile
   data/metadata/validation.json   stesso contenuto in forma strutturata
 
 Il routing NON deve essere costruito se questo script segnala errori
@@ -30,7 +30,7 @@ from pyproj import Transformer
 
 sys.path.insert(0, str(Path(__file__).parent))
 from gis_config import (  # noqa: E402
-    CRS_METRIC, CRS_SOURCE, CRS_WEB, METADATA, QGZ, ROOT, SOURCES,
+    CRS_METRIC, CRS_SOURCE, CRS_WEB, DOCS, METADATA, QGZ, SOURCES,
     TOPOLOGY_GAP_REPORT_METERS, TOPOLOGY_SNAP_TOLERANCE_METERS,
 )
 
@@ -603,14 +603,14 @@ def main() -> int:
 
     (METADATA / "validation.json").write_text(
         json.dumps(validation, indent=2, ensure_ascii=False), encoding="utf-8")
-    write_markdown(validation, ROOT / "data_audit_report.md")
+    write_markdown(validation, DOCS / "data_audit_report.md")
 
     print(f"Layer analizzati      : {len(layers)}")
     print(f"Linee Bicipolitana    : {topo['distinct_lines']} -> {', '.join(topo['line_ids'])}")
     print(f"Intersezioni fra linee: {len(topo['intersections'])}")
     print(f"Componenti connesse   : {topo['endpoint_connected_components']} {topo['endpoint_component_sizes']}")
     print(f"Bloccanti: {len(blocking)} | Avvertenze: {len(warnings)}")
-    print("-> data_audit_report.md")
+    print("-> docs/data_audit_report.md")
     print("-> data/metadata/validation.json")
     return 0 if not blocking else 1
 

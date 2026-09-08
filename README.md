@@ -75,7 +75,7 @@ Il progetto vale quanto i dati che lo sostengono, quindi:
 - l’app non dichiara mai un percorso “sicuro”, ma *“più sicuro secondo i dati disponibili”*.
 
 Le anomalie trovate nei dati non sono state nascoste: sono elencate in
-[`data_audit_report.md`](data_audit_report.md) e mostrate nell’interfaccia.
+[`docs/data_audit_report.md`](docs/data_audit_report.md) e mostrate nell’interfaccia.
 
 ## 3. Architettura
 
@@ -85,7 +85,7 @@ Le anomalie trovate nei dati non sono state nascoste: sono elencate in
         ┌──────────────────────────┼──────────────────────────┐
         │        pipeline Python (eseguita offline)           │
         │                                                     │
-        │  validate-gis.py  →  data_audit_report.md           │
+        │  validate-gis.py  →  docs/data_audit_report.md      │
         │  convert-gpkg.py  →  data/geojson/, lines.json      │
         │  build-routing-graph.py → data/routing/graph.json   │
         │  generate-metadata.py   → public/data/              │
@@ -474,7 +474,7 @@ QGIS  →  GeoPackage aggiornato  →  data/raw/  →  npm run data  →  public
 1. aggiorna i layer in QGIS e riesporta i `.gpkg`;
 2. copia i file aggiornati in `data/raw/`;
 3. esegui `npm run data`;
-4. leggi `data_audit_report.md`: se compaiono problemi bloccanti, correggi in QGIS e ripeti;
+4. leggi `docs/data_audit_report.md`: se compaiono problemi bloccanti, correggi in QGIS e ripeti;
 5. esegui `npm test` per verificare che il grafo resti coerente;
 6. fai commit e push.
 
