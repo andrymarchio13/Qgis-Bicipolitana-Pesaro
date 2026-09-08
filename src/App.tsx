@@ -14,6 +14,7 @@ import { useLocation } from './hooks/useLocation';
 import { useNavigation } from './hooks/useNavigation';
 import { AboutPage, PrivacyPage } from './pages/InfoPages';
 import { HomePage } from './pages/HomePage';
+import { LandingPage } from './pages/LandingPage';
 import { LineDetailPage, LinesPage } from './pages/LinesPage';
 import { ServicesPage } from './pages/ServicesPage';
 import { poiEmoji } from './config/poi';
@@ -41,6 +42,7 @@ export function App(): JSX.Element {
     setPickingMode,
     setHighlightedLine,
     selectRoute,
+    replaceRoutes,
   } = useAppStore();
   const selectedRoute = useSelectedRoute();
   const router = useAppStore((s) => s.router);
@@ -49,6 +51,12 @@ export function App(): JSX.Element {
   const routerLocation = useRouterLocation();
 
   const [navigating, setNavigating] = useState(false);
+  /*
+   * Presentazione iniziale. Chi apre un link diretto a una pagina interna —
+   * una linea, la privacy — l'ha gia' scelta: mostrargli prima la copertina
+   * sarebbe un ostacolo, non un'accoglienza.
+   */
+  const [entered, setEntered] = useState(() => routerLocation.pathname !== '/');
   // Su schermo stretto il pannello e' un foglio a tre posizioni; su schermo
   // largo resta la colonna fissa e il foglio non entra in gioco.
   const sheet = useBottomSheet('app__panel');
@@ -69,8 +77,16 @@ export function App(): JSX.Element {
 
   const destination = useAppStore((s) => s.destination);
 
+  /*
+   * Il ricalcolo deve partire dal punto in cui l'utente si trova nell'istante
+   * in cui scatta, non da quello che era valido quando la funzione e' stata
+   * creata: il riferimento tiene sempre l'ultima posizione ricevuta dal GPS.
+   */
+  const positionRef = useRef(location.position);
+  positionRef.current = location.position;
+
   const handleReroute = useCallback(async () => {
-    const current = location.position;
+    const current = positionRef.current;
     const route = activeRouteRef.current;
     if (!current || !route || !router || !destination) return null;
     const next = router.reroute(
@@ -79,11 +95,11 @@ export function App(): JSX.Element {
       route.profile,
       destination.label,
     );
-    if (next) {
-      useAppStore.setState({ routes: [next], selectedRouteId: next.id });
-    }
+    // Passa dallo store, cosi' anche il percorso ricalcolato riceve la
+    // rifinitura dei tratti a piedi sulle strade reali.
+    if (next) replaceRoutes([next], next.id);
     return next;
-  }, [location.position, router, destination]);
+  }, [router, destination, replaceRoutes]);
 
   const navigation = useNavigation({
     route: selectedRoute,
@@ -162,6 +178,8 @@ export function App(): JSX.Element {
     },
     [setHighlightedLine],
   );
+
+  if (!entered) return <LandingPage onEnter={() => setEntered(true)} />;
 
   if (navigating && selectedRoute) {
     return (

@@ -15,6 +15,7 @@ import type {
   Line,
   LngLat,
   ManeuverType,
+  Route,
   RouteInstruction,
   RouteSegment,
   RouteStep,
@@ -348,6 +349,14 @@ export function buildInstructions(
 }
 
 /**
+ * Simbolo della manovra, con il mezzo giusto per i raccordi fuori rete: un
+ * collegamento di chilometri si pedala, e mostrargli accanto un pedone
+ * direbbe il contrario di quello che dice il testo.
+ */
+export const maneuverIcon = (instruction: RouteInstruction): string =>
+  instruction.transport === 'bici' ? '🚲' : MANEUVER_ARROW[instruction.type];
+
+/**
  * Testo pronto per la schermata di navigazione.
  *
  * La distanza precede la manovra ma il testo non viene reso minuscolo: i nomi
@@ -359,6 +368,51 @@ export function formatInstruction(instruction: RouteInstruction): string {
   }
   if (instruction.type === 'start' || instruction.type === 'arrive') return instruction.text;
   return `Tra ${formatDistance(instruction.distanceMeters)} · ${instruction.text}`;
+}
+
+/**
+ * Perche' questo percorso e' piu' veloce, piu' tranquillo o piu' ciclabile
+ * degli altri proposti. Una riga sola, mostrata nella scheda del percorso.
+ *
+ * Senza, "Piu' veloce" e "Piu' tranquillo" restano etichette da prendere per
+ * buone. Qui si dice cosa il calcolo ha davvero pesato: il criterio viene dai
+ * parametri del profilo, non da misure sul campo, e i numeri di questo
+ * percorso (quota su Bicipolitana, cambi di linea, barriere) li mostra gia' la
+ * scheda, quindi la frase non li ripete.
+ */
+export function routeRationale(route: Route): string {
+  switch (route.profile) {
+    case 'fast':
+      return 'Pesa solo il tempo stimato: non allunga per restare sulle ciclabili.';
+    case 'quiet':
+      return 'Predilige ciclabili, parchi e strade a basso traffico, anche allungando un po’.';
+    case 'safe':
+      return 'Massimo peso a ciclabili e strade protette secondo i dati OSM.';
+    default:
+      return 'Resta sulle linee ufficiali della Bicipolitana finché conviene.';
+  }
+}
+
+/**
+ * Come si percorrono i raccordi fuori rete di un percorso.
+ *
+ * Serve all'interfaccia per non chiamare "a piedi" un collegamento di tre
+ * chilometri, che si pedala. Restituisce `null` quando il percorso e'
+ * interamente sulla rete coperta dai dati.
+ */
+export function connectorSummary(
+  route: Route,
+): { meters: number; icon: string; label: string } | null {
+  const connectors = route.segments.filter((segment) => segment.kind === 'piedi');
+  if (connectors.length === 0) return null;
+
+  const meters = connectors.reduce((sum, segment) => sum + segment.distanceMeters, 0);
+  const aPiedi = connectors.some((segment) => (segment.transport ?? 'piedi') === 'piedi');
+  const inBici = connectors.some((segment) => segment.transport === 'bici');
+
+  if (aPiedi && inBici) return { meters, icon: '🔗', label: 'di collegamento' };
+  if (inBici) return { meters, icon: '🚲', label: 'di collegamento, fuori rete' };
+  return { meters, icon: '🚶', label: 'a piedi' };
 }
 
 function tailBearing(coords: LngLat[]): number | null {

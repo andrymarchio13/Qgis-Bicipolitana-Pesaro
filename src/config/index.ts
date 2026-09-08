@@ -99,28 +99,113 @@ export const WALKING_SPEED_KMH = num(env.VITE_WALKING_SPEED_KMH, 4.8);
  */
 export const WALK_LEG_MIN_METERS = num(env.VITE_WALK_LEG_MIN_METERS, 20);
 
-/** Colore dei tratti a piedi: neutro, per non confonderli con una linea. */
-export const WALK_COLOR = '#64748b';
+/**
+ * Colore dei tratti a piedi.
+ *
+ * Non e' il grigio della viabilita' ordinaria: quello lo usano i tratti
+ * *pedalati* fuori dalla Bicipolitana, e con lo stesso colore un percorso che
+ * corre a lungo su strade normali si legge come una camminata interminabile.
+ * Il viola non appartiene a nessuna linea della rete, quindi non puo' essere
+ * scambiato per una di esse.
+ */
+export const WALK_COLOR = '#6d28d9';
+
+/**
+ * Quanto pesa un minuto a piedi rispetto a un minuto in bicicletta.
+ *
+ * Il tempo da solo non basta a scoraggiare il cammino: spingere la bici e'
+ * peggio che pedalare anche a parita' di minuti. Senza questa maggiorazione il
+ * calcolo accetterebbe volentieri qualche centinaio di metri a piedi pur di
+ * risparmiare una curva.
+ */
+export const WALK_COST_FACTOR = num(env.VITE_WALK_COST_FACTOR, 2.2);
+
+/**
+ * Quanto conta la pericolosita' della strada su cui ci si innesta, nel
+ * decidere dove entrare in rete a piedi.
+ *
+ * Camminare sul ciglio di una strada a scorrimento — e poi immettersi in
+ * bicicletta proprio li' — non e' come arrivare a una ciclabile o a una via
+ * residenziale. Il punteggio di sicurezza dell'arco (euristico, dichiarato)
+ * moltiplica il costo del cammino: a zero il percorso sceglie sempre
+ * l'innesto piu' vicino, com'era prima.
+ */
+export const WALK_SAFETY_WEIGHT = num(env.VITE_WALK_SAFETY_WEIGHT, 2.5);
 
 /** Raggio entro cui il punto si considera *sulla* rete coperta dai dati. */
 export const SNAP_MAX_DISTANCE_METERS = num(env.VITE_SNAP_MAX_DISTANCE_METERS, 700);
 
 /**
  * Oltre il raggio di aggancio diretto il punto non viene rifiutato: si cerca la
- * rete fino a questa distanza e il tratto scoperto diventa un collegamento a
- * piedi esplicito. Il limite esiste solo per non inventare percorsi da punti
- * che con Pesaro non hanno niente a che vedere.
+ * rete fino a questa distanza e il tratto scoperto diventa un collegamento
+ * esplicito.
+ *
+ * Il valore copre l'intera provincia: da qualunque punto attorno a Pesaro il
+ * percorso viene calcolato, e il collegamento fino alla rete viene mostrato per
+ * quello che e'. Il limite resta solo per non pretendere di collegare alla
+ * Bicipolitana un punto che con Pesaro non ha niente a che vedere.
  */
 export const WALK_SNAP_MAX_DISTANCE_METERS = num(
   env.VITE_WALK_SNAP_MAX_DISTANCE_METERS,
-  8000,
+  40000,
 );
+
+/**
+ * Oltre questa lunghezza il collegamento non si fa a piedi.
+ *
+ * Chi chiede un percorso ciclabile ha una bicicletta: proporgli un'ora di
+ * cammino perche' i dati del progetto finiscono prima di casa sua non e' una
+ * risposta. Sotto la soglia il raccordo resta un tratto a piedi — si spinge la
+ * bici per attraversare o per uscire da un cortile; sopra, si pedala, sulle
+ * strade che il servizio esterno conosce e il progetto no.
+ */
+export const CONNECTOR_RIDE_THRESHOLD_METERS = num(
+  env.VITE_CONNECTOR_RIDE_THRESHOLD_METERS,
+  500,
+);
+
+/**
+ * Servizio di calcolo del percorso a piedi usato SOLO per i tratti di
+ * collegamento fra il punto scelto e la rete coperta dai dati del progetto.
+ *
+ * Il grafo offline copre la Bicipolitana e la viabilita' del comune di Pesaro:
+ * fuori da li' il collegamento resterebbe una linea d'aria attraverso i campi.
+ * Con questo servizio quel tratto segue le strade reali. E' facoltativo:
+ * lasciare il valore vuoto disattiva la chiamata e riporta il comportamento
+ * completamente offline, con il collegamento in linea d'aria.
+ */
+export const WALK_ROUTING_URL =
+  env.VITE_WALK_ROUTING_URL ?? 'https://valhalla1.openstreetmap.de/route';
+
+/** Tempo massimo di attesa del servizio pedonale: scaduto, si tiene il tratto offline. */
+export const WALK_ROUTING_TIMEOUT_MS = num(env.VITE_WALK_ROUTING_TIMEOUT_MS, 6000);
+
+/** Sotto questa distanza il collegamento e' troppo corto perche' valga una chiamata. */
+export const WALK_ROUTING_MIN_METERS = num(env.VITE_WALK_ROUTING_MIN_METERS, 40);
+
+/**
+ * Quanto puo' allungarsi il collegamento una volta ricalcolato sulle strade,
+ * rispetto alla linea d'aria, prima di essere considerato non plausibile.
+ *
+ * Fra il punto e la rete puo' esserci un'autostrada o una ferrovia: la rete
+ * pedonale risponde allora con il giro reale, che puo' essere di chilometri.
+ * E' una risposta corretta ma inutile — nessuno la farebbe — e soprattutto
+ * ingannevole, perche' fa sembrare il percorso una camminata lunghissima. In
+ * quel caso si tiene il collegamento in linea d'aria, dichiarato come tale.
+ */
+export const WALK_ROUTING_MAX_DETOUR = num(env.VITE_WALK_ROUTING_MAX_DETOUR, 2.5);
 
 /** Soglia di fuori-percorso oltre la quale scatta il ricalcolo. */
 export const REROUTE_DISTANCE_THRESHOLD = num(env.VITE_REROUTE_DISTANCE_THRESHOLD, 45);
 
 /** Attesa prima di ricalcolare, per non reagire a un singolo punto GPS sporco. */
-export const REROUTE_DEBOUNCE_MS = num(env.VITE_REROUTE_DEBOUNCE_MS, 6000);
+export const REROUTE_DEBOUNCE_MS = num(env.VITE_REROUTE_DEBOUNCE_MS, 4000);
+
+/**
+ * Attesa minima fra due ricalcoli consecutivi. Serve a non rilanciare il
+ * calcolo a ogni punto GPS quando si resta fuori percorso a lungo.
+ */
+export const REROUTE_COOLDOWN_MS = num(env.VITE_REROUTE_COOLDOWN_MS, 8000);
 
 /** Distanza sotto la quale si considera raggiunta la destinazione. */
 export const ARRIVAL_THRESHOLD_METERS = num(env.VITE_ARRIVAL_THRESHOLD_METERS, 25);

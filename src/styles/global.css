@@ -505,6 +505,18 @@ a {
   letter-spacing: -0.02em;
 }
 
+/*
+ * Criterio del profilo, sotto il nome del percorso. Occupa una riga sola: e'
+ * una nota di contesto accanto a tre schede da confrontare a colpo d'occhio,
+ * non un paragrafo da leggere.
+ */
+.route-card__why {
+  margin: -4px 0 8px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--ink-500);
+}
+
 .route-card__meta {
   display: flex;
   align-items: center;
@@ -1018,4 +1030,469 @@ a {
 .error-screen__report {
   margin-top: 16px;
   font-size: 13px;
+}
+
+/* --------------------------------------------------------------------- */
+/* Pagina di presentazione                                                */
+/* --------------------------------------------------------------------- */
+
+/*
+ * Fondo scuro, in contrasto voluto con l'applicazione: entrare deve essere un
+ * passaggio percepibile, non una schermata di caricamento un po' piu' lunga.
+ * Il verde e' quello del marchio, non un colore nuovo.
+ */
+.landing {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+  color: #fff;
+  background:
+    radial-gradient(1200px 680px at 12% -12%, var(--brand-700), transparent 60%),
+    radial-gradient(900px 520px at 110% 112%, var(--brand-600), transparent 55%),
+    var(--brand-900);
+  /* Il contenuto puo' superare lo schermo su telefono: qui, a differenza del
+     resto dell'app, lo scorrimento verticale serve. */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  animation: landing-fade 0.5s ease-out;
+}
+
+.landing.is-leaving {
+  animation: landing-out 0.32s ease-in forwards;
+}
+
+@keyframes landing-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes landing-out {
+  to {
+    opacity: 0;
+    transform: scale(1.02);
+  }
+}
+
+/*
+ * Sfondo: tracciati che si disegnano come si disegna un percorso. Restano
+ * dietro al testo e non devono mai contendergli la leggibilita', da cui
+ * l'opacita' bassa.
+ */
+.landing__backdrop {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.landing__backdrop path {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* La linea: si traccia una volta e resta, come la rete che rappresenta. */
+.landing__trace {
+  stroke-width: 14;
+  opacity: 0.15;
+  stroke-dasharray: 2400;
+  stroke-dashoffset: 2400;
+  animation: landing-draw 3.4s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+
+@keyframes landing-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/*
+ * La luce che la percorre: un tratto breve che scorre lungo la linea senza
+ * fermarsi. E' l'unico elemento dello sfondo che continua a muoversi, ed e'
+ * volutamente tenue — deve accorgersene chi guarda, non chi legge.
+ */
+.landing__spark {
+  stroke-width: 9;
+  opacity: 0.42;
+  stroke-dasharray: 90 2600;
+  animation: landing-spark 9s linear infinite backwards;
+}
+
+@keyframes landing-spark {
+  from {
+    stroke-dashoffset: 2690;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.landing__inner {
+  position: relative;
+  width: 100%;
+  max-width: 660px;
+  margin: auto;
+}
+
+/*
+ * Comparsa scaglionata. Ogni blocco dichiara il proprio posto in fila con
+ * `--step`: il ritardo si calcola da li', senza una regola per elemento.
+ */
+.landing__inner > *,
+.landing__features li {
+  animation: landing-rise 0.66s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
+  animation-delay: calc(var(--step, 0) * 70ms + 120ms);
+}
+
+@keyframes landing-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+.landing__eyebrow {
+  margin-bottom: 16px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--brand-400);
+}
+
+.landing__title {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: clamp(30px, 7vw, 46px);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+}
+
+.landing__title-city {
+  display: block;
+  font-size: 0.52em;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--brand-400);
+  margin-top: 6px;
+}
+
+/* Il marchio respira piano: e' l'unico elemento che continua a muoversi. */
+.landing__mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 62px;
+  height: 62px;
+  flex-shrink: 0;
+  font-size: 30px;
+  border-radius: var(--radius-lg);
+  background: rgb(255 255 255 / 0.1);
+  border: 1px solid rgb(255 255 255 / 0.16);
+  box-shadow: 0 10px 30px rgb(6 48 31 / 0.5);
+  animation: landing-float 5s ease-in-out infinite;
+}
+
+@keyframes landing-float {
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.landing__lead {
+  margin-top: 18px;
+  font-size: clamp(15px, 2.4vw, 17px);
+  color: rgb(255 255 255 / 0.8);
+  max-width: 54ch;
+}
+
+/*
+ * Le linee nei loro colori reali: la rete si presenta da sola, e chi la
+ * conosce riconosce la tavolozza prima ancora di leggere.
+ */
+.landing__strip {
+  display: flex;
+  gap: 5px;
+  margin-top: 22px;
+}
+
+.landing__strip span {
+  height: 6px;
+  flex: 1;
+  border-radius: var(--radius-full);
+  transform-origin: left center;
+  animation: landing-stretch 0.55s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
+}
+
+@keyframes landing-stretch {
+  from {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+}
+
+.landing__numbers {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 22px 0 0;
+  padding: 0;
+}
+
+.landing__numbers div {
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  background: rgb(255 255 255 / 0.07);
+  border: 1px solid rgb(255 255 255 / 0.12);
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+.landing__numbers.is-ready div {
+  background: rgb(255 255 255 / 0.1);
+  border-color: rgb(255 255 255 / 0.2);
+}
+
+.landing__numbers dt {
+  font-size: clamp(20px, 4.4vw, 27px);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  /* Le cifre non devono ballare mentre il conteggio sale. */
+  font-variant-numeric: tabular-nums;
+}
+
+.landing__numbers dd {
+  margin: 3px 0 0;
+  font-size: 12px;
+  color: rgb(255 255 255 / 0.62);
+}
+
+.landing__features {
+  list-style: none;
+  margin: 26px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 16px;
+}
+
+@media (min-width: 620px) {
+  .landing__features {
+    grid-template-columns: 1fr 1fr;
+    gap: 18px 22px;
+  }
+}
+
+.landing__features li {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: rgb(255 255 255 / 0.72);
+}
+
+.landing__feature-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  font-size: 16px;
+  border-radius: var(--radius-sm);
+  background: rgb(255 255 255 / 0.08);
+  border: 1px solid rgb(255 255 255 / 0.1);
+}
+
+.landing__features strong {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.landing__actions {
+  margin-top: 30px;
+}
+
+.landing__enter {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 17px 24px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: #fff;
+  color: var(--brand-800);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  overflow: hidden;
+  box-shadow: 0 14px 34px rgb(6 48 31 / 0.45);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+/* Riflesso che attraversa il pulsante: lo segnala come l'azione della pagina. */
+.landing__enter::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 -40%;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, rgb(21 133 90 / 0.16), transparent);
+  animation: landing-sheen 3.6s ease-in-out 1.4s infinite;
+}
+
+@keyframes landing-sheen {
+  0% {
+    transform: translateX(0);
+  }
+  45%,
+  100% {
+    transform: translateX(360%);
+  }
+}
+
+.landing__enter:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 40px rgb(6 48 31 / 0.55);
+}
+
+.landing__enter:active {
+  transform: translateY(0);
+}
+
+.landing__enter-arrow {
+  transition: transform 0.18s ease;
+}
+
+.landing__enter:hover .landing__enter-arrow {
+  transform: translateX(4px);
+}
+
+/*
+ * Lo stato del caricamento sta sotto il pulsante e non al posto suo: si puo'
+ * entrare anche mentre i dati arrivano, e l'applicazione lo dice di nuovo con
+ * i suoi indicatori. Bloccare l'ingresso sarebbe un'attesa imposta.
+ */
+.landing__status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 14px;
+  font-size: 12px;
+  text-align: center;
+  color: rgb(255 255 255 / 0.6);
+  min-height: 18px;
+}
+
+.landing__pulse,
+.landing__ready-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+  background: var(--brand-400);
+}
+
+.landing__pulse {
+  animation: landing-pulse 1.3s ease-in-out infinite;
+}
+
+.landing__ready-dot {
+  box-shadow: 0 0 0 3px rgb(76 191 144 / 0.22);
+}
+
+@keyframes landing-pulse {
+  50% {
+    opacity: 0.25;
+    transform: scale(0.7);
+  }
+}
+
+.landing__error {
+  color: #fca5a5;
+}
+
+.landing__error button {
+  margin-left: 4px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #fff;
+  font-size: 12px;
+  text-decoration: underline;
+}
+
+.landing__footer {
+  margin-top: 30px;
+  padding-top: 18px;
+  border-top: 1px solid rgb(255 255 255 / 0.13);
+  display: grid;
+  gap: 6px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: rgb(255 255 255 / 0.5);
+}
+
+.landing__footer a {
+  color: rgb(255 255 255 / 0.78);
+}
+
+@media (max-width: 420px) {
+  .landing__numbers {
+    grid-template-columns: 1fr;
+  }
+
+  .landing__mark {
+    width: 52px;
+    height: 52px;
+    font-size: 25px;
+  }
+}
+
+/*
+ * Nessuna animazione quando il sistema chiede di ridurle: la pagina resta
+ * identica nei contenuti, non impoverita.
+ */
+.landing.is-still *,
+.landing.is-still *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+.landing.is-still .landing__trace {
+  stroke-dashoffset: 0;
+}
+
+.landing.is-still .landing__spark {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing,
+  .landing *,
+  .landing *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .landing__trace {
+    stroke-dashoffset: 0;
+  }
+
+  .landing__spark {
+    display: none;
+  }
 }

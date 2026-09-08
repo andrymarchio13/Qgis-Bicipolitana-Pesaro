@@ -33,6 +33,12 @@ export interface MapViewProps {
   userPosition?: UserPosition | null;
   /** Posizione agganciata al percorso durante la navigazione. */
   snappedPosition?: LngLat | null;
+  /**
+   * Pallino verde del punto di partenza. In navigazione va spento: la partenza
+   * coincide con la posizione dell'utente, e disegnarli entrambi mostrerebbe
+   * due pallini verdi in punti diversi della mappa.
+   */
+  showOrigin?: boolean;
   followUser?: boolean;
   bearing?: number | null;
   onMapClick?: (point: LngLat) => void;
@@ -131,6 +137,7 @@ export function MapView({
   otherRoutes = [],
   userPosition,
   snappedPosition,
+  showOrigin = true,
   followUser = false,
   bearing = null,
   onMapClick,
@@ -424,20 +431,6 @@ export function MapView({
       });
 
       // Posizione utente
-      instance.addLayer({
-        id: 'user-accuracy',
-        type: 'circle',
-        source: SOURCE.user,
-        filter: ['==', ['get', 'kind'], 'accuracy'],
-        paint: {
-          'circle-color': '#1ba26d',
-          'circle-opacity': 0.15,
-          'circle-radius': ['get', 'radiusPx'],
-          'circle-stroke-color': '#1ba26d',
-          'circle-stroke-opacity': 0.4,
-          'circle-stroke-width': 1,
-        },
-      });
       instance.addLayer({
         id: 'user-dot',
         type: 'circle',
@@ -769,7 +762,7 @@ export function MapView({
     if (!map.current) return;
     const apply = (): void => {
       const features: GeoJSON.Feature[] = [];
-      if (origin) {
+      if (origin && showOrigin) {
         features.push({
           type: 'Feature',
           properties: { color: '#1ba26d', role: 'origin' },
@@ -787,7 +780,7 @@ export function MapView({
     };
     if (ready.current) apply();
     else map.current.once('load', apply);
-  }, [origin, destination, setData]);
+  }, [origin, destination, showOrigin, setData]);
 
   // Posizione utente
   useEffect(() => {
@@ -798,6 +791,8 @@ export function MapView({
         setData(SOURCE.user, EMPTY_FC);
         return;
       }
+      // Un solo segno di posizione: niente alone di precisione, che con la
+      // posizione agganciata al percorso appariva come un secondo pallino.
       const features: GeoJSON.Feature[] = [
         {
           type: 'Feature',
@@ -805,19 +800,6 @@ export function MapView({
           geometry: { type: 'Point', coordinates: point },
         },
       ];
-      if (userPosition && Number.isFinite(userPosition.accuracy)) {
-        const zoom = map.current?.getZoom() ?? MAP_DEFAULT_ZOOM;
-        const metersPerPixel =
-          (156543.03392 * Math.cos((userPosition.lat * Math.PI) / 180)) / 2 ** zoom;
-        features.push({
-          type: 'Feature',
-          properties: {
-            kind: 'accuracy',
-            radiusPx: Math.min(120, userPosition.accuracy / metersPerPixel),
-          },
-          geometry: { type: 'Point', coordinates: [userPosition.lng, userPosition.lat] },
-        });
-      }
       setData(SOURCE.user, { type: 'FeatureCollection', features });
     };
     if (ready.current) apply();

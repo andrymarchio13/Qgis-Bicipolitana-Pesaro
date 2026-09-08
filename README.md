@@ -47,8 +47,9 @@ alternative, segue la posizione GPS e ricalcola il percorso quando ci si allonta
 - **Dichiara i tratti da fare a piedi**: quando origine o destinazione cadono fuori dalla
   rete coperta dai dati, il punto non viene rifiutato — il collegamento fino alla rete
   viene disegnato tratteggiato, conteggiato nel totale e annunciato nelle istruzioni.
-  È un segmento in linea d'aria, non un percorso calcolato: il progetto non contiene una
-  rete pedonale e inventarla sarebbe un dato falso.
+  Quel solo tratto viene ricalcolato sulla rete pedonale OSM (`VITE_WALK_ROUTING_URL`),
+  così segue le strade invece di attraversare i campi; se il servizio non risponde resta
+  il segmento in linea d'aria calcolato offline, dichiarato come tale.
 - Genera **istruzioni passo-passo** e segnala i cambi di linea.
 - Naviga con GPS, distanza e tempo residui, avviso di fuori-percorso e **ricalcolo automatico**.
 - Mostra servizi, ostacoli e punti di svago con tutti gli attributi del GeoPackage.
@@ -268,18 +269,73 @@ velocità, ostacoli. È un’euristica dichiarata, non un rilievo.
 **La pendenza non è considerata**: il progetto GIS non contiene un modello digitale del
 terreno, e stimarla sarebbe inventare un dato.
 
+### Dove il percorso si innesta sulla rete
+
+Il grafo ha nodi solo agli incroci, ma chi chiede un percorso si trova quasi sempre a metà
+strada fra due incroci. Far raggiungere a piedi l’incrocio successivo significa centinaia
+di metri di cammino lungo una strada che si ha di fianco — in campagna, dove un arco può
+essere lungo chilometri, molto di più.
+
+Per ogni richiesta il grafo viene quindi **ampliato**: nei punti in cui origine e
+destinazione incontrano la rete si aggiungono nodi che spezzano l’arco, e un nodo terminale
+collegato ai vari innesti candidati da archi a piedi. È il calcolo del percorso a scegliere
+dove conviene entrare in rete, perché è l’unico che vede insieme il cammino e la pedalata
+che ne segue: così un innesto qualche metro più lontano ma sulla Bicipolitana può battere
+uno più vicino ma su una statale. L’indice caricato dal file non viene mai modificato.
+
+**Non tutti i metri a piedi sono uguali.** Raggiungere una strada a scorrimento significa
+camminare sul ciglio di una carreggiata veloce — e poi immettersi in bicicletta proprio lì;
+arrivare a una ciclabile o a una via residenziale no. Il costo del collegamento è quindi
+moltiplicato per l'esposizione dell'arco su cui ci si innesta, `1 + VITE_WALK_SAFETY_WEIGHT
+× (1 − safety)`: un innesto un po' più lontano ma su una via tranquilla può battere quello
+davanti a casa sulla statale. Il punteggio di sicurezza è quello euristico del grafo,
+dichiarato come tutti gli altri.
+
+Tre vincoli tengono onesto il meccanismo: gli innesti candidati devono stare entro
+`ATTACH_TOLERANCE_METERS` (150 m) dal più vicino, oltre non vengono nemmeno considerati; un
+minuto a piedi costa `VITE_WALK_COST_FACTOR` (2,2) volte un minuto pedalato, perché
+spingere la bici è peggio che pedalare anche a parità di minuti; e la distanza dichiarata
+resta sempre quella vera, perché l'esposizione pesa sulla *scelta*, non sui numeri mostrati.
+
 ### Punti fuori dalla rete coperta dai dati
 
 Il grafo copre l’area del progetto. Un punto scelto fuori da quell’area **non viene
-rifiutato**: viene agganciato al nodo più vicino entro
-`VITE_WALK_SNAP_MAX_DISTANCE_METERS` (8 km) e il tratto scoperto entra nel percorso come
-collegamento a piedi dichiarato — tratteggiato sulla mappa, conteggiato in distanza e
-tempo, annunciato nelle istruzioni.
+rifiutato**: si cerca la rete entro `VITE_WALK_SNAP_MAX_DISTANCE_METERS` (40 km, cioè tutta
+la provincia) e il tratto scoperto entra nel percorso come collegamento dichiarato —
+tratteggiato sulla mappa, conteggiato in distanza e tempo, annunciato nelle istruzioni.
+Il limite resta solo per non pretendere di collegare alla Bicipolitana un punto che con
+Pesaro non ha niente a che vedere.
 
-Non esiste un servizio di routing esterno di riserva, ed è una scelta, non una mancanza:
-introdurlo significherebbe far dipendere da una chiave API e da una rete disponibile
-proprio la funzione che il progetto rivendica come offline. Fuori dagli 8 km l’app
-dichiara che il punto è fuori area, invece di inventare un percorso su dati che non ha.
+**Il raccordo non è sempre a piedi.** Sotto `VITE_CONNECTOR_RIDE_THRESHOLD_METERS` (500 m)
+si spinge la bicicletta — attraversare, uscire da un cortile — e il tratto viene calcolato
+sulla rete pedonale. Sopra, si pedala: il tempo usa la velocità in bicicletta, l’istruzione
+dice «raggiungi in bicicletta», l’icona è una bici e il tratto viene calcolato con il
+profilo ciclabile più prudente che il servizio espone. Proporre un’ora di cammino a chi
+chiede un percorso ciclabile, solo perché i dati del progetto finiscono prima di casa sua,
+non sarebbe una risposta.
+
+Il **percorso in bicicletta** non ha alcun servizio esterno di riserva, ed è una scelta:
+farlo dipendere da una chiave API e da una rete disponibile smentirebbe proprio la
+funzione che il progetto rivendica come offline. Fuori dagli 8 km l’app dichiara che il
+punto è fuori area, invece di inventare un percorso su dati che non ha.
+
+Il **collegamento a piedi**, invece, viene rifinito su rete pedonale OSM
+(`VITE_WALK_ROUTING_URL`, per impostazione predefinita il Valhalla pubblico di
+OpenStreetMap): senza una rete pedonale nei dati del progetto quel tratto resterebbe una
+linea d'aria che attraversa campi ed edifici, cioè un percorso che nessuno può fare.
+Il servizio viene interrogato con un profilo pedonale tarato: percorsi pedonali e
+marciapiedi resi più convenienti, vicoli e passi carrai scoraggiati, scale e sentieri
+impegnativi penalizzati — con una bicicletta a mano non sono un'alternativa. E se il
+percorso che torna supera di `VITE_WALK_ROUTING_MAX_DETOUR` volte la linea d'aria, fra i
+due punti c'è una barriera (un'autostrada, una ferrovia): la risposta è corretta ma
+inutilizzabile, e si tiene la linea d'aria dichiarata come tale invece di mostrare un giro
+di chilometri.
+
+La chiamata riguarda solo quel tratto, invia soltanto le sue due coordinate, non richiede
+chiavi e non blocca la comparsa del risultato: il percorso appare subito con il tratto
+calcolato offline e viene ridisegnato quando la risposta arriva. Se il servizio non
+risponde — o se si svuota `VITE_WALK_ROUTING_URL` — l'app torna al comportamento
+interamente offline, con il collegamento in linea d'aria dichiarato come tale.
 
 ## 9. Scelte tecniche del frontend
 
@@ -443,9 +499,17 @@ Tutte facoltative: i default funzionano. Vedi [`.env.example`](.env.example).
 | `VITE_WALKING_SPEED_KMH` | 4.8 | velocità usata per i tratti a piedi |
 | `VITE_WALK_LEG_MIN_METERS` | 20 | sotto questa soglia il tratto a piedi non viene mostrato |
 | `VITE_SNAP_MAX_DISTANCE_METERS` | 700 | raggio entro cui il punto è considerato sulla rete |
-| `VITE_WALK_SNAP_MAX_DISTANCE_METERS` | 8000 | raggio massimo raggiunto a piedi da un punto fuori rete |
+| `VITE_WALK_SNAP_MAX_DISTANCE_METERS` | 40000 | raggio massimo entro cui si cerca la rete da un punto fuori area |
+| `VITE_CONNECTOR_RIDE_THRESHOLD_METERS` | 500 | oltre questa lunghezza il raccordo si pedala invece di percorrerlo a piedi |
+| `VITE_WALK_COST_FACTOR` | 2.2 | quanto pesa un minuto a piedi rispetto a uno pedalato |
+| `VITE_WALK_SAFETY_WEIGHT` | 2.5 | quanto conta la pericolosità della via su cui ci si innesta |
+| `VITE_WALK_ROUTING_MAX_DETOUR` | 2.5 | oltre questo rapporto sulla linea d’aria il giro pedonale è respinto |
 | `VITE_REROUTE_DISTANCE_THRESHOLD` | 45 | metri di scostamento prima del ricalcolo |
-| `VITE_REROUTE_DEBOUNCE_MS` | 6000 | attesa prima di ricalcolare |
+| `VITE_REROUTE_DEBOUNCE_MS` | 4000 | attesa prima di ricalcolare |
+| `VITE_REROUTE_COOLDOWN_MS` | 8000 | attesa minima fra due ricalcoli consecutivi |
+| `VITE_WALK_ROUTING_URL` | Valhalla OSM | rete pedonale per i tratti a piedi; vuoto = solo offline |
+| `VITE_WALK_ROUTING_TIMEOUT_MS` | 6000 | oltre questa attesa si tiene il tratto in linea d’aria |
+| `VITE_WALK_ROUTING_MIN_METERS` | 40 | sotto questa soglia il tratto non vale una chiamata |
 
 `.env` è in `.gitignore`: nessuna chiave finisce nel repository.
 
@@ -483,9 +547,11 @@ grafo OSM o a un POI del GeoPackage.
   viene comunque calcolato, raccordando il punto alla rete con un tratto a piedi fino a
   8 km (`VITE_WALK_SNAP_MAX_DISTANCE_METERS`). Oltre quella distanza l’app dichiara che
   il punto è fuori area, invece di inventare un percorso.
-- **I tratti a piedi sono in linea d’aria**: collegano il punto scelto al primo punto della
-  rete, senza tenere conto di muri, recinzioni o sensi di percorrenza pedonali. Servirebbe
-  una rete pedonale, che il progetto GIS non contiene.
+- **I tratti a piedi dipendono da un servizio esterno**: il progetto GIS non contiene una
+  rete pedonale, quindi il collegamento segue le strade solo quando il servizio pedonale
+  (`VITE_WALK_ROUTING_URL`) risponde. Senza rete, o a servizio disattivato, torna a essere
+  una linea d’aria che ignora muri, recinzioni e sensi di percorrenza pedonali —
+  l’interfaccia dichiara in quale dei due casi si trova.
 - **Tempi stimati**, non misurati.
 - Il grafo (~457 KB compressi) va scaricato una volta: sulla prima visita in rete lenta
   l’attesa è percepibile; dalla seconda è servito dalla cache.

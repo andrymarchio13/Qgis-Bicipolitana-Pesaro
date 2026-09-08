@@ -1,4 +1,5 @@
 /** Scheda di un percorso alternativo. */
+import { connectorSummary, routeRationale } from '../../services/routing/instructions';
 import type { Line, Route } from '../../types';
 import { formatDistance, formatDuration } from '../../utils/geo';
 import { EstimateChip, LineBadge } from '../UI';
@@ -12,6 +13,10 @@ export interface RouteCardProps {
 }
 
 export function RouteCard({ route, lines, selected, onSelect, onStart }: RouteCardProps): JSX.Element {
+  // Un raccordo di tre chilometri non e' "a piedi": si pedala, e la scheda
+  // deve dirlo, altrimenti il tempo mostrato sembra sbagliato.
+  const collegamento = connectorSummary(route);
+
   return (
     <div
       className={`route-card${selected ? ' route-card--selected' : ''}`}
@@ -32,18 +37,29 @@ export function RouteCard({ route, lines, selected, onSelect, onStart }: RouteCa
           <span className="route-card__time">{formatDuration(route.durationSeconds)}</span>
         </div>
 
+        {/*
+          Il criterio con cui questo percorso e' stato scelto. Sta subito sotto
+          il nome del profilo perche' e' li' che serve: le etichette da sole non
+          dicono in cosa un percorso sia "piu' veloce" o "piu' tranquillo".
+        */}
+        <p className="route-card__why">{routeRationale(route)}</p>
+
         <div className="route-card__meta">
           <span>{formatDistance(route.distanceMeters)}</span>
           <span aria-hidden="true">·</span>
           <EstimateChip />
-          {route.walkingMeters > 0 ? (
+          {collegamento ? (
             <>
               <span aria-hidden="true">·</span>
               <span
                 className="chip"
-                title="Raccordo fra i punti scelti e la rete coperta dai dati, indicato in linea d’aria"
+                title={
+                  route.walkingRouted
+                    ? 'Raccordo fra i punti scelti e la rete coperta dai dati, calcolato sulle strade'
+                    : 'Raccordo fra i punti scelti e la rete coperta dai dati, indicato in linea d’aria'
+                }
               >
-                🚶 {formatDistance(route.walkingMeters)} a piedi
+                {collegamento.icon} {formatDistance(collegamento.meters)} {collegamento.label}
               </span>
             </>
           ) : null}

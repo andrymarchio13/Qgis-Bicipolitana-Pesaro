@@ -13,6 +13,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   ARRIVAL_THRESHOLD_METERS,
+  REROUTE_COOLDOWN_MS,
   REROUTE_DEBOUNCE_MS,
   REROUTE_DISTANCE_THRESHOLD,
 } from '../config';
@@ -48,6 +49,16 @@ export function useNavigation({
   const [offRouteSince, setOffRouteSince] = useState<number | null>(null);
   const [dismissed, setDismissed] = useState(false);
   const rerouteTimer = useRef<number | null>(null);
+  const lastRerouteAt = useRef(0);
+  /*
+   * La funzione di ricalcolo cambia identita' a ogni punto GPS, perche' e'
+   * costruita sulla posizione corrente. Tenerla in un riferimento evita che
+   * l'effetto qui sotto venga smontato e rimontato dieci volte al minuto:
+   * senza questo, l'attesa prima del ricalcolo non arriva mai a scadere e il
+   * percorso non si aggiorna mai da solo.
+   */
+  const rerouteRef = useRef(onReroute);
+  rerouteRef.current = onReroute;
 
   const progress = useMemo(() => {
     if (!route || !position || route.geometry.length < 2) return null;
@@ -101,17 +112,31 @@ export function useNavigation({
       window.clearTimeout(rerouteTimer.current);
       rerouteTimer.current = null;
     }
-    if (!active || !isOffRoute || offRouteSince === null || !onReroute || arrived) return;
+    if (!active || !isOffRoute || offRouteSince === null || !rerouteRef.current || arrived) return;
 
-    const elapsed = Date.now() - offRouteSince;
-    const wait = Math.max(0, REROUTE_DEBOUNCE_MS - elapsed);
+    const now = Date.now();
+    const elapsed = now - offRouteSince;
+    // Due attese si sommano: quella che distingue uno scarto vero da un punto
+    // GPS sporco, e quella che impedisce di rilanciare il calcolo di continuo
+    // se si resta fuori percorso a lungo.
+    const wait = Math.max(
+      REROUTE_DEBOUNCE_MS - elapsed,
+      REROUTE_COOLDOWN_MS - (now - lastRerouteAt.current),
+      0,
+    );
 
     rerouteTimer.current = window.setTimeout(() => {
+      const reroute = rerouteRef.current;
+      if (!reroute) return;
+      lastRerouteAt.current = Date.now();
       setRerouting(true);
-      Promise.resolve(onReroute())
+      Promise.resolve(reroute())
         .catch(() => null)
         .finally(() => {
           setRerouting(false);
+          // Azzerare la finestra fa ripartire il conteggio: se dopo il
+          // ricalcolo si e' ancora fuori percorso, si riprova piu' tardi
+          // invece di restare fermi su un percorso che non si sta seguendo.
           setOffRouteSince(null);
         });
     }, wait);
@@ -122,7 +147,7 @@ export function useNavigation({
         rerouteTimer.current = null;
       }
     };
-  }, [active, isOffRoute, offRouteSince, onReroute, arrived]);
+  }, [active, isOffRoute, offRouteSince, arrived]);
 
   const dismissOffRoute = useCallback(() => setDismissed(true), []);
 

@@ -55,7 +55,90 @@ export const PLACES = {
   panoramicaArdizio: [12.94284, 43.89113] as [number, number],
   /** Via Solferino — dal grafo OSM. */
   viaSolferino: [12.88908, 43.89203] as [number, number],
+  /** Viale del Risorgimento, zona stazione — dal grafo OSM. */
+  vialeRisorgimento: [12.90845, 43.90691] as [number, number],
+  /** Via del Miralfiore, lungo il parco — dal grafo OSM. */
+  viaMiralfiore: [12.90422, 43.90323] as [number, number],
+  /** Via Pompilio Fastiggi, quartiere Villa Fastiggi — dal grafo OSM. */
+  villaFastiggi: [12.87726, 43.88491] as [number, number],
+  /** Via Cattabrighe, estremita' nord-ovest della rete — dal grafo OSM. */
+  cattabrighe: [12.86376, 43.91636] as [number, number],
+  /** Via Santa Maria Fabbrecce — dal grafo OSM. */
+  santaMariaFabbrecce: [12.8738, 43.91024] as [number, number],
+  /** Via per Soria — dal grafo OSM. */
+  viaPerSoria: [12.89843, 43.91524] as [number, number],
+  /** Via Pantano — dal grafo OSM. */
+  viaPantano: [12.90912, 43.89607] as [number, number],
+  /** Via Lungo Genica — dal grafo OSM. */
+  lungoGenica: [12.90852, 43.89185] as [number, number],
+  /** Via Flaminia — dal grafo OSM. */
+  viaFlaminia: [12.91741, 43.90465] as [number, number],
+  /** Via Cesare Lombroso, zona sud-est — dal grafo OSM. */
+  viaLombroso: [12.93265, 43.88713] as [number, number],
+  /** Via Madonna di Loreto — dal grafo OSM. */
+  madonnaDiLoreto: [12.91151, 43.89325] as [number, number],
+  /** POI "srv-1", fontanella senza nome — da servizi.geojson. */
+  fontanellaSenzaNome: [12.900227, 43.904348] as [number, number],
+  /** POI "srv-25", parcheggio bici senza nome — da servizi.geojson. */
+  parcheggioBici: [12.916659, 43.91502] as [number, number],
+  /** POI "srv-0" "Giunti Professional Bike" — da servizi.geojson. */
+  giuntiBike: [12.898185, 43.89957] as [number, number],
+  /** POI "svg-8", parco — da svago.geojson. */
+  parcoSvago: [12.898768, 43.896088] as [number, number],
+  /** POI "svg-1", belvedere sul San Bartolo — da svago.geojson. */
+  belvedereSanBartolo: [12.876876, 43.927509] as [number, number],
 };
+
+/**
+ * Punti presi dai casi particolari presenti nei dati: servono ai test che
+ * verificano avvisi e regole di percorrenza, non la geografia in generale.
+ * Ogni coordinata e' quella di un nodo del grafo toccato dall'arco descritto.
+ */
+export const PLACES_CASI_LIMITE = {
+  /** Arco della linea 5 con obbligo di scendere (ostacolo `obs-18`). */
+  obbligoScendereLinea5: [12.90855, 43.8928] as [number, number],
+  /** Arco della linea 9 con obbligo di scendere (ostacolo `obs-24`). */
+  obbligoScendereLinea9: [12.88605, 43.89629] as [number, number],
+  /** Via Bernardino Baldi, obbligo di scendere (ostacolo `obs-26`). */
+  obbligoScendereViaBaldi: [12.89948, 43.91897] as [number, number],
+  /** Archi con transito vietato alle bici (ostacolo `obs-11`, chicane). */
+  transitoVietato: [12.9009, 43.91983] as [number, number],
+  /** Strada di Montefeltro: tratto a senso unico nel grafo. */
+  sensoUnico: [12.85952, 43.90557] as [number, number],
+  /**
+   * Meta' di Via Cerreto, l'arco piu' lungo del grafo (2,7 km senza incroci):
+   * chi si trova qui e' su una strada nota, ma il nodo piu' vicino dista quasi
+   * un chilometro in linea d'aria. E' il caso che mostra se il tratto a piedi
+   * segue la strada o taglia per i campi.
+   */
+  mezzeriaViaCerreto: [12.90974, 43.84895] as [number, number],
+};
+
+/**
+ * Id di POI realmente presenti nei GeoJSON esportati, uno per categoria
+ * interessante. Se una rigenerazione dei dati li fa sparire, i test che li
+ * citano devono fallire in modo esplicito invece di verificare il nulla.
+ */
+export const POI_REALI = {
+  officinaVelomarche: 'srv-24',
+  noleggioSanDecenzio: 'srv-4',
+  negozioGiunti: 'srv-0',
+  fontanella: 'srv-1',
+  parcheggioBici: 'srv-25',
+  barrieraCiclabile: 'obs-0',
+  chicane: 'obs-11',
+  barrieraDoppia: 'obs-17',
+  parco: 'svg-8',
+  belvedere: 'svg-1',
+  areaPicnic: 'svg-0',
+} as const;
+
+/** Cerca una feature per id in una collezione GeoJSON esportata. */
+export const featureById = (
+  collection: GeoJsonCollection,
+  id: string,
+): GeoJsonCollection['features'][number] | undefined =>
+  collection.features.find((f) => f.properties.id === id || f.id === id);
 
 /**
  * Punti scelti fuori dall'area coperta dai dati: servono a verificare che il

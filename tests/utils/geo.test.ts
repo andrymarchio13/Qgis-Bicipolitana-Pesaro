@@ -11,6 +11,7 @@ import {
   lineLength,
   pointAtOffset,
   projectOnLine,
+  sliceLine,
 } from '../../src/utils/geo';
 import type { LngLat } from '../../src/types';
 
@@ -111,6 +112,52 @@ describe('pointAtOffset', () => {
     const point = pointAtOffset(line, half);
     expect(point[0]).toBeGreaterThan(line[0][0]);
     expect(point[0]).toBeLessThan(line[1][0]);
+  });
+});
+
+describe('sliceLine', () => {
+  const linea: LngLat[] = [
+    [12.9, 43.9],
+    [12.91, 43.9],
+    [12.91, 43.905],
+  ];
+  const totale = lineLength(linea);
+
+  it('restituisce tutta la linea quando il taglio la contiene', () => {
+    const tratto = sliceLine(linea, 0, totale);
+    expect(tratto).toHaveLength(3);
+    expect(lineLength(tratto)).toBeCloseTo(totale, 3);
+  });
+
+  it('taglia esattamente alla progressiva chiesta, interpolando gli estremi', () => {
+    const tratto = sliceLine(linea, 100, 400);
+    expect(lineLength(tratto)).toBeCloseTo(300, 3);
+    expect(projectOnLine(tratto[0], linea).distanceMeters).toBeLessThan(0.001);
+  });
+
+  it('mantiene i vertici intermedi, cosi’ il tratto segue la linea', () => {
+    const tratto = sliceLine(linea, 10, totale - 10);
+    expect(tratto.length).toBeGreaterThan(2);
+    for (const punto of tratto) {
+      expect(projectOnLine(punto, linea).distanceMeters).toBeLessThan(0.001);
+    }
+  });
+
+  it('con gli estremi invertiti restituisce il tratto al contrario', () => {
+    const avanti = sliceLine(linea, 100, 400);
+    const indietro = sliceLine(linea, 400, 100);
+    expect(indietro[0]).toEqual(avanti[avanti.length - 1]);
+    expect(indietro[indietro.length - 1]).toEqual(avanti[0]);
+  });
+
+  it('limita le progressive alla lunghezza della linea', () => {
+    expect(sliceLine(linea, -50, 999_999)).toEqual(sliceLine(linea, 0, totale));
+  });
+
+  it('non produce punti doppi quando il taglio cade su un vertice', () => {
+    const primoTratto = haversine(linea[0], linea[1]);
+    const tratto = sliceLine(linea, 0, primoTratto);
+    expect(tratto).toHaveLength(2);
   });
 });
 

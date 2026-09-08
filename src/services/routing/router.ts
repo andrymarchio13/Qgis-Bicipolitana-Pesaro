@@ -11,11 +11,10 @@
  * piedi dichiarato, non con un percorso calcolato da un servizio terzo.
  */
 import {
+  CONNECTOR_RIDE_THRESHOLD_METERS,
   CYCLING_SPEED_KMH,
   ROUTING_PROFILES,
-  SNAP_MAX_DISTANCE_METERS,
   WALKING_SPEED_KMH,
-  WALK_SNAP_MAX_DISTANCE_METERS,
   WALK_COLOR,
   WALK_LEG_MIN_METERS,
 } from '../../config';
@@ -31,6 +30,7 @@ import type {
 } from '../../types';
 import { haversine, lineLength } from '../../utils/geo';
 import { findPath, type SearchStep } from './astar';
+import { attachEndpoints, isWalkEdge } from './attach';
 import type { RoutingGraphIndex } from './graph';
 import { buildInstructions, buildSegments } from './instructions';
 
@@ -131,26 +131,58 @@ function collectWarnings(steps: RouteStep[]): RouteWarning[] {
 }
 
 /**
- * Tratto di collegamento a piedi fra un punto scelto dall'utente e la rete
- * coperta dai dati.
+ * Tratto di collegamento a piedi fra il punto scelto dall'utente e il punto in
+ * cui il percorso calcolato entra in rete.
  *
- * È volutamente un segmento in linea d'aria: il progetto non contiene una rete
- * pedonale, quindi qualsiasi percorso a piedi "calcolato" sarebbe inventato.
- * Viene mostrato tratteggiato e dichiarato come tratto da fare a piedi.
+ * Quel punto non e' piu' un incrocio: e' la proiezione sulla strada o sulla
+ * linea piu' conveniente (vedi `attach.ts`), quindi il collegamento e' il
+ * tratto piu' breve che serve davvero, non una camminata fino al primo nodo
+ * del grafo. Resta in linea d'aria perche' il progetto non contiene una rete
+ * pedonale: se il servizio pedonale opzionale e' attivo, viene ridisegnato
+ * sulle strade dopo il calcolo (`walk.ts`).
  */
-function walkingLeg(from: LngLat, to: LngLat): RouteSegment | null {
-  const distanceMeters = haversine(from, to);
+function walkingLeg(path: LngLat[], streetNames: string[] = []): RouteSegment | null {
+  if (path.length < 2) return null;
+  const distanceMeters = lineLength(path);
   if (distanceMeters < WALK_LEG_MIN_METERS) return null;
+  /*
+   * Sotto la soglia il raccordo si fa spingendo la bici — attraversare, uscire
+   * da un cortile. Sopra, si pedala: proporre un'ora di cammino a chi ha una
+   * bicicletta solo perche' i dati del progetto finiscono prima di casa sua
+   * non e' una risposta.
+   */
+  const transport: 'piedi' | 'bici' =
+    distanceMeters > CONNECTOR_RIDE_THRESHOLD_METERS ? 'bici' : 'piedi';
+  const speed = transport === 'bici' ? CYCLING_SPEED_KMH : WALKING_SPEED_KMH;
   return {
     lineId: null,
     lineName: null,
     color: WALK_COLOR,
     kind: 'piedi',
+    transport,
     distanceMeters,
-    durationSeconds: (distanceMeters / 1000 / WALKING_SPEED_KMH) * 3600,
-    coordinates: [from, to],
-    streetNames: [],
+    durationSeconds: (distanceMeters / 1000 / speed) * 3600,
+    coordinates: path,
+    streetNames,
   };
+}
+
+/** Testo dell'istruzione del raccordo, secondo come lo si percorre. */
+const connectorText = (segment: RouteSegment, destinationLabel: string | null): string => {
+  if (segment.transport === 'bici') {
+    return destinationLabel
+      ? `Pedala fino a ${destinationLabel}, fuori dalla rete del progetto`
+      : 'Raggiungi in bicicletta l’inizio del percorso ciclabile';
+  }
+  return destinationLabel
+    ? `Prosegui a piedi fino a ${destinationLabel}`
+    : 'Raggiungi a piedi l’inizio del percorso ciclabile';
+};
+
+/** I due collegamenti a piedi, gia' orientati nel verso di marcia. */
+interface WalkLegs {
+  start: { path: LngLat[]; streetNames: string[] } | null;
+  end: { path: LngLat[]; streetNames: string[] } | null;
 }
 
 function buildRoute(
@@ -159,7 +191,7 @@ function buildRoute(
   searchSteps: SearchStep[],
   lines: Map<string, Line>,
   destinationLabel: string | null,
-  endpoints: { origin: LngLat; destination: LngLat },
+  walkLegs: WalkLegs,
 ): Route {
   const profile = ROUTING_PROFILES[profileId];
   const steps = toRouteSteps(searchSteps);
@@ -168,9 +200,10 @@ function buildRoute(
   const cyclingInstructions = buildInstructions(steps, cyclingSegments, lines, destinationLabel);
 
   // I due tratti scoperti diventano segmenti a piedi espliciti.
-  const startWalk = ridden.length > 0 ? walkingLeg(endpoints.origin, ridden[0]) : null;
-  const endWalk =
-    ridden.length > 0 ? walkingLeg(ridden[ridden.length - 1], endpoints.destination) : null;
+  const startWalk = walkLegs.start
+    ? walkingLeg(walkLegs.start.path, walkLegs.start.streetNames)
+    : null;
+  const endWalk = walkLegs.end ? walkingLeg(walkLegs.end.path, walkLegs.end.streetNames) : null;
 
   const segments: RouteSegment[] = [
     ...(startWalk ? [startWalk] : []),
@@ -178,10 +211,11 @@ function buildRoute(
     ...(endWalk ? [endWalk] : []),
   ];
 
+  // La geometria completa unisce i tre pezzi senza ripetere i punti di giunzione.
   const geometry: LngLat[] = [
-    ...(startWalk ? [startWalk.coordinates[0]] : []),
+    ...(startWalk ? startWalk.coordinates.slice(0, -1) : []),
     ...ridden,
-    ...(endWalk ? [endWalk.coordinates[1]] : []),
+    ...(endWalk ? endWalk.coordinates.slice(1) : []),
   ];
 
   const startWalkMeters = startWalk?.distanceMeters ?? 0;
@@ -195,7 +229,8 @@ function buildRoute(
     instructions.push({
       index: 0,
       type: 'walk-start',
-      text: 'Raggiungi a piedi l’inizio del percorso ciclabile',
+      text: connectorText(startWalk, null),
+      transport: startWalk.transport,
       distanceMeters: startWalkMeters,
       durationSeconds: startWalk.durationSeconds,
       location: startWalk.coordinates[0],
@@ -218,9 +253,8 @@ function buildRoute(
     instructions.push({
       index: instructions.length,
       type: 'walk-end',
-      text: destinationLabel
-        ? `Prosegui a piedi fino a ${destinationLabel}`
-        : 'Prosegui a piedi fino alla destinazione',
+      text: connectorText(endWalk, destinationLabel ?? 'la destinazione'),
+      transport: endWalk.transport,
       distanceMeters: endWalkMeters,
       durationSeconds: endWalk.durationSeconds,
       location: endWalk.coordinates[0],
@@ -233,7 +267,7 @@ function buildRoute(
       instructions.push({
         ...arrive,
         distanceMeters: 0,
-        location: endWalk.coordinates[1],
+        location: endWalk.coordinates[endWalk.coordinates.length - 1],
         offsetMeters: arrive.offsetMeters + endWalkMeters,
       });
     }
@@ -285,6 +319,41 @@ function buildRoute(
   };
 }
 
+/**
+ * Separa i due collegamenti a piedi dalla parte pedalata.
+ *
+ * Il cammino e la pedalata escono da un'unica ricerca — e' cosi' che il
+ * calcolo puo' preferire venti metri a piedi in piu' per entrare su una linea
+ * invece che su una statale — ma nel percorso mostrato sono cose diverse:
+ * hanno velocita', colore e istruzioni proprie.
+ */
+function splitWalkLegs(steps: SearchStep[]): { cycling: SearchStep[]; walk: WalkLegs } {
+  const cycling = [...steps];
+  const walk: WalkLegs = { start: null, end: null };
+
+  if (cycling.length > 0 && isWalkEdge(cycling[0].edge)) {
+    const step = cycling.shift() as SearchStep;
+    walk.start = {
+      path: orientedCoordinates(step),
+      // Il nome della via e' quello del tratto su cui si entra in rete: e'
+      // l'informazione che serve a chi cammina ("raggiungi via Tal dei Tali").
+      streetNames: cycling[0]?.edge.n ? [cycling[0].edge.n] : [],
+    };
+  }
+
+  if (cycling.length > 0 && isWalkEdge(cycling[cycling.length - 1].edge)) {
+    const step = cycling.pop() as SearchStep;
+    walk.end = {
+      path: orientedCoordinates(step),
+      streetNames: cycling[cycling.length - 1]?.edge.n
+        ? [cycling[cycling.length - 1].edge.n as string]
+        : [],
+    };
+  }
+
+  return { cycling, walk };
+}
+
 /** Due percorsi sono considerati equivalenti se condividono quasi tutti gli archi. */
 function similarity(a: SearchStep[], b: SearchStep[]): number {
   if (a.length === 0 || b.length === 0) return 0;
@@ -305,18 +374,6 @@ export class BicipolitanaRouter {
   ) {}
 
   /**
-   * Aggancia un punto alla rete. Prima si prova il raggio normale; se il punto
-   * e' piu' lontano non viene rifiutato, ma agganciato fino al raggio esteso:
-   * il tratto scoperto diventa un collegamento a piedi nel percorso.
-   */
-  private snapWithWalk(point: LngLat) {
-    return (
-      this.index.snap(point, SNAP_MAX_DISTANCE_METERS) ??
-      this.index.snap(point, WALK_SNAP_MAX_DISTANCE_METERS)
-    );
-  }
-
-  /**
    * Calcola una o piu' alternative fra origine e destinazione.
    * Le alternative troppo simili fra loro vengono scartate.
    */
@@ -330,21 +387,25 @@ export class BicipolitanaRouter {
       );
     }
 
-    const originSnap = this.snapWithWalk(origin);
-    if (!originSnap) {
-      throw new RoutingError(
-        'origin-unreachable',
-        'Il punto di partenza è fuori dall’area coperta dai dati del progetto.',
-      );
+    /*
+     * Il grafo viene ampliato per questa sola richiesta: origine e
+     * destinazione si innestano sulla rete nel punto in cui la incontrano, non
+     * al primo incrocio utile, e fra piu' innesti possibili sceglie il calcolo
+     * del percorso — che vede insieme il cammino e la pedalata.
+     */
+    const attached = attachEndpoints(this.index, origin, destination);
+    if (!attached.ok) {
+      throw attached.side === 'origin'
+        ? new RoutingError(
+            'origin-unreachable',
+            'Il punto di partenza è fuori dall’area coperta dai dati del progetto.',
+          )
+        : new RoutingError(
+            'destination-unreachable',
+            'La destinazione è fuori dall’area coperta dai dati del progetto.',
+          );
     }
-
-    const destinationSnap = this.snapWithWalk(destination);
-    if (!destinationSnap) {
-      throw new RoutingError(
-        'destination-unreachable',
-        'La destinazione è fuori dall’area coperta dai dati del progetto.',
-      );
-    }
+    const graph = attached.graph;
 
     const profileIds = request.profiles ?? ['bicipolitana', 'fast', 'quiet'];
     const results: Route[] = [];
@@ -355,14 +416,12 @@ export class BicipolitanaRouter {
 
       // "Usa questa linea": la linea scelta viene resa ancora piu' conveniente.
       const preferred = request.preferredLineId ?? null;
-      const found = findPath(this.index, originSnap.nodeId, destinationSnap.nodeId, {
+      const found = findPath(graph, graph.origin.node, graph.destination.node, {
         profile,
         cyclingSpeedKmh: CYCLING_SPEED_KMH,
         penalisedEdges: preferred
           ? new Set(
-              this.index.edges
-                .filter((e) => e.k === 0 && e.l !== preferred)
-                .map((e) => e.i),
+              graph.edges.filter((e) => e.k === 0 && e.l !== preferred).map((e) => e.i),
             )
           : undefined,
         penaltyFactor: preferred ? 1.6 : undefined,
@@ -370,18 +429,21 @@ export class BicipolitanaRouter {
 
       if (!found || found.steps.length === 0) continue;
 
-      const isDuplicate = accepted.some((other) => similarity(found.steps, other) > 0.9);
+      const { cycling, walk } = splitWalkLegs(found.steps);
+      if (cycling.length === 0) continue;
+
+      const isDuplicate = accepted.some((other) => similarity(cycling, other) > 0.9);
       if (isDuplicate) continue;
 
-      accepted.push(found.steps);
+      accepted.push(cycling);
       results.push(
         buildRoute(
           `${profileId}-${results.length}`,
           profileId,
-          found.steps,
+          cycling,
           this.lines,
           request.destinationLabel ?? null,
-          { origin, destination },
+          walk,
         ),
       );
     }

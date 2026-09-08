@@ -143,6 +143,11 @@ export interface GraphEdge {
   dm?: 1;
   /** Ostacolo con transito vietato. */
   bk?: 1;
+  /**
+   * Arco a piedi creato per una singola richiesta, non presente nei dati:
+   * collega il punto scelto dall'utente al punto in cui entra in rete.
+   */
+  vw?: 1;
 }
 
 export interface RoutingGraph {
@@ -209,6 +214,17 @@ export interface RouteSegment {
   coordinates: LngLat[];
   /** Nomi delle vie percorse, quando disponibili nel dataset OSM. */
   streetNames: string[];
+  /**
+   * Solo per i tratti `piedi`: true quando il collegamento e' stato ricalcolato
+   * sulla rete reale invece di restare in linea d'aria.
+   */
+  routed?: boolean;
+  /**
+   * Come si percorre il collegamento fuori rete. Un raccordo di pochi metri si
+   * fa spingendo la bici; uno di chilometri si pedala, perche' chi chiede un
+   * percorso ciclabile la bicicletta ce l'ha.
+   */
+  transport?: 'piedi' | 'bici';
 }
 
 export type ManeuverType =
@@ -242,6 +258,12 @@ export interface RouteInstruction {
   streetName: string | null;
   /** Progressiva lungo il percorso, in metri. */
   offsetMeters: number;
+  /**
+   * Solo per i raccordi fuori rete: come si percorrono. L'interfaccia deve
+   * poter mostrare la bicicletta invece del pedone quando il collegamento e'
+   * lungo chilometri.
+   */
+  transport?: 'piedi' | 'bici';
 }
 
 export interface RouteWarning {
@@ -272,6 +294,8 @@ export interface Route {
   obstacleIds: string[];
   /** I tempi sono stime, non misure. */
   durationIsEstimate: true;
+  /** true quando i tratti a piedi seguono le strade e non la linea d'aria. */
+  walkingRouted?: boolean;
 }
 
 // ---------------------------------------------------------------------------

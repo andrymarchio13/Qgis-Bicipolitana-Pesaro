@@ -4,7 +4,7 @@
  * Mostra soltanto informazioni certe: manovra corrente, distanza residua e
  * tempo residuo stimato. Non annuncia svolte non deducibili dai dati.
  */
-import { MANEUVER_ARROW, formatInstruction } from '../../services/routing/instructions';
+import { formatInstruction, maneuverIcon } from '../../services/routing/instructions';
 import type { Line, Route, RouteInstruction } from '../../types';
 import { formatDistance, formatDuration } from '../../utils/geo';
 import type { UserPosition } from '../../hooks/useLocation';
@@ -72,7 +72,7 @@ export function NavigationScreen({
         </div>
 
         <div className="nav-screen__arrow" aria-hidden="true">
-          {instruction ? MANEUVER_ARROW[instruction.type] : '↑'}
+          {instruction ? maneuverIcon(instruction) : '↑'}
         </div>
       </div>
 
@@ -99,6 +99,7 @@ export function NavigationScreen({
           route={route}
           userPosition={position}
           snappedPosition={navigation.snappedPosition}
+          showOrigin={false}
           followUser
           bearing={position?.heading ?? null}
           interactive
@@ -169,7 +170,7 @@ export function InstructionList({ route, lines }: { route: Route; lines: Map<str
               color: instruction.color ?? 'var(--ink-500)',
             }}
           >
-            {MANEUVER_ARROW[instruction.type]}
+            {maneuverIcon(instruction)}
           </span>
           <span style={{ flex: 1, minWidth: 0 }}>
             <span style={{ display: 'block', fontSize: 14 }}>{formatInstruction(instruction)}</span>
@@ -184,7 +185,9 @@ export function InstructionList({ route, lines }: { route: Route; lines: Map<str
                * le serve, e chi non ha tratti a piedi non la legge affatto.
                */
               <span style={{ display: 'block', fontSize: 12, color: 'var(--ink-500)' }}>
-                Collegamento in linea d’aria, non un percorso calcolato
+                {route.walkingRouted
+                  ? 'Collegamento fuori dai dati del progetto, calcolato su OpenStreetMap'
+                  : 'Collegamento in linea d’aria, non un percorso calcolato'}
               </span>
             ) : instruction.streetName && !instruction.text.includes(instruction.streetName) ? (
               <span style={{ display: 'block', fontSize: 12, color: 'var(--ink-500)' }}>

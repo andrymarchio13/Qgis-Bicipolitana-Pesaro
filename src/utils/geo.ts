@@ -112,6 +112,38 @@ export function pointAtOffset(coords: LngLat[], offsetMeters: number): LngLat {
   return coords[coords.length - 1];
 }
 
+/**
+ * Porzione di polilinea fra due progressive, in metri.
+ *
+ * Gli estremi vengono interpolati sul segmento in cui cadono, cosi' il tratto
+ * restituito segue esattamente la linea di partenza invece di approssimarla ai
+ * vertici piu' vicini: e' quello che serve per disegnare un pezzo di strada
+ * percorso a piedi.
+ */
+export function sliceLine(coords: LngLat[], fromMeters: number, toMeters: number): LngLat[] {
+  if (coords.length === 0) return [];
+  if (coords.length === 1) return [coords[0]];
+
+  const total = lineLength(coords);
+  const from = Math.max(0, Math.min(fromMeters, total));
+  const to = Math.max(0, Math.min(toMeters, total));
+  // Verso di percorrenza inverso: si taglia in avanti e si rovescia.
+  if (to < from) return sliceLine(coords, to, from).reverse();
+
+  const result: LngLat[] = [pointAtOffset(coords, from)];
+  let travelled = 0;
+  for (let i = 1; i < coords.length; i += 1) {
+    travelled += haversine(coords[i - 1], coords[i]);
+    if (travelled > from && travelled < to) result.push(coords[i]);
+  }
+  result.push(pointAtOffset(coords, to));
+
+  // I punti interpolati possono coincidere con un vertice: niente doppioni.
+  return result.filter(
+    (point, i) => i === 0 || point[0] !== result[i - 1][0] || point[1] !== result[i - 1][1],
+  );
+}
+
 /** Bounding box [[minLng, minLat], [maxLng, maxLat]] di una lista di coordinate. */
 export function boundsOf(coords: LngLat[]): [[number, number], [number, number]] | null {
   if (coords.length === 0) return null;

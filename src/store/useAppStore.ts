@@ -11,6 +11,7 @@ import {
 } from '../services/geocoding';
 import { RoutingGraphIndex } from '../services/routing/graph';
 import { BicipolitanaRouter, RoutingError } from '../services/routing/router';
+import { refineRoutes } from '../services/routing/walk';
 import type {
   GeocodingProvider,
   Location,
@@ -94,12 +95,26 @@ interface AppState {
   swapEndpoints: () => void;
   setPreferredLine: (lineId: string | null) => void;
   calculateRoutes: (profiles?: RoutingProfileId[]) => void;
+  /**
+   * Sostituisce i percorsi mostrati. La usa anche il ricalcolo durante la
+   * navigazione, cosi' il nuovo percorso passa dalla stessa rifinitura dei
+   * tratti a piedi di quello calcolato all'inizio.
+   */
+  replaceRoutes: (routes: Route[], selectedId?: string | null) => void;
   selectRoute: (id: string | null) => void;
   clearRoutes: () => void;
   toggleLayer: (key: keyof LayerVisibility) => void;
   setHighlightedLine: (lineId: string | null) => void;
   setPickingMode: (mode: 'origin' | 'destination' | null) => void;
 }
+
+/**
+ * Contatore delle rifiniture in corso. La rifinitura dei tratti a piedi e'
+ * asincrona: quando arriva, i percorsi mostrati potrebbero essere gia' altri
+ * (nuovo calcolo, ricalcolo in navigazione). Il gettone scarta i risultati
+ * arrivati in ritardo invece di farli sovrascrivere quelli attuali.
+ */
+let refineToken = 0;
 
 export const useAppStore = create<AppState>((set, get) => ({
   phase: 'idle',
@@ -150,15 +165,18 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   setOrigin(location) {
+    refineToken += 1;
     set({ origin: location, routes: [], selectedRouteId: null, routingError: null });
   },
 
   setDestination(location) {
+    refineToken += 1;
     set({ destination: location, routes: [], selectedRouteId: null, routingError: null });
   },
 
   swapEndpoints() {
     const { origin, destination } = get();
+    refineToken += 1;
     set({
       origin: destination,
       destination: origin,
@@ -192,19 +210,34 @@ export const useAppStore = create<AppState>((set, get) => ({
         profiles: profiles ?? DEFAULT_PROFILE_ORDER.slice(0, 3),
         preferredLineId,
       });
-      set({
-        routes,
-        selectedRouteId: routes[0]?.id ?? null,
-        calculating: false,
-        routingError: null,
-      });
+      get().replaceRoutes(routes, routes[0]?.id ?? null);
+      set({ calculating: false, routingError: null });
     } catch (error) {
       const message =
         error instanceof RoutingError
           ? error.message
           : 'Si è verificato un problema nel calcolo del percorso. Riprova.';
+      refineToken += 1;
       set({ routes: [], selectedRouteId: null, calculating: false, routingError: message });
     }
+  },
+
+  replaceRoutes(routes, selectedId) {
+    set({
+      routes,
+      selectedRouteId:
+        selectedId !== undefined ? selectedId : (routes[0]?.id ?? null),
+    });
+
+    // I percorsi si mostrano subito con il collegamento a piedi calcolato
+    // offline; quando la rete pedonale risponde, il tratto viene ridisegnato
+    // sulle strade. L'attesa non blocca la comparsa del risultato.
+    const token = (refineToken += 1);
+    void refineRoutes(routes).then((refined) => {
+      if (token !== refineToken) return;
+      const byId = new Map(refined.map((route) => [route.id, route]));
+      set((state) => ({ routes: state.routes.map((route) => byId.get(route.id) ?? route) }));
+    });
   },
 
   selectRoute(id) {
@@ -212,6 +245,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   clearRoutes() {
+    refineToken += 1;
     set({ routes: [], selectedRouteId: null, routingError: null });
   },
 

@@ -7,7 +7,7 @@
  */
 import type { GraphEdge, LngLat, RoutingProfile } from '../../types';
 import { haversine } from '../../utils/geo';
-import type { AdjacencyEntry, RoutingGraphIndex } from './graph';
+import type { AdjacencyEntry, RoutingGraphView } from './graph';
 
 export interface SearchStep {
   edge: GraphEdge;
@@ -132,7 +132,7 @@ export interface AStarOptions {
 }
 
 export function findPath(
-  index: RoutingGraphIndex,
+  index: RoutingGraphView,
   start: number,
   goal: number,
   options: AStarOptions,

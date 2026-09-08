@@ -10,6 +10,7 @@ import { SearchField } from '../components/Search/SearchField';
 import { InstructionList } from '../components/Navigation/NavigationScreen';
 import { LineBadge, Notice, Spinner } from '../components/UI';
 import type { UseLocationResult } from '../hooks/useLocation';
+import { connectorSummary } from '../services/routing/instructions';
 import { useAppStore, useSelectedRoute } from '../store/useAppStore';
 import type { Location } from '../types';
 import { formatDistance } from '../utils/geo';
@@ -48,6 +49,11 @@ export function HomePage({
   const selectedRoute = useSelectedRoute();
   const [showInstructions, setShowInstructions] = useState(false);
   const resultsRef = useRef<HTMLElement | null>(null);
+
+  // Raccordi fuori dalla rete coperta dai dati: il riepilogo deve dire quanto
+  // sono lunghi e come si percorrono, perche' un collegamento di chilometri si
+  // pedala e chiamarlo "a piedi" renderebbe il tempo mostrato incomprensibile.
+  const collegamento = selectedRoute ? connectorSummary(selectedRoute) : null;
 
   /*
    * Appena arrivano i percorsi il pannello si porta sui risultati: su schermo
@@ -253,8 +259,12 @@ export function HomePage({
               <p style={{ fontSize: 12, color: 'var(--ink-500)', marginTop: 12 }}>
                 Distanza {formatDistance(selectedRoute.distanceMeters)} · di cui{' '}
                 {formatDistance(selectedRoute.bicipolitanaMeters)} su Bicipolitana
-                {selectedRoute.walkingMeters > 0
-                  ? ` e ${formatDistance(selectedRoute.walkingMeters)} a piedi, in linea d’aria fino alla rete`
+                {collegamento
+                  ? ` e ${formatDistance(collegamento.meters)} ${collegamento.label}${
+                      selectedRoute?.walkingRouted
+                        ? ' lungo le strade fino alla rete'
+                        : ', in linea d’aria fino alla rete'
+                    }`
                   : ''}
                 . I tempi sono stime calcolate a velocità media costante.
               </p>

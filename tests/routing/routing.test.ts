@@ -10,8 +10,8 @@ import { ROUTING_PROFILES, WALK_SNAP_MAX_DISTANCE_METERS } from '../../src/confi
 import { RoutingGraphIndex } from '../../src/services/routing/graph';
 import { BicipolitanaRouter, RoutingError } from '../../src/services/routing/router';
 import type { Line, Route } from '../../src/types';
-import { haversine, lineLength } from '../../src/utils/geo';
-import { graph, linesFile, PLACES, PLACES_FUORI_RETE } from '../helpers';
+import { haversine, lineLength, projectOnLine } from '../../src/utils/geo';
+import { graph, linesFile, PLACES, PLACES_CASI_LIMITE, PLACES_FUORI_RETE } from '../helpers';
 
 let index: RoutingGraphIndex;
 let router: BicipolitanaRouter;
@@ -56,23 +56,58 @@ describe('aggancio al grafo', () => {
     expect(index.snap([13.2, 43.95], 700)).toBeNull();
   });
 
-  it('dichiara la distanza dal nodo che il percorso usa davvero', () => {
+  it('dichiara la lunghezza del tratto a piedi che disegna davvero', () => {
     // Il numero mostrato e il tratto disegnato devono essere la stessa cosa:
-    // misurare la distanza dall'arco e poi camminare fino al nodo produrrebbe
-    // un percorso piu' lungo di quanto dichiarato.
-    for (const place of [...Object.values(PLACES), ...Object.values(PLACES_FUORI_RETE)]) {
+    // dichiarare la distanza in linea d'aria e poi tracciare il cammino lungo
+    // la strada significherebbe mostrare un numero che non corrisponde.
+    for (const place of [
+      ...Object.values(PLACES),
+      ...Object.values(PLACES_CASI_LIMITE),
+      ...Object.values(PLACES_FUORI_RETE),
+    ]) {
       const snap = index.snap(place, WALK_SNAP_MAX_DISTANCE_METERS);
       expect(snap).not.toBeNull();
-      const nodo = index.nodes[snap!.nodeId];
-      expect(Math.abs(haversine(place, nodo) - snap!.distanceMeters)).toBeLessThan(0.5);
+      // Il cammino parte dal punto scelto e finisce sul nodo usato dal percorso.
+      expect(snap!.walkPath[0]).toEqual(place);
+      expect(snap!.walkPath[snap!.walkPath.length - 1]).toEqual(index.nodes[snap!.nodeId]);
+      expect(Math.abs(lineLength(snap!.walkPath) - snap!.distanceMeters)).toBeLessThan(0.5);
+      // Camminare lungo la strada non puo' essere piu' corto della linea d'aria.
+      expect(snap!.distanceMeters).toBeGreaterThanOrEqual(
+        haversine(place, index.nodes[snap!.nodeId]) - 0.5,
+      );
     }
   });
 
-  it('sceglie l’estremità più vicina, non quella con l’offset minore', () => {
-    // Nessun altro nodo del grafo deve essere più vicino di quello scelto.
-    const snap = index.snap(PLACES_FUORI_RETE.caseBruciate, WALK_SNAP_MAX_DISTANCE_METERS);
-    const minimo = Math.min(...index.nodes.map((n) => haversine(PLACES_FUORI_RETE.caseBruciate, n)));
-    expect(snap!.distanceMeters).toBeCloseTo(minimo, 0);
+  it('sceglie l’estremità che si raggiunge camminando di meno', () => {
+    // Fra le due estremita' dell'arco di aggancio nessuna deve richiedere un
+    // cammino piu' breve di quella scelta.
+    for (const place of [PLACES.viaSolferino, PLACES_CASI_LIMITE.mezzeriaViaCerreto]) {
+      const snap = index.snap(place, WALK_SNAP_MAX_DISTANCE_METERS);
+      const arco = snap!.edge!;
+      const proiezione = projectOnLine(place, arco.g);
+      const lunghezza = lineLength(arco.g);
+      const versoA = proiezione.distanceMeters + proiezione.offsetMeters;
+      const versoB = proiezione.distanceMeters + (lunghezza - proiezione.offsetMeters);
+      expect(snap!.nodeId).toBe(versoA <= versoB ? arco.a : arco.b);
+    }
+  });
+
+  it('il tratto a piedi segue la strada invece di tagliare per i campi', () => {
+    // A meta' di Via Cerreto il nodo piu' vicino dista quasi un chilometro: in
+    // linea d'aria il collegamento attraverserebbe la campagna.
+    const punto = PLACES_CASI_LIMITE.mezzeriaViaCerreto;
+    const snap = index.snap(punto, WALK_SNAP_MAX_DISTANCE_METERS)!;
+
+    // Solo il raccordo fino alla strada resta in linea d'aria, ed e' corto.
+    expect(snap.offNetworkMeters).toBeLessThan(20);
+    // Il resto e' una polilinea, non un segmento: segue i vertici della strada.
+    expect(snap.walkPath.length).toBeGreaterThan(5);
+
+    // Ogni vertice del cammino, tranne il punto di partenza, sta sulla strada.
+    const strada = snap.edge!.g;
+    for (const vertice of snap.walkPath.slice(1)) {
+      expect(projectOnLine(vertice, strada).distanceMeters).toBeLessThan(1);
+    }
   });
 
   it('aggancia comunque un punto lontano quando si allarga il raggio', () => {
@@ -108,12 +143,57 @@ describe('partenza fuori dalla rete coperta dai dati', () => {
   });
 });
 
+describe('collegamento a piedi sui dati reali', () => {
+  it('a metà di una strada nota non fa camminare fino all’incrocio', () => {
+    /*
+     * Partenza a meta' di Via Cerreto. Il nodo del grafo e' lontano, ma la
+     * strada c'e' ed e' nei dati: il percorso deve innestarsi dove l'utente si
+     * trova, non fargli percorrere a piedi tutta la via fino all'incrocio.
+     */
+    const partenza = PLACES_CASI_LIMITE.mezzeriaViaCerreto;
+    const [route] = router.route({
+      origin: partenza,
+      destination: PLACES.viaSolferino,
+      profiles: ['bicipolitana'],
+    });
+    expectValidRoute(route);
+
+    const aPiedi = route.segments
+      .filter((s) => s.kind === 'piedi')
+      .reduce((sum, s) => sum + s.distanceMeters, 0);
+
+    // Il cammino non supera la distanza dal punto alla rete: e' il minimo
+    // indispensabile per arrivarci, non una passeggiata lungo la strada.
+    const allaRete = index.attachments(partenza, WALK_SNAP_MAX_DISTANCE_METERS, 1)[0];
+    expect(aPiedi).toBeLessThanOrEqual(allaRete.offNetworkMeters + 60);
+    // E resta molto sotto al cammino fino al nodo piu' vicino, che e' quello
+    // che il percorso imponeva prima.
+    expect(aPiedi).toBeLessThan(index.nearestNode(partenza, 2000)!.distanceMeters);
+
+    // Il primo punto resta quello scelto dall'utente.
+    expect(route.geometry[0]).toEqual(partenza);
+  });
+
+  it('fuori dai dati resta in linea d’aria, e lo dichiara', () => {
+    // A Case Bruciate non ci sono strade nei dati: non c'e' niente da seguire,
+    // e il collegamento resta il segmento dichiarato come tratto a piedi.
+    const snap = index.snap(PLACES_FUORI_RETE.caseBruciate, WALK_SNAP_MAX_DISTANCE_METERS)!;
+    expect(snap.offNetworkMeters).toBeGreaterThan(700);
+    expect(snap.distanceMeters).toBeGreaterThanOrEqual(snap.offNetworkMeters);
+  });
+});
+
 describe('percorsi reali a Pesaro', () => {
   const cases: [string, [number, number], [number, number]][] = [
     ['San Decenzio → Lungomare Trieste', PLACES.parcheggioSanDecenzio, PLACES.lungomareTrieste],
     ['Velomarche → Piazzale della Libertà', PLACES.velomarche, PLACES.piazzaleLiberta],
     ['San Decenzio → Via Solferino', PLACES.parcheggioSanDecenzio, PLACES.viaSolferino],
     ['Velomarche → Pista Cardinali', PLACES.velomarche, PLACES.pistaCardinali],
+    // Attraversamenti lunghi della citta', da un capo all'altro dei dati.
+    ['Villa Fastiggi → Lungomare Trieste', PLACES.villaFastiggi, PLACES.lungomareTrieste],
+    ['Cattabrighe → Via Lombroso', PLACES.cattabrighe, PLACES.viaLombroso],
+    ['Belvedere San Bartolo → Viale Risorgimento', PLACES.belvedereSanBartolo, PLACES.vialeRisorgimento],
+    ['Via Pantano → Via per Soria', PLACES.viaPantano, PLACES.viaPerSoria],
   ];
 
   for (const [name, origin, destination] of cases) {
@@ -249,6 +329,73 @@ describe('tratti a piedi fuori dalla rete', () => {
     expect(walking[0].lineId).toBeNull();
   });
 
+  it('cammina fino alla rete più vicina, non fino al primo incrocio', () => {
+    /*
+     * Caso reale segnalato: partenza a ovest di Pesaro, verso Case Bruciate.
+     * La rete e' a circa un chilometro, ma il nodo del grafo e' molto piu'
+     * lontano: prima della correzione il percorso faceva camminare fino a
+     * quello, e con il ricalcolo pedonale il tratto diventava chilometrico.
+     */
+    const partenza = PLACES_FUORI_RETE.caseBruciate;
+    const [route] = router.route({
+      origin: partenza,
+      destination: PLACES.viaSolferino,
+      profiles: ['bicipolitana'],
+    });
+
+    const allaRete = index.attachments(partenza, WALK_SNAP_MAX_DISTANCE_METERS, 1)[0];
+    const alNodo = index.nearestNode(partenza, WALK_SNAP_MAX_DISTANCE_METERS)!;
+
+    // Il cammino e' quello che serve per raggiungere la rete, non di piu'.
+    expect(route.walkingMeters).toBeLessThanOrEqual(Math.round(allaRete.offNetworkMeters) + 60);
+    // E dev'essere piu' corto del cammino fino al nodo: e' tutto il punto
+    // dell'innesto a meta' arco.
+    expect(route.walkingMeters).toBeLessThan(Math.round(alNodo.distanceMeters));
+    // Da qui il percorso entra sulla Bicipolitana: e' quella la rete vicina.
+    expect(route.linesUsed.length).toBeGreaterThan(0);
+  });
+
+  it('da lontano calcola comunque il percorso, e il raccordo si pedala', () => {
+    /*
+     * Un punto a diversi chilometri dai dati del progetto non viene piu'
+     * rifiutato: il percorso c'e', con il raccordo dichiarato. E quel raccordo
+     * non e' una camminata — chi chiede un percorso ciclabile ha una
+     * bicicletta, e proporgli un'ora a piedi perche' i dati finiscono prima di
+     * casa sua non sarebbe una risposta.
+     */
+    const lontano: [number, number] = [12.78, 43.89];
+    const [route] = router.route({
+      origin: lontano,
+      destination: PLACES.viaSolferino,
+      profiles: ['bicipolitana'],
+    });
+    expectValidRoute(route);
+
+    const raccordi = route.segments.filter((s) => s.kind === 'piedi');
+    expect(raccordi.length).toBeGreaterThan(0);
+    expect(raccordi[0].distanceMeters).toBeGreaterThan(1000);
+    expect(raccordi[0].transport).toBe('bici');
+    // Il tempo dichiarato e' quello di una pedalata, non di una camminata.
+    const aPiedi = (raccordi[0].distanceMeters / 1000 / 4.8) * 3600;
+    expect(raccordi[0].durationSeconds).toBeLessThan(aPiedi / 2);
+
+    const istruzione = route.instructions.find((i) => i.type === 'walk-start');
+    expect(istruzione?.text).toMatch(/bicicletta/i);
+  });
+
+  it('resta un tratto a piedi quando è corto', () => {
+    // Poche decine di metri per raggiungere la rete: quelli si fanno a piedi,
+    // spingendo la bici.
+    const [route] = router.route({
+      origin: PLACES.velomarche,
+      destination: PLACES.piazzaleLiberta,
+      profiles: ['bicipolitana'],
+    });
+    for (const raccordo of route.segments.filter((s) => s.kind === 'piedi')) {
+      expect(raccordo.transport).toBe('piedi');
+    }
+  });
+
   it('la geometria parte dall’origine e finisce sulla destinazione', () => {
     const [route] = router.route({
       origin: remote,
@@ -277,14 +424,28 @@ describe('tratti a piedi fuori dalla rete', () => {
     }
   });
 
-  it('non aggiunge tratti a piedi quando il punto è già sulla rete', () => {
+  it('non fa camminare più dello stretto necessario per raggiungere la rete', () => {
     const [route] = router.route({
       origin: PLACES.velomarche,
       destination: PLACES.piazzaleLiberta,
       profiles: ['bicipolitana'],
     });
-    // I due punti sono a pochi metri dalla rete: nessun tratto significativo.
-    expect(route.walkingMeters).toBeLessThan(60);
+
+    /*
+     * I due punti sono a poche decine di metri dalla rete. Il cammino non puo'
+     * superare quelle distanze: e' la garanzia che conta — mai un metro a
+     * piedi in piu' di quello che serve per arrivare alla rete — e vale per
+     * qualunque coppia di punti, non solo per questa.
+     */
+    const necessario =
+      index.attachments(PLACES.velomarche, WALK_SNAP_MAX_DISTANCE_METERS, 1)[0]
+        .offNetworkMeters +
+      index.attachments(PLACES.piazzaleLiberta, WALK_SNAP_MAX_DISTANCE_METERS, 1)[0]
+        .offNetworkMeters;
+    expect(route.walkingMeters).toBeLessThanOrEqual(Math.round(necessario) + 60);
+    // E in valore assoluto resta un'inezia: due punti in citta' non si
+    // raggiungono a piedi.
+    expect(route.walkingMeters).toBeLessThan(150);
   });
 
   it('conta i metri a piedi dentro distanza e durata totali', () => {
