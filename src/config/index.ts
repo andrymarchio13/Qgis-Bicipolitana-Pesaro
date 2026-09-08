@@ -287,6 +287,41 @@ export const DEFAULT_PROFILE_ORDER: RoutingProfileId[] = [
   'safe',
 ];
 
+/**
+ * Quanti percorsi mostrare al massimo per una stessa richiesta.
+ *
+ * I quattro profili non bastano a coprire le alternative reali: su una citta'
+ * lunga e stretta come Pesaro finiscono spesso nello stesso corridoio, e
+ * quello che resta e' un percorso solo. Oltre ai profili il router cerca
+ * quindi altre strade evitando i tratti gia' proposti, fino a questo numero.
+ */
+export const MAX_ROUTE_ALTERNATIVES = num(env.VITE_MAX_ROUTE_ALTERNATIVES, 5);
+
+/**
+ * Quanto due percorsi possono somigliarsi, come frazione di lunghezza fatta
+ * sugli stessi archi. Le due soglie rispondono a due domande diverse.
+ *
+ * Per i profili si scartano solo i doppioni veri: "piu' veloce" e
+ * "Bicipolitana" possono coincidere quasi del tutto e restano comunque due
+ * risposte oneste a due domande diverse, e togliere a un profilo la sua
+ * risposta migliore perche' somiglia a quella di un altro sarebbe peggio.
+ *
+ * Per le alternative ricavate evitando i tratti gia' proposti la soglia e'
+ * severa: nascono per aggiungere una strada diversa, e se non lo fanno non
+ * hanno motivo di comparire.
+ */
+export const ROUTE_DUPLICATE_THRESHOLD = num(env.VITE_ROUTE_DUPLICATE_THRESHOLD, 0.9);
+export const ROUTE_SIMILARITY_THRESHOLD = num(env.VITE_ROUTE_SIMILARITY_THRESHOLD, 0.7);
+
+/**
+ * Di quanto si penalizzano gli archi gia' proposti, a ogni giro di ricerca.
+ *
+ * Un solo giro non basta: con una penalita' leggera il calcolo ritrova quasi
+ * lo stesso percorso, con una pesante lo manda subito troppo lontano. Si sale
+ * per gradi e ci si ferma appena le alternative sono abbastanza diverse.
+ */
+export const ROUTE_ALTERNATIVE_PENALTIES = [1.8, 3.2, 6];
+
 // ---------------------------------------------------------------------------
 // Geocoding
 // ---------------------------------------------------------------------------

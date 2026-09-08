@@ -207,7 +207,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         origin: [origin.lng, origin.lat],
         destination: [destination.lng, destination.lat],
         destinationLabel: destination.label,
-        profiles: profiles ?? DEFAULT_PROFILE_ORDER.slice(0, 3),
+        profiles: profiles ?? DEFAULT_PROFILE_ORDER,
         preferredLineId,
       });
       get().replaceRoutes(routes, routes[0]?.id ?? null);

@@ -296,6 +296,12 @@ export interface Route {
   durationIsEstimate: true;
   /** true quando i tratti a piedi seguono le strade e non la linea d'aria. */
   walkingRouted?: boolean;
+  /**
+   * true per i percorsi nati evitando i tratti gia' proposti, invece che da un
+   * profilo diverso. Cambia come vanno presentati: non sono "piu' veloce" o
+   * "piu' tranquillo", sono un'altra strada per lo stesso viaggio.
+   */
+  isVariant?: boolean;
 }
 
 // ---------------------------------------------------------------------------

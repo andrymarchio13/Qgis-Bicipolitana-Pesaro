@@ -381,6 +381,12 @@ export function formatInstruction(instruction: RouteInstruction): string {
  * scheda, quindi la frase non li ripete.
  */
 export function routeRationale(route: Route): string {
+  // I percorsi nati evitando i tratti gia' proposti non seguono un criterio
+  // diverso: seguono lo stesso, su strade diverse. Dirlo con l'etichetta del
+  // profilo li farebbe sembrare cio' che non sono.
+  if (route.isVariant) {
+    return 'Un’altra strada per lo stesso viaggio: evita i tratti già proposti sopra.';
+  }
   switch (route.profile) {
     case 'fast':
       return 'Pesa solo il tempo stimato: non allunga per restare sulle ciclabili.';

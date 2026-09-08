@@ -231,6 +231,7 @@ export function App(): JSX.Element {
             onPoiClick={handlePoiClick}
             onClusterClick={handleClusterClick}
             onLineClick={handleLineClick}
+            onRouteSelect={selectRoute}
             fitTo={fitTo}
             obscured={obscured}
           />

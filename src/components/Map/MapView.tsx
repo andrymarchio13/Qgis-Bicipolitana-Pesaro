@@ -46,6 +46,8 @@ export interface MapViewProps {
   /** Gruppo di POI che non si scioglie oltre: va mostrato come elenco. */
   onClusterClick?: (pois: Poi[], at: LngLat) => void;
   onLineClick?: (lineId: string) => void;
+  /** Scelta di un'alternativa toccandola sulla mappa. */
+  onRouteSelect?: (routeId: string) => void;
   fitTo?: LngLatBoundsLike | null;
   /**
    * Porzione di mappa coperta dall'interfaccia (in pixel). Serve a centrare
@@ -144,6 +146,7 @@ export function MapView({
   onPoiClick,
   onClusterClick,
   onLineClick,
+  onRouteSelect,
   fitTo,
   obscured,
   interactive = true,
@@ -274,14 +277,46 @@ export function MapView({
       });
 
       // --- Percorsi -----------------------------------------------------
-      // Le alternative restano volutamente spente: il percorso scelto deve
-      // essere l'unica cosa che salta all'occhio.
+      /*
+       * Le alternative restano dietro al percorso scelto, ma devono essere
+       * visibili: erano disegnate al 35% di opacita' in grigio, cioe' quasi
+       * indistinguibili dallo sfondo della mappa, e chi guardava concludeva
+       * che il percorso trovato fosse uno solo.
+       *
+       * Ora sono tratteggiate — il tratteggio dice "non e' questo il percorso
+       * attivo" senza doverle spegnere — con un bordo chiaro che le stacca
+       * dalle strade sottostanti.
+       */
+      instance.addLayer({
+        id: 'alternatives-casing',
+        type: 'line',
+        source: SOURCE.alternatives,
+        layout: { 'line-cap': 'butt', 'line-join': 'round' },
+        paint: { 'line-color': '#ffffff', 'line-width': 8, 'line-opacity': 0.7 },
+      });
       instance.addLayer({
         id: 'alternatives',
         type: 'line',
         source: SOURCE.alternatives,
+        layout: { 'line-cap': 'butt', 'line-join': 'round' },
+        paint: {
+          'line-color': '#64748b',
+          'line-width': 4,
+          'line-opacity': 0.9,
+          'line-dasharray': [2.5, 1.6],
+        },
+      });
+      /*
+       * Corsia di tocco: la linea disegnata e' larga quattro pixel, che su
+       * schermo tattile non si centrano. Questa e' trasparente e larga
+       * abbastanza da poterci puntare il dito.
+       */
+      instance.addLayer({
+        id: 'alternatives-hit',
+        type: 'line',
+        source: SOURCE.alternatives,
         layout: { 'line-cap': 'round', 'line-join': 'round' },
-        paint: { 'line-color': '#94a3b8', 'line-width': 4, 'line-opacity': 0.35 },
+        paint: { 'line-color': '#000000', 'line-width': 22, 'line-opacity': 0 },
       });
       // Alone luminoso: sfocato e pulsante, e' cio' che stacca il percorso
       // dal resto della rete anche dove i colori coincidono.
@@ -443,6 +478,33 @@ export function MapView({
           'circle-stroke-color': '#ffffff',
         },
       });
+
+      /*
+       * Tempo stimato di ogni alternativa, scritto sulla linea.
+       *
+       * Sta in fondo all'elenco dei livelli perche' il testo deve restare
+       * leggibile sopra qualsiasi cosa passi li' sotto. Senza il tempo, due
+       * linee tratteggiate parallele non dicono perche' si dovrebbe
+       * preferire l'una o l'altra.
+       */
+      instance.addLayer({
+        id: 'alternatives-label',
+        type: 'symbol',
+        source: SOURCE.alternatives,
+        minzoom: 11,
+        layout: {
+          'symbol-placement': 'line-center',
+          'text-field': ['get', 'label'],
+          'text-font': MAP_LABEL_FONT,
+          'text-size': 12,
+          'text-allow-overlap': false,
+        },
+        paint: {
+          'text-color': '#334155',
+          'text-halo-color': '#ffffff',
+          'text-halo-width': 2,
+        },
+      });
     };
 
     instance.on('load', installLayers);
@@ -475,9 +537,10 @@ export function MapView({
     if (!instance || !interactive) return;
 
     const handleClick = (event: maplibregl.MapMouseEvent): void => {
-      const features = instance.queryRenderedFeatures(event.point, {
-        layers: ['poi-points', 'poi-clusters', 'lines'],
-      });
+      const layers = ['poi-points', 'poi-clusters', 'alternatives-hit', 'lines'].filter(
+        (id) => instance.getLayer(id),
+      );
+      const features = instance.queryRenderedFeatures(event.point, { layers });
       const hit = features[0] as MapGeoJSONFeature | undefined;
 
       if (hit?.layer.id === 'poi-clusters') {
@@ -514,6 +577,17 @@ export function MapView({
         if (poi) onPoiClick?.(poi);
         return;
       }
+      /*
+       * Toccare un'alternativa la sceglie. E' il gesto che ci si aspetta da
+       * una mappa con piu' percorsi disegnati, e senza di esso le linee
+       * tratteggiate sarebbero un disegno e basta: per cambiare percorso
+       * bisognerebbe cercare la scheda corrispondente nel pannello.
+       */
+      if (hit?.layer.id === 'alternatives-hit') {
+        const routeId = hit.properties?.id as string;
+        if (routeId) onRouteSelect?.(routeId);
+        return;
+      }
       if (hit?.layer.id === 'lines') {
         const lineId = hit.properties?.lineId as string;
         if (lineId) onLineClick?.(lineId);
@@ -529,20 +603,21 @@ export function MapView({
       instance.getCanvas().style.cursor = '';
     };
 
+    const hoverable = ['poi-points', 'poi-clusters', 'alternatives-hit', 'lines'];
     instance.on('click', handleClick);
-    for (const layer of ['poi-points', 'poi-clusters', 'lines']) {
+    for (const layer of hoverable) {
       instance.on('mouseenter', layer, setPointer);
       instance.on('mouseleave', layer, resetPointer);
     }
 
     return () => {
       instance.off('click', handleClick);
-      for (const layer of ['poi-points', 'poi-clusters', 'lines']) {
+      for (const layer of hoverable) {
         instance.off('mouseenter', layer, setPointer);
         instance.off('mouseleave', layer, resetPointer);
       }
     };
-  }, [data, interactive, onMapClick, onPoiClick, onClusterClick, onLineClick]);
+  }, [data, interactive, onMapClick, onPoiClick, onClusterClick, onLineClick, onRouteSelect]);
 
   // --------------------------------------------------------------- dati
   const setData = useCallback((id: string, value: GeoJSON.FeatureCollection) => {
@@ -626,10 +701,10 @@ export function MapView({
       setData(SOURCE.alternatives, {
         type: 'FeatureCollection',
         features: otherRoutes
-          .filter((r) => r.id !== route?.id)
+          .filter((r) => r.id !== route?.id && r.geometry.length > 1)
           .map((r) => ({
             type: 'Feature' as const,
-            properties: { id: r.id },
+            properties: { id: r.id, label: `${r.durationMinutes} min` },
             geometry: { type: 'LineString' as const, coordinates: r.geometry },
           })),
       });

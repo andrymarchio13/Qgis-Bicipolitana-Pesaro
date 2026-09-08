@@ -37,6 +37,9 @@ alternative, segue la posizione GPS e ricalcola il percorso quando ci si allonta
 - Mostra le **15 linee** della Bicipolitana (1–13, A, B) con i colori della simbologia QGIS.
 - Cerca origine e destinazione per indirizzo, POI, nome di linea, GPS o punto sulla mappa.
 - Calcola percorsi con **quattro profili**: Bicipolitana, Più veloce, Più tranquillo, Più sicuro.
+- **Propone fino a cinque percorsi diversi** per lo stesso viaggio, non solo uno per profilo:
+  le alternative restano disegnate tratteggiate sulla mappa, con il tempo stimato scritto
+  sopra, e si scelgono toccandole.
 - Mostra distanza, tempo stimato, linee utilizzate, percentuale di percorso su Bicipolitana.
 - **Mette in risalto il percorso scelto**: alone luminoso pulsante, tratteggio che scorre nel
   verso di marcia e attenuazione del resto della rete, così il tracciato non si confonde con
@@ -261,6 +264,35 @@ Il profilo Bicipolitana **non sceglie sempre la Bicipolitana**: se la destinazio
 lontana dalla rete ufficiale, il costo di un lungo aggiramento supera quello del
 collegamento diretto, e il percorso risulta origine → collegamento ciclabile →
 Bicipolitana → uscita → destinazione.
+
+### Perché i profili non bastano a fare delle alternative
+
+I quattro profili guardano lo stesso grafo con pesi diversi, ma dove esiste un corridoio
+evidente — e Pesaro, lunga e stretta fra il mare e la Foglia, ne ha parecchi — ci
+finiscono tutti. Il risultato era che i doppioni venivano scartati e all’utente restava
+**un percorso solo**: nessuna scelta, su una mappa costruita apposta per mostrarla.
+
+Dopo il giro sui profili il router ne fa altri, rendendo più cari gli archi già proposti
+invece di vietarli: dove la strada è una sola deve poter restare quella. La penalità
+cresce a gradini (`ROUTE_ALTERNATIVE_PENALTIES`, 1,8 → 3,2 → 6) perché una penalità
+leggera ritrova quasi lo stesso percorso e una pesante manda subito troppo lontano; ci si
+ferma appena si raggiunge `VITE_MAX_ROUTE_ALTERNATIVES` (5).
+
+Le due soglie di somiglianza rispondono a due domande diverse. Fra profili si scartano
+solo i doppioni veri (`VITE_ROUTE_DUPLICATE_THRESHOLD`, 0,9): «più veloce» e
+«Bicipolitana» possono quasi coincidere e restano comunque due risposte oneste a due
+domande diverse. Per le alternative la soglia è severa (`VITE_ROUTE_SIMILARITY_THRESHOLD`,
+0,7): nascono per aggiungere una strada diversa, e se non lo fanno non hanno motivo di
+comparire. La somiglianza si misura nei due versi e si tiene la più alta, altrimenti un
+percorso corto contenuto in uno lungo passerebbe per alternativa.
+
+Queste alternative **non portano l’etichetta di un profilo**: si chiamano «Alternativa 1»,
+«Alternativa 2», perché non seguono un criterio diverso — seguono lo stesso, su strade
+diverse — e dirlo altrimenti sarebbe dichiarare un criterio che non c’è.
+
+Sulla mappa sono disegnate tratteggiate dietro al percorso scelto, con il tempo stimato
+scritto sopra, e si scelgono toccandole. Prima erano grigie al 35% di opacità, cioè
+invisibili sullo sfondo della mappa: erano già calcolate, ma non si vedevano.
 
 Il `safetyScore` (0–1) è calcolato in fase di build da regole esplicite: classe della
 strada, `bicycle=designated`, presenza di corsia ciclabile, illuminazione, limite di

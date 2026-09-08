@@ -13,6 +13,11 @@
 import {
   CONNECTOR_RIDE_THRESHOLD_METERS,
   CYCLING_SPEED_KMH,
+  DEFAULT_PROFILE_ORDER,
+  MAX_ROUTE_ALTERNATIVES,
+  ROUTE_ALTERNATIVE_PENALTIES,
+  ROUTE_DUPLICATE_THRESHOLD,
+  ROUTE_SIMILARITY_THRESHOLD,
   ROUTING_PROFILES,
   WALKING_SPEED_KMH,
   WALK_COLOR,
@@ -56,6 +61,11 @@ export interface RouteRequest {
   profiles?: RoutingProfileId[];
   /** Linea da preferire esplicitamente ("Usa questa linea"). */
   preferredLineId?: string | null;
+  /**
+   * Quanti percorsi restituire al massimo. Il ricalcolo in navigazione ne
+   * chiede uno: cercarne altri mentre si pedala e' lavoro buttato.
+   */
+  maxAlternatives?: number;
 }
 
 /** Orienta la geometria dell'arco nel verso di marcia. */
@@ -192,6 +202,7 @@ function buildRoute(
   lines: Map<string, Line>,
   destinationLabel: string | null,
   walkLegs: WalkLegs,
+  variant: { index: number } | null = null,
 ): Route {
   const profile = ROUTING_PROFILES[profileId];
   const steps = toRouteSteps(searchSteps);
@@ -300,8 +311,12 @@ function buildRoute(
   return {
     id,
     profile: profileId,
-    profileLabel: profile.label,
-    profileIcon: profile.icon,
+    // Un percorso nato evitando i tratti gia' proposti non e' "piu' veloce"
+    // ne' "piu' tranquillo": dichiararlo con l'etichetta del profilo da cui
+    // e' uscito direbbe una cosa falsa su come e' stato scelto.
+    profileLabel: variant ? `Alternativa ${variant.index}` : profile.label,
+    profileIcon: variant ? '🔀' : profile.icon,
+    isVariant: variant !== null,
     distanceMeters: Math.round(distanceMeters),
     durationSeconds: Math.round(durationSeconds),
     durationMinutes: Math.max(1, Math.round(durationSeconds / 60)),
@@ -354,17 +369,27 @@ function splitWalkLegs(steps: SearchStep[]): { cycling: SearchStep[]; walk: Walk
   return { cycling, walk };
 }
 
-/** Due percorsi sono considerati equivalenti se condividono quasi tutti gli archi. */
-function similarity(a: SearchStep[], b: SearchStep[]): number {
+/**
+ * Quanto due percorsi si sovrappongono, come frazione di lunghezza in comune.
+ *
+ * Il confronto va fatto nei due versi e si tiene il valore piu' alto: un
+ * percorso breve interamente contenuto in uno lungo condivide il 100% di se'
+ * ma solo una parte dell'altro, e mostrarli entrambi sarebbe comunque
+ * proporre due volte la stessa strada.
+ */
+function overlap(a: SearchStep[], b: SearchStep[]): number {
   if (a.length === 0 || b.length === 0) return 0;
-  const setB = new Set(b.map((s) => s.edge.i));
-  let shared = 0;
-  let total = 0;
-  for (const step of a) {
-    total += step.edge.d;
-    if (setB.has(step.edge.i)) shared += step.edge.d;
-  }
-  return total > 0 ? shared / total : 0;
+  const fraction = (from: SearchStep[], to: SearchStep[]): number => {
+    const ids = new Set(to.map((s) => s.edge.i));
+    let shared = 0;
+    let total = 0;
+    for (const step of from) {
+      total += step.edge.d;
+      if (ids.has(step.edge.i)) shared += step.edge.d;
+    }
+    return total > 0 ? shared / total : 0;
+  };
+  return Math.max(fraction(a, b), fraction(b, a));
 }
 
 export class BicipolitanaRouter {
@@ -407,45 +432,101 @@ export class BicipolitanaRouter {
     }
     const graph = attached.graph;
 
-    const profileIds = request.profiles ?? ['bicipolitana', 'fast', 'quiet'];
+    const profileIds = request.profiles ?? DEFAULT_PROFILE_ORDER;
+    const maxAlternatives = Math.max(1, request.maxAlternatives ?? MAX_ROUTE_ALTERNATIVES);
     const results: Route[] = [];
     const accepted: SearchStep[][] = [];
 
-    for (const profileId of profileIds) {
-      const profile = { ...ROUTING_PROFILES[profileId] };
+    /*
+     * "Usa questa linea": le altre linee della Bicipolitana vengono rese meno
+     * convenienti, cosi' il calcolo preferisce quella chiesta senza che le
+     * altre diventino impossibili.
+     */
+    const preferred = request.preferredLineId ?? null;
+    const preferredPenalty = preferred
+      ? graph.edges.filter((e) => e.k === 0 && e.l !== preferred).map((e) => e.i)
+      : [];
 
-      // "Usa questa linea": la linea scelta viene resa ancora piu' conveniente.
-      const preferred = request.preferredLineId ?? null;
+    /**
+     * Un tentativo di ricerca. `avoid` contiene gli archi gia' proposti dagli
+     * altri percorsi: non sono vietati, solo resi piu' cari, altrimenti dove
+     * la strada e' una sola non si troverebbe piu' nulla.
+     */
+    const search = (
+      profileId: RoutingProfileId,
+      avoid: Iterable<number>,
+      penaltyFactor: number,
+    ): { cycling: SearchStep[]; walk: WalkLegs } | null => {
+      const penalisedEdges = new Set<number>([...preferredPenalty, ...avoid]);
       const found = findPath(graph, graph.origin.node, graph.destination.node, {
-        profile,
+        profile: { ...ROUTING_PROFILES[profileId] },
         cyclingSpeedKmh: CYCLING_SPEED_KMH,
-        penalisedEdges: preferred
-          ? new Set(
-              graph.edges.filter((e) => e.k === 0 && e.l !== preferred).map((e) => e.i),
-            )
-          : undefined,
-        penaltyFactor: preferred ? 1.6 : undefined,
+        penalisedEdges: penalisedEdges.size > 0 ? penalisedEdges : undefined,
+        penaltyFactor: penalisedEdges.size > 0 ? penaltyFactor : undefined,
       });
+      if (!found || found.steps.length === 0) return null;
+      const split = splitWalkLegs(found.steps);
+      return split.cycling.length > 0 ? split : null;
+    };
 
-      if (!found || found.steps.length === 0) continue;
+    /** Registra un percorso se aggiunge davvero una strada diversa. */
+    const accept = (
+      profileId: RoutingProfileId,
+      candidate: { cycling: SearchStep[]; walk: WalkLegs },
+      variant: { index: number } | null,
+    ): boolean => {
+      const threshold = variant ? ROUTE_SIMILARITY_THRESHOLD : ROUTE_DUPLICATE_THRESHOLD;
+      const tooSimilar = accepted.some(
+        (other) => overlap(candidate.cycling, other) > threshold,
+      );
+      if (tooSimilar) return false;
 
-      const { cycling, walk } = splitWalkLegs(found.steps);
-      if (cycling.length === 0) continue;
-
-      const isDuplicate = accepted.some((other) => similarity(cycling, other) > 0.9);
-      if (isDuplicate) continue;
-
-      accepted.push(cycling);
+      accepted.push(candidate.cycling);
       results.push(
         buildRoute(
-          `${profileId}-${results.length}`,
+          variant ? `${profileId}-alt-${variant.index}` : `${profileId}-${results.length}`,
           profileId,
-          cycling,
+          candidate.cycling,
           this.lines,
           request.destinationLabel ?? null,
-          walk,
+          candidate.walk,
+          variant,
         ),
       );
+      return true;
+    };
+
+    // 1. Un percorso per profilo: sono i criteri dichiarati all'utente.
+    for (const profileId of profileIds) {
+      if (results.length >= maxAlternatives) break;
+      const candidate = search(profileId, [], 1.6);
+      if (candidate) accept(profileId, candidate, null);
+    }
+
+    /*
+     * 2. Altre strade per lo stesso viaggio.
+     *
+     * I profili guardano lo stesso grafo con pesi diversi, ma dove esiste un
+     * corridoio evidente ci finiscono tutti: a quel punto l'utente vede un
+     * percorso solo e non ha nulla da scegliere. Qui si rifa' la ricerca
+     * rendendo piu' cari i tratti gia' proposti — a penalita' crescente,
+     * perche' una leggera ritrova quasi la stessa strada e una pesante manda
+     * subito troppo lontano — finche' non si raggiunge il numero voluto.
+     */
+    const usedEdges = new Set<number>();
+    for (const path of accepted) for (const step of path) usedEdges.add(step.edge.i);
+
+    for (const penalty of ROUTE_ALTERNATIVE_PENALTIES) {
+      if (results.length >= maxAlternatives) break;
+      for (const profileId of profileIds) {
+        if (results.length >= maxAlternatives) break;
+        const candidate = search(profileId, usedEdges, penalty);
+        if (!candidate) continue;
+        const number = results.filter((r) => r.isVariant).length + 1;
+        if (accept(profileId, candidate, { index: number })) {
+          for (const step of candidate.cycling) usedEdges.add(step.edge.i);
+        }
+      }
     }
 
     if (results.length === 0) {
@@ -455,12 +536,15 @@ export class BicipolitanaRouter {
       );
     }
 
-    // La Bicipolitana resta in cima quando esiste; poi si ordina per tempo.
-    results.sort((a, b) => {
-      if (a.profile === 'bicipolitana') return -1;
-      if (b.profile === 'bicipolitana') return 1;
-      return a.durationSeconds - b.durationSeconds;
-    });
+    /*
+     * La Bicipolitana resta in cima quando esiste, perche' e' la proposta che
+     * il progetto rivendica; dietro si ordina per tempo stimato. Il rango e'
+     * calcolato una volta per percorso: un confronto che risponde "prima" a
+     * entrambi gli argomenti non e' un ordinamento.
+     */
+    const rank = (route: Route): number =>
+      route.profile === 'bicipolitana' && !route.isVariant ? 0 : 1;
+    results.sort((a, b) => rank(a) - rank(b) || a.durationSeconds - b.durationSeconds);
 
     return results;
   }
@@ -474,6 +558,7 @@ export class BicipolitanaRouter {
         destination,
         destinationLabel,
         profiles: [profile],
+        maxAlternatives: 1,
       });
       return routes[0] ?? null;
     } catch {
