@@ -521,9 +521,11 @@ Tutte facoltative: i default funzionano. Vedi [`.env.example`](.env.example).
 
 | Variabile | Default | Uso |
 |---|---|---|
-| `VITE_BASEMAP_URL` | CARTO Positron | provider cartografico |
-| `VITE_BASEMAP_ATTRIBUTION` | OSM + CARTO | attribuzione mostrata |
-| `VITE_GLYPHS_URL` | fonts.openmaptiles.org | font delle etichette di mappa |
+| `VITE_BASEMAP_STYLE_URL` | Positron di OpenFreeMap | stile vettoriale della mappa |
+| `VITE_BASEMAP_URL` | tile.openstreetmap.org | mattonelle raster di ripiego |
+| `VITE_BASEMAP_ATTRIBUTION` | OSM + OpenFreeMap | attribuzione mostrata |
+| `VITE_MAP_LABEL_FONT` | Noto Sans Bold | font delle etichette aggiunte dall’app |
+| `VITE_GLYPHS_URL` | tiles.openfreemap.org | glifi usati con il ripiego raster |
 | `VITE_GEOCODING_API_URL` | Nominatim | ricerca indirizzi |
 | `VITE_GEOCODING_API_KEY` | *(vuota)* | se il provider la richiede |
 | `VITE_REPORT_ISSUE_URL` | *(vuota)* | modulo/issue per le segnalazioni |
@@ -551,7 +553,7 @@ Tutte facoltative: i default funzionano. Vedi [`.env.example`](.env.example).
 npm test
 ```
 
-**55 test** su tre gruppi:
+**138 test** su quattro gruppi:
 
 - `tests/data/` — coerenza dei dati generati: 15 linee, CRS, colori, nodi dentro l’area di
   Pesaro, nessun nome o stato inventato, anomalie note ancora segnalate;
@@ -560,7 +562,9 @@ npm test
   fra geometria e distanza dichiarata, comportamento dei profili, messaggi d’errore
   comprensibili;
 - `tests/utils/` — geometria e formattazione, con verifica esplicita che l’interfaccia non
-  mostri mai `undefined` o `NaN`.
+  mostri mai `undefined` o `NaN`;
+- `tests/geocoding/` — ricerca nei dati locali del progetto: corrispondenze parziali,
+  accenti e maiuscole, ordinamento dei risultati.
 
 I punti di test non sono coordinate inventate: ognuno corrisponde a una via nominata nel
 grafo OSM o a un POI del GeoPackage.
@@ -577,7 +581,7 @@ grafo OSM o a un POI del GeoPackage.
   viabilità ordinaria, dove OSM li dichiara.
 - **Copertura limitata all’estratto OSM**: da un punto fuori da quell’area il percorso
   viene comunque calcolato, raccordando il punto alla rete con un tratto a piedi fino a
-  8 km (`VITE_WALK_SNAP_MAX_DISTANCE_METERS`). Oltre quella distanza l’app dichiara che
+  40 km (`VITE_WALK_SNAP_MAX_DISTANCE_METERS`). Oltre quella distanza l’app dichiara che
   il punto è fuori area, invece di inventare un percorso.
 - **I tratti a piedi dipendono da un servizio esterno**: il progetto GIS non contiene una
   rete pedonale, quindi il collegamento segue le strade solo quando il servizio pedonale

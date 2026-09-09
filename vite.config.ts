@@ -79,9 +79,28 @@ export default defineConfig(({ mode }) => ({
             },
           },
           {
-            // Mattonelle della mappa: cache limitata, mai un download massivo.
+            // Definizione dello stile vettoriale: senza di essa, offline la
+            // mappa resta vuota anche con le mattonelle in cache. Si aggiorna
+            // in background perche' il provider puo' cambiare lo stile.
             urlPattern: ({ url }) =>
-              url.host.includes('basemaps.cartocdn.com') || url.host.includes('tile.openstreetmap.org'),
+              url.host.includes('tiles.openfreemap.org') && url.pathname.includes('/styles/'),
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'bicipolitana-style',
+              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            // Mattonelle della mappa: cache limitata, mai un download massivo.
+            // Sono elencati sia il provider vettoriale predefinito sia i
+            // provider raster su cui l'applicazione ripiega.
+            urlPattern: ({ url }) =>
+              (url.host.includes('tiles.openfreemap.org') &&
+                !url.pathname.includes('/styles/') &&
+                !url.pathname.includes('/fonts/')) ||
+              url.host.includes('basemaps.cartocdn.com') ||
+              url.host.includes('tile.openstreetmap.org'),
             handler: 'CacheFirst',
             options: {
               cacheName: 'bicipolitana-tiles',
@@ -90,7 +109,11 @@ export default defineConfig(({ mode }) => ({
             },
           },
           {
-            urlPattern: ({ url }) => url.host.includes('fonts.openmaptiles.org'),
+            // Glifi delle etichette: quelli dello stile predefinito e quelli
+            // del fallback raster, che porta un endpoint proprio.
+            urlPattern: ({ url }) =>
+              (url.host.includes('tiles.openfreemap.org') && url.pathname.includes('/fonts/')) ||
+              url.host.includes('fonts.openmaptiles.org'),
             handler: 'CacheFirst',
             options: {
               cacheName: 'bicipolitana-glyphs',
