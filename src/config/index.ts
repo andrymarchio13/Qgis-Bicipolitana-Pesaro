@@ -351,4 +351,3 @@ export const REPORT_ISSUE_URL = env.VITE_REPORT_ISSUE_URL ?? '';
 // ---------------------------------------------------------------------------
 
 export const NOT_AVAILABLE = 'Informazione non disponibile';
-export const ESTIMATE_LABEL = 'stima';

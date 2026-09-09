@@ -553,9 +553,10 @@ Tutte facoltative: i default funzionano. Vedi [`.env.example`](.env.example).
 npm test
 ```
 
-**138 test** su quattro gruppi:
+**147 test** su quattro gruppi:
 
-- `tests/data/` — coerenza dei dati generati: 15 linee, CRS, colori, nodi dentro l’area di
+- `tests/data/` — coerenza dei dati generati, e corrispondenza fra i file scritti
+  dalla pipeline in `data/` e le copie pubblicate in `public/data/`: 15 linee, CRS, colori, nodi dentro l’area di
   Pesaro, nessun nome o stato inventato, anomalie note ancora segnalate;
 - `tests/routing/` — percorsi reali fra luoghi **presi dai dati** (Parcheggio San Decenzio,
   Velomarche, Viale Trieste, Piazzale della Libertà, Via Solferino, Pista Cardinali), coerenza

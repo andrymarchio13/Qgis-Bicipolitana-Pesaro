@@ -7,7 +7,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { GPS_MAX_ACCEPTABLE_ACCURACY_METERS } from '../config';
-import type { LngLat } from '../types';
 
 export type GeolocationStatus =
   | 'idle'
@@ -135,6 +134,3 @@ export function useLocation(): UseLocationResult {
     [position, status, message, supported, locate, startWatching, stopWatching],
   );
 }
-
-/** Coordinata pronta per il router. */
-export const positionToLngLat = (position: UserPosition): LngLat => [position.lng, position.lat];
