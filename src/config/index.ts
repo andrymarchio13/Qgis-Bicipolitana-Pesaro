@@ -363,6 +363,31 @@ export const ROUTE_SIMILARITY_THRESHOLD = num(env.VITE_ROUTE_SIMILARITY_THRESHOL
  */
 export const ROUTE_ALTERNATIVE_PENALTIES = [1.8, 3.2, 6];
 
+/**
+ * Quanto puo' allungarsi una variante rispetto al miglior percorso trovato.
+ *
+ * Le varianti nascono rendendo piu' cari i tratti gia' proposti: esaurite le
+ * strade buone, la ricerca ripiega su quel che resta, e quel che resta e'
+ * spesso la statale. Una proposta lunga il 45% in piu' che passa sulla
+ * Fogliense non e' un'alternativa allo stesso viaggio, e' un viaggio peggiore:
+ * meglio restituire tre percorsi buoni che sei di cui l'ultimo manda in
+ * mezzo alle auto.
+ */
+export const ROUTE_VARIANT_MAX_DETOUR = num(env.VITE_ROUTE_VARIANT_MAX_DETOUR, 1.4);
+
+/**
+ * Quanti metri di strade a traffico intenso una variante puo' aggiungere
+ * rispetto al miglior percorso.
+ *
+ * Il margine copre i casi in cui un attraversamento in piu' e' inevitabile;
+ * oltre, la variante sta comprando la propria diversita' con l'esposizione al
+ * traffico, che e' esattamente cio' che l'applicazione dovrebbe evitare.
+ */
+export const ROUTE_VARIANT_MAX_BUSY_EXCESS_METERS = num(
+  env.VITE_ROUTE_VARIANT_MAX_BUSY_EXCESS,
+  300,
+);
+
 // ---------------------------------------------------------------------------
 // Geocoding
 // ---------------------------------------------------------------------------

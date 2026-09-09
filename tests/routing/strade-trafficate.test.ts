@@ -16,11 +16,16 @@
  */
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import { CYCLING_SPEED_KMH, BUSY_HIGHWAY_CLASSES, ROUTING_PROFILES } from '../../src/config';
+import {
+  BUSY_HIGHWAY_CLASSES,
+  CYCLING_SPEED_KMH,
+  MAX_ROUTE_ALTERNATIVES,
+  ROUTING_PROFILES,
+} from '../../src/config';
 import { edgeCost, findPath } from '../../src/services/routing/astar';
 import { RoutingGraphIndex } from '../../src/services/routing/graph';
 import { BicipolitanaRouter } from '../../src/services/routing/router';
-import type { Line, RoutingProfileId } from '../../src/types';
+import type { Line, Route, RoutingProfileId } from '../../src/types';
 import { graph, linesFile, PLACES } from '../helpers';
 
 let index: RoutingGraphIndex;
@@ -145,5 +150,82 @@ describe('avviso sulle strade a traffico intenso', () => {
       // Se l'avviso c'e', deve corrispondere a metri realmente percorsi.
       expect(avviso.message).toMatch(/[1-9]\d* m di strade a traffico intenso/);
     }
+  });
+});
+
+describe('qualita’ delle varianti proposte', () => {
+  /*
+   * Le varianti nascono rendendo piu’ cari i tratti gia’ proposti. Senza un
+   * limite la ricerca continua finche’ non finiscono le strade, e le ultime
+   * rimaste sono lunghi giri sulla viabilita’ a scorrimento: e’ cosi’ che
+   * comparivano proposte da un’ora e mezza lungo la Fogliense mentre esisteva
+   * un percorso molto migliore.
+   */
+  const COPPIE: [string, [number, number], [number, number]][] = [
+    // Coppie scelte perche’ senza il filtro producono varianti palesemente
+    // peggiori: giri lunghi il doppio, o chilometri di strade a scorrimento.
+    ['lungomare → Viale della Vittoria', PLACES.lungomareTrieste, PLACES.vialeVittoria],
+    ['lungomare → pista Cardinali', PLACES.lungomareTrieste, PLACES.pistaCardinali],
+    ['lungomare → Cattabrighe', PLACES.lungomareTrieste, PLACES.cattabrighe],
+    ['lungomare → Villa Fastiggi', PLACES.lungomareTrieste, PLACES.villaFastiggi],
+    ['lungomare → Panoramica Ardizio', PLACES.lungomareTrieste, PLACES.panoramicaArdizio],
+  ];
+
+  it('nessuna variante allunga il viaggio oltre la soglia dichiarata', () => {
+    for (const [nome, origine, destinazione] of COPPIE) {
+      const percorsi = router.route({ origin: origine, destination: destinazione });
+      const migliore = Math.min(...percorsi.map((r) => r.distanceMeters));
+      for (const variante of percorsi.filter((r) => r.isVariant)) {
+        expect(
+          variante.distanceMeters,
+          `${nome}: variante da ${Math.round(variante.distanceMeters)} m contro le ${Math.round(migliore)} m del percorso migliore`,
+          // Il limite e’ scritto qui e non preso da ROUTE_VARIANT_MAX_DETOUR:
+          // se il test riusasse la costante del filtro, alzarla farebbe
+          // passare il test proprio quando il filtro smette di filtrare.
+        ).toBeLessThanOrEqual(migliore * 1.45);
+      }
+    }
+  });
+
+  it('nessuna variante compra la propria diversita’ con il traffico', () => {
+    /*
+     * La misura non viene stimata dai nomi delle vie — un nome copre tutti gli
+     * archi omonimi della citta’ e sovrastima — ma letta dall’avviso che il
+     * percorso stesso produce, calcolato sugli archi realmente percorsi.
+     * Sotto la soglia dell’avviso i metri trafficati sono per definizione
+     * meno di BUSY_ROAD_WARNING_METERS.
+     */
+    const trafficati = (percorso: Route): number => {
+      const avviso = percorso.warnings.find((w) => w.type === 'traffico');
+      if (!avviso) return 0;
+      const trovato = /(\d+) m di strade a traffico intenso/.exec(avviso.message);
+      return trovato ? Number(trovato[1]) : 0;
+    };
+
+    for (const [nome, origine, destinazione] of COPPIE) {
+      const percorsi = router.route({ origin: origine, destination: destinazione });
+      const minimo = Math.min(...percorsi.map(trafficati));
+      for (const variante of percorsi.filter((r) => r.isVariant)) {
+        expect(
+          trafficati(variante),
+          `${nome}: la variante aggiunge troppa strada trafficata`,
+          // Anche qui il limite e’ esplicito, per la stessa ragione.
+        ).toBeLessThanOrEqual(minimo + 400);
+      }
+    }
+  });
+
+  it('preferisce restituire meno percorsi che percorsi cattivi', () => {
+    /*
+     * Piazzale della Liberta’ -> Cattabrighe: ogni strada diversa da quelle
+     * gia’ proposte o allunga molto o passa sulla Adriatica. Il router deve
+     * fermarsi, non riempire il numero massimo di alternative.
+     */
+    const percorsi = router.route({
+      origin: PLACES.piazzaleLiberta,
+      destination: PLACES.cattabrighe,
+    });
+    expect(percorsi.length).toBeGreaterThan(0);
+    expect(percorsi.length).toBeLessThan(MAX_ROUTE_ALTERNATIVES);
   });
 });

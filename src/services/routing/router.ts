@@ -20,6 +20,8 @@ import {
   ROUTE_ALTERNATIVE_PENALTIES,
   ROUTE_DUPLICATE_THRESHOLD,
   ROUTE_SIMILARITY_THRESHOLD,
+  ROUTE_VARIANT_MAX_BUSY_EXCESS_METERS,
+  ROUTE_VARIANT_MAX_DETOUR,
   ROUTING_PROFILES,
   WALKING_SPEED_KMH,
   WALK_COLOR,
@@ -419,6 +421,22 @@ function overlap(a: SearchStep[], b: SearchStep[]): number {
   return Math.max(fraction(a, b), fraction(b, a));
 }
 
+/** Metri percorsi su statali, provinciali e grandi arterie. */
+function busyMeters(steps: SearchStep[]): number {
+  let meters = 0;
+  for (const step of steps) {
+    if (BUSY_HIGHWAY_CLASSES.has(step.edge.hw ?? '')) meters += step.edge.d;
+  }
+  return meters;
+}
+
+/** Lunghezza complessiva di un cammino, in metri. */
+function pathMeters(steps: SearchStep[]): number {
+  let meters = 0;
+  for (const step of steps) meters += step.edge.d;
+  return meters;
+}
+
 export class BicipolitanaRouter {
   constructor(
     private readonly index: RoutingGraphIndex,
@@ -507,6 +525,28 @@ export class BicipolitanaRouter {
         (other) => overlap(candidate.cycling, other) > threshold,
       );
       if (tooSimilar) return false;
+
+      /*
+       * Una variante deve restare lo stesso viaggio per un'altra strada. I
+       * profili no: sono i criteri che l'utente ha scelto, e vanno mostrati
+       * anche quando costano di piu' — e' il senso di chiedere "il piu'
+       * sicuro". Le varianti invece nascono dalla ricerca stessa, e senza un
+       * limite continuano a proporne finche' non finiscono le strade: le
+       * ultime sono lunghi giri sulla viabilita' a scorrimento, cioe' proprio
+       * cio' che l'applicazione dovrebbe evitare.
+       */
+      if (variant && accepted.length > 0) {
+        const migliore = Math.min(...accepted.map(pathMeters));
+        if (pathMeters(candidate.cycling) > migliore * ROUTE_VARIANT_MAX_DETOUR) return false;
+
+        const trafficoMigliore = Math.min(...accepted.map(busyMeters));
+        if (
+          busyMeters(candidate.cycling) >
+          trafficoMigliore + ROUTE_VARIANT_MAX_BUSY_EXCESS_METERS
+        ) {
+          return false;
+        }
+      }
 
       accepted.push(candidate.cycling);
       results.push(

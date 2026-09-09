@@ -100,9 +100,16 @@ describe('alternative di percorso', () => {
   });
 
   it('le varianti sono dichiarate come tali, non spacciate per profili', () => {
+    /*
+     * La coppia va scelta fra quelle che hanno davvero altre strade da
+     * proporre: le varianti non sono garantite: quando l'unica diversa
+     * sarebbe un giro molto piu' lungo o un tratto di statale, il router non
+     * la propone affatto. Piazzale della Liberta' -> Cattabrighe e' proprio
+     * uno di quei casi, e li' la risposta giusta sono due soli percorsi.
+     */
     const routes = router.route({
-      origin: PLACES.piazzaleLiberta,
-      destination: PLACES.cattabrighe,
+      origin: PLACES.lungomareTrieste,
+      destination: PLACES.viaSolferino,
     });
     const varianti = routes.filter((r) => r.isVariant);
     expect(varianti.length).toBeGreaterThan(0);
