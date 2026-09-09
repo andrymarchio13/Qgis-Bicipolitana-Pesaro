@@ -538,6 +538,8 @@ Tutte facoltative: i default funzionano. Vedi [`.env.example`](.env.example).
 | `VITE_WALK_COST_FACTOR` | 2.2 | quanto pesa un minuto a piedi rispetto a uno pedalato |
 | `VITE_WALK_SAFETY_WEIGHT` | 2.5 | quanto conta la pericolosità della via su cui ci si innesta |
 | `VITE_WALK_ROUTING_MAX_DETOUR` | 2.5 | oltre questo rapporto sulla linea d’aria il giro pedonale è respinto |
+| `VITE_DANGER_BOOST` | 2 | quanto la penalità di pericolosità cresce più che proporzionalmente (0 = lineare) |
+| `VITE_BUSY_ROAD_WARNING_METERS` | 150 | metri su statali/provinciali oltre i quali il percorso lo dichiara |
 | `VITE_REROUTE_DISTANCE_THRESHOLD` | 45 | metri di scostamento prima del ricalcolo |
 | `VITE_REROUTE_DEBOUNCE_MS` | 4000 | attesa prima di ricalcolare |
 | `VITE_REROUTE_COOLDOWN_MS` | 8000 | attesa minima fra due ricalcoli consecutivi |
@@ -553,7 +555,7 @@ Tutte facoltative: i default funzionano. Vedi [`.env.example`](.env.example).
 npm test
 ```
 
-**147 test** su quattro gruppi:
+**152 test** su quattro gruppi:
 
 - `tests/data/` — coerenza dei dati generati, e corrispondenza fra i file scritti
   dalla pipeline in `data/` e le copie pubblicate in `public/data/`: 15 linee, CRS, colori, nodi dentro l’area di

@@ -5,6 +5,7 @@
  * teorica raggiungibile: cosi' non sovrastima mai il costo residuo e il
  * risultato resta ottimo (euristica ammissibile).
  */
+import { DANGER_BOOST } from '../../config';
 import type { GraphEdge, LngLat, RoutingProfile } from '../../types';
 import { haversine } from '../../utils/geo';
 import type { AdjacencyEntry, RoutingGraphView } from './graph';
@@ -95,7 +96,15 @@ export function edgeCost(
   // I connettori (k === 2) sono tratti brevissimi di raccordo topologico:
   // non vengono ne' favoriti ne' penalizzati.
 
-  cost *= 1 + profile.safetyWeight * (1 - edge.s);
+  /*
+   * La pericolosita' non pesa in modo lineare: fra una via di quartiere e una
+   * strada di grande traffico, per chi pedala, non c'e' una differenza di
+   * grado ma di categoria. Il termine quadratico lascia quasi intatti gli
+   * archi tranquilli e rende davvero caro il tratto esposto, invece di
+   * scambiarlo volentieri per qualche centinaio di metri risparmiati.
+   */
+  const danger = 1 - edge.s;
+  cost *= 1 + profile.safetyWeight * danger * (1 + DANGER_BOOST * danger);
 
   if (edge.o?.length) cost += profile.obstaclePenaltySeconds * edge.o.length;
   if (edge.dm) cost += profile.obstaclePenaltySeconds;

@@ -267,7 +267,7 @@ export interface RouteInstruction {
 }
 
 export interface RouteWarning {
-  type: 'obstacle' | 'dismount' | 'blocked' | 'data';
+  type: 'obstacle' | 'dismount' | 'blocked' | 'data' | 'traffico';
   message: string;
   location?: LngLat;
 }

@@ -11,6 +11,8 @@
  * piedi dichiarato, non con un percorso calcolato da un servizio terzo.
  */
 import {
+  BUSY_HIGHWAY_CLASSES,
+  BUSY_ROAD_WARNING_METERS,
   CONNECTOR_RIDE_THRESHOLD_METERS,
   CYCLING_SPEED_KMH,
   DEFAULT_PROFILE_ORDER,
@@ -127,6 +129,31 @@ function collectWarnings(steps: RouteStep[]): RouteWarning[] {
       location: dismount[0].coordinates[0],
     });
   }
+  /*
+   * Strade a traffico intenso. Il calcolo le evita gia' quanto puo', ma nei
+   * dati alcune sono l'unico collegamento esistente — un ponte, un tratto di
+   * provinciale senza parallele — e in quel caso il percorso ci passa per
+   * forza. Dichiararlo e' l'unica risposta onesta: chi pedala decide se
+   * accettare quel tratto o cercarne un altro, invece di trovarsi la statale
+   * sotto le ruote.
+   */
+  const busySteps = steps.filter((s) => BUSY_HIGHWAY_CLASSES.has(s.edge.hw ?? ''));
+  const busyMeters = busySteps.reduce((sum, s) => sum + s.distanceMeters, 0);
+  if (busyMeters >= BUSY_ROAD_WARNING_METERS) {
+    // I nomi rendono l'avviso verificabile: senza, resta un'impressione.
+    const nomi = [...new Set(busySteps.map((s) => s.edge.n).filter((n): n is string => !!n))];
+    const elenco = nomi.slice(0, 2).join(', ');
+    const altre = nomi.length > 2 ? ` e altre ${nomi.length - 2}` : '';
+    warnings.push({
+      type: 'traffico',
+      message:
+        `Il percorso segue ${Math.round(busyMeters)} m di strade a traffico intenso` +
+        (elenco ? ` (${elenco}${altre})` : '') +
+        '. Il calcolo le evita quando puo’: qui sono la via piu’ diretta rimasta.',
+      location: busySteps[0].coordinates[0],
+    });
+  }
+
   const remaining = obstacles.size - blocked.length - dismount.length;
   if (remaining > 0) {
     warnings.push({

@@ -224,6 +224,47 @@ export const TURN_ANGLE_THRESHOLD_DEGREES = num(env.VITE_TURN_ANGLE_THRESHOLD, 3
 export const SHARP_TURN_ANGLE_DEGREES = num(env.VITE_SHARP_TURN_ANGLE, 110);
 
 /**
+ * Quanto la penalita' di pericolosita' cresce piu' che proporzionalmente.
+ *
+ * Con una penalita' lineare una strada a scorrimento costa poco piu' di una
+ * via residenziale: sul profilo predefinito bastava che una statale fosse il
+ * 19% piu' corta perche' il calcolo la preferisse, e i percorsi finivano sulla
+ * Adriatica o sulla Provinciale 423. Ma per chi pedala il salto fra una via di
+ * quartiere e una strada di grande traffico non e' graduale: e' un cambio di
+ * categoria, e va pagato come tale.
+ *
+ * Il termine diventa quindi `w * d * (1 + boost * d)`, con `d = 1 - s` la
+ * pericolosita' dell'arco: sulle strade tranquille cambia pochissimo, su
+ * quelle esposte cresce in fretta. A 0 si torna esattamente al comportamento
+ * lineare di prima.
+ */
+export const DANGER_BOOST = num(env.VITE_DANGER_BOOST, 2);
+
+/**
+ * Classi OSM considerate strade a traffico intenso: statali, provinciali e
+ * grandi arterie urbane. Sono le stesse che ricevono i punteggi di sicurezza
+ * piu' bassi nella pipeline.
+ */
+export const BUSY_HIGHWAY_CLASSES = new Set([
+  'trunk',
+  'primary',
+  'primary_link',
+  'secondary',
+  'secondary_link',
+]);
+
+/**
+ * Oltre questa lunghezza complessiva su strade a traffico intenso il percorso
+ * lo dichiara.
+ *
+ * Un incrocio da attraversare non e' una notizia; qualche centinaio di metri
+ * di affiancamento alle auto lo e'. A volte quel tratto e' inevitabile —
+ * nei dati certe strade sono l'unico collegamento — e in quel caso l'unica
+ * risposta onesta e' dirlo, invece di far scoprire la statale pedalando.
+ */
+export const BUSY_ROAD_WARNING_METERS = num(env.VITE_BUSY_ROAD_WARNING_METERS, 150);
+
+/**
  * Profili di calcolo.
  *
  * Il costo di un arco parte dal tempo stimato e viene modulato da:
