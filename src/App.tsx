@@ -11,6 +11,7 @@ import { NavigationScreen } from './components/Navigation/NavigationScreen';
 import { Notice } from './components/UI';
 import { useBottomSheet } from './hooks/useBottomSheet';
 import { useLocation } from './hooks/useLocation';
+import { useWakeLock } from './hooks/useWakeLock';
 import { useNavigation } from './hooks/useNavigation';
 import { AboutPage, PrivacyPage } from './pages/InfoPages';
 import { HomePage } from './pages/HomePage';
@@ -70,10 +71,14 @@ export function App(): JSX.Element {
   }, [init]);
 
   // Il tracciamento GPS resta acceso solo durante la navigazione.
+  const { startWatching, stopWatching } = location;
   useEffect(() => {
-    if (navigating) location.startWatching();
-    else location.stopWatching();
-  }, [navigating, location]);
+    if (navigating) startWatching();
+    else stopWatching();
+  }, [navigating, startWatching, stopWatching]);
+
+  // Con la navigazione attiva lo schermo non deve spegnersi da solo.
+  useWakeLock(navigating);
 
   const destination = useAppStore((s) => s.destination);
 

@@ -4,7 +4,7 @@
  * La posizione resta nel browser: non viene inviata a nessun server, non
  * viene memorizzata e non lascia il dispositivo.
  */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { GPS_MAX_ACCEPTABLE_ACCURACY_METERS } from '../config';
 import type { LngLat } from '../types';
@@ -112,10 +112,12 @@ export function useLocation(): UseLocationResult {
   }, [supported]);
 
   const stopWatching = useCallback(() => {
-    if (watchId.current !== null) {
-      navigator.geolocation.clearWatch(watchId.current);
-      watchId.current = null;
-    }
+    // Senza tracciamento in corso non c'e' nulla da fermare, e riportare lo
+    // stato a 'idle' cancellerebbe un permesso negato di cui l'interfaccia ha
+    // ancora bisogno per spiegarsi.
+    if (watchId.current === null) return;
+    navigator.geolocation.clearWatch(watchId.current);
+    watchId.current = null;
     setStatus('idle');
   }, []);
 
@@ -123,7 +125,15 @@ export function useLocation(): UseLocationResult {
     if (watchId.current !== null) navigator.geolocation.clearWatch(watchId.current);
   }, []);
 
-  return { position, status, message, supported, locate, startWatching, stopWatching };
+  /*
+   * L'oggetto restituito e' memoizzato: chi lo mette fra le dipendenze di un
+   * effetto — l'avvio del tracciamento durante la navigazione — altrimenti lo
+   * rilancerebbe a ogni singolo render.
+   */
+  return useMemo(
+    () => ({ position, status, message, supported, locate, startWatching, stopWatching }),
+    [position, status, message, supported, locate, startWatching, stopWatching],
+  );
 }
 
 /** Coordinata pronta per il router. */

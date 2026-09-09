@@ -132,7 +132,7 @@ src/
   components/            Map, Search, Routing, Lines, Navigation, UI
   pages/                 Home, Linee, Dettaglio linea, Servizi, Info, Privacy
   services/              routing/, geocoding/, data.ts
-  hooks/                 useLocation, useNavigation, useGeocoding
+  hooks/                 useLocation, useNavigation, useGeocoding, useWakeLock
   store/                 stato globale (Zustand)
   types/                 tipi condivisi
   config/                parametri e profili di calcolo
