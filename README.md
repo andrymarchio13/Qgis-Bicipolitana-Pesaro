@@ -434,7 +434,7 @@ non sarebbe una risposta.
 
 Il **percorso in bicicletta** non ha alcun servizio esterno di riserva, ed è una scelta:
 farlo dipendere da una chiave API e da una rete disponibile smentirebbe proprio la
-funzione che il progetto rivendica come offline. Fuori dagli 8 km l’app dichiara che il
+funzione che il progetto rivendica come offline. Fuori dai 40 km l’app dichiara che il
 punto è fuori area, invece di inventare un percorso su dati che non ha.
 
 Il **collegamento a piedi**, invece, viene rifinito su rete pedonale OSM
