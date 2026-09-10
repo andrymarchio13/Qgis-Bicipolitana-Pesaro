@@ -117,6 +117,7 @@ function percorsoDiProva(): Route {
     warnings: [],
     obstacleIds: [],
     lighting: [],
+    surfaces: [],
     durationIsEstimate: true,
   };
 }

@@ -85,6 +85,13 @@ interface AppState {
   calculating: boolean;
 
   layers: LayerVisibility;
+  /**
+   * Mostra sulla mappa soltanto i punti che stanno lungo il percorso scelto.
+   * Con quindici linee e settantotto punti la mappa e' piena: quando un
+   * percorso c'e', quasi sempre interessano solo le fontanelle e le officine
+   * che si incontrano davvero.
+   */
+  onlyAlongRoute: boolean;
   highlightedLineId: string | null;
 
   /** Punto che l'utente sta scegliendo cliccando sulla mappa. */
@@ -110,6 +117,7 @@ interface AppState {
    */
   importItinerary: (itinerary: ItineraryFile) => void;
   toggleLayer: (key: keyof LayerVisibility) => void;
+  toggleOnlyAlongRoute: () => void;
   setHighlightedLine: (lineId: string | null) => void;
   setPickingMode: (mode: 'origin' | 'destination' | null) => void;
 }
@@ -140,6 +148,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   calculating: false,
 
   layers: DEFAULT_LAYERS,
+  onlyAlongRoute: false,
   highlightedLineId: null,
   pickingMode: null,
 
@@ -283,6 +292,10 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   toggleLayer(key) {
     set((state) => ({ layers: { ...state.layers, [key]: !state.layers[key] } }));
+  },
+
+  toggleOnlyAlongRoute() {
+    set((state) => ({ onlyAlongRoute: !state.onlyAlongRoute }));
   },
 
   setHighlightedLine(lineId) {

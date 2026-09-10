@@ -1663,6 +1663,170 @@ a {
   color: var(--ink-500);
 }
 
+/* Filtro trasversale del pannello: separato dagli interruttori di livello. */
+.toggle-row--separated {
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  align-items: flex-start;
+}
+
+.toggle-row__hint {
+  display: block;
+  font-size: 11px;
+  color: var(--ink-500);
+}
+
+.toggle-row--separated input:disabled + span,
+.toggle-row--separated input:disabled ~ span {
+  opacity: 0.55;
+}
+
+/* --------------------------------------------------------------------- */
+/* «Sulla strada»: acqua, fondo e vento del percorso scelto               */
+/* --------------------------------------------------------------------- */
+
+.road-ahead {
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.road-ahead__title {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-500);
+}
+
+.road-ahead__row {
+  margin: 0 0 10px;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.road-ahead__row:last-child {
+  margin-bottom: 0;
+}
+
+.road-ahead__muted {
+  color: var(--ink-500);
+}
+
+.road-ahead__toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.road-ahead__chevron {
+  margin-left: auto;
+  color: var(--ink-500);
+}
+
+.road-ahead__list {
+  margin: 8px 0 0;
+  padding: 0 0 0 2px;
+  list-style: none;
+  display: grid;
+  gap: 5px;
+}
+
+.road-ahead__list li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.road-ahead__km {
+  min-width: 62px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--brand-700, var(--brand-800));
+}
+
+.road-ahead__detour {
+  color: var(--ink-500);
+  font-size: 11px;
+}
+
+.road-ahead__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin: 0 6px 4px 0;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--surface-2, rgb(0 0 0 / 0.05));
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+/* Barra del fondo: le larghezze sono le quote reali dei metri percorsi. */
+.road-ahead__surface {
+  display: flex;
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--surface-2, rgb(0 0 0 / 0.05));
+}
+
+.road-ahead__surface-part--liscio {
+  background: #16a34a;
+}
+
+.road-ahead__surface-part--pave {
+  background: #f59e0b;
+}
+
+.road-ahead__surface-part--sterrato {
+  background: #b45309;
+}
+
+.road-ahead__surface-part--altro {
+  background: #64748b;
+}
+
+/* Il fondo non dichiarato si vede che non e' un fondo: tratteggiato. */
+.road-ahead__surface-part--ignoto {
+  background: repeating-linear-gradient(
+    45deg,
+    rgb(100 116 139 / 0.35),
+    rgb(100 116 139 / 0.35) 3px,
+    transparent 3px,
+    transparent 6px
+  );
+}
+
+.road-ahead__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: var(--ink-500);
+}
+
+.road-ahead__note,
+.road-ahead__wind {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--ink-500);
+}
+
 /* Avviso sul tramonto nella scheda del percorso. */
 .daylight {
   margin: 8px 0 0;

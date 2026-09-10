@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { FiltersPanel } from '../components/Map/FiltersPanel';
 import { ItineraryExport, ItineraryImport } from '../components/Routing/Itinerary';
+import { RoadAhead } from '../components/Routing/RoadAhead';
 import { RouteCard } from '../components/Routing/RouteCard';
 import { SearchField } from '../components/Search/SearchField';
 import { InstructionList } from '../components/Navigation/NavigationScreen';
@@ -259,6 +260,13 @@ export function HomePage({
 
           {selectedRoute ? (
             <div style={{ marginTop: 14 }}>
+              {/*
+                Acqua, fondo e vento del percorso scelto: stanno sopra le
+                indicazioni perche' si leggono prima di partire, mentre le
+                indicazioni servono lungo la strada.
+              */}
+              <RoadAhead route={selectedRoute} />
+
               <button
                 type="button"
                 className="btn btn--ghost btn--block btn--sm"

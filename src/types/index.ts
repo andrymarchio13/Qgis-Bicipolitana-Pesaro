@@ -7,6 +7,10 @@
  */
 
 /** Coordinata geografica [longitudine, latitudine] in EPSG:4326. */
+import type { SurfaceShare } from '../services/surface';
+
+export type { SurfaceShare };
+
 export type LngLat = [number, number];
 
 export interface Location {
@@ -315,6 +319,8 @@ export interface Route {
   obstacleIds: string[];
   /** Illuminazione dichiarata lungo il percorso, in ordine di marcia. */
   lighting: LightingSpan[];
+  /** Metri per famiglia di fondo stradale, dal tag `surface` di OSM. */
+  surfaces: SurfaceShare[];
   /** I tempi sono stime, non misure. */
   durationIsEstimate: true;
   /** true quando i tratti a piedi seguono le strade e non la linea d'aria. */

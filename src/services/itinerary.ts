@@ -165,6 +165,7 @@ export function parseItinerary(text: string): ItineraryParseResult {
    * invece di inventarsi strade illuminate.
    */
   if (!Array.isArray(route.lighting)) route.lighting = [];
+  if (!Array.isArray(route.surfaces)) route.surfaces = [];
 
   return { ok: true, itinerary: candidate as unknown as ItineraryFile };
 }

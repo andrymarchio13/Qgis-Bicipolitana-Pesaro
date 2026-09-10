@@ -20,8 +20,9 @@ import {
   PESARO_CENTER,
 } from '../../config';
 import { POI_EMOJI, POI_KIND_COLOR } from '../../config/poi';
-import type { LngLat, Poi, Route } from '../../types';
+import type { LngLat, Poi, PoiCategory, Route } from '../../types';
 import { boundsOf } from '../../utils/geo';
+import { poisAlongRoute } from '../../services/alongRoute';
 import { useAppStore, LAYER_CATEGORIES } from '../../store/useAppStore';
 import type { UserPosition } from '../../hooks/useLocation';
 import {
@@ -197,6 +198,7 @@ export function MapView({
 
   const data = useAppStore((s) => s.data);
   const layers = useAppStore((s) => s.layers);
+  const onlyAlongRoute = useAppStore((s) => s.onlyAlongRoute);
   const highlightedLineId = useAppStore((s) => s.highlightedLineId);
   const origin = useAppStore((s) => s.origin);
   const destination = useAppStore((s) => s.destination);
@@ -695,11 +697,26 @@ export function MapView({
         for (const c of categories) allowed.add(c);
       }
     }
-    return data.pois.filter((poi) => {
+    const shown = data.pois.filter((poi) => {
       if (poi.kind === 'servizio' && !layers.servizi) return false;
       return allowed.has(poi.category);
     });
-  }, [data, layers]);
+
+    /*
+     * Filtro "solo lungo il percorso": si applica solo quando un percorso
+     * c'e' davvero. Senza percorso l'interruttore non nasconde niente —
+     * svuotare la mappa sarebbe una risposta sbagliata a una domanda che
+     * l'utente non ha ancora posto.
+     */
+    if (!onlyAlongRoute || !route || route.geometry.length < 2) return shown;
+
+    const vicini = new Set(
+      poisAlongRoute(shown, route.geometry, {
+        categories: [...allowed] as PoiCategory[],
+      }).map((item) => item.poi.id),
+    );
+    return shown.filter((poi) => vicini.has(poi.id));
+  }, [data, layers, onlyAlongRoute, route]);
 
   useEffect(() => {
     if (!map.current) return;

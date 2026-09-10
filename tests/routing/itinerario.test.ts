@@ -87,6 +87,7 @@ const percorso = (): Route => ({
   warnings: [],
   obstacleIds: [],
   lighting: [],
+  surfaces: [],
   durationIsEstimate: true,
 });
 

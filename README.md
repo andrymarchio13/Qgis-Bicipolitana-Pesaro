@@ -93,6 +93,16 @@ alternative, segue la posizione GPS e ricalcola il percorso quando ci si allonta
   l'illuminazione è nota su una minoranza dei tratti, e sommare le due cose darebbe un
   numero che nessuno ha misurato. L'avviso compare solo quando serve, cioè quando si
   arriva davvero dopo il tramonto.
+- **Dice cosa si incontra sulla strada**: per il percorso scelto, il riquadro «Sulla strada»
+  elenca le **fontanelle** con il chilometro a cui cadono e la deviazione da fare, dichiara il
+  **tratto più lungo senza acqua**, mostra il **fondo** (asfalto, pavé, sterrato — con i metri
+  non dichiarati contati a parte, non spacciati per asfalto) e dice come si prende il **vento**,
+  confrontando la direzione misurata dal servizio meteo con la direzione di marcia tratto per
+  tratto: «vento contro per il 68% del percorso».
+- **Filtro «solo lungo il percorso»**: con quindici linee e settantotto punti la mappa è piena.
+  Un interruttore nasconde tutto ciò che dista più di 200 m dal percorso scelto, lasciando le
+  fontanelle e le officine che si incontrano davvero. Senza un percorso calcolato non nasconde
+  nulla e lo dichiara, invece di svuotare la mappa.
 - Mostra servizi, ostacoli e punti di svago con tutti gli attributi del GeoPackage.
 - È installabile come **PWA** e funziona parzialmente offline.
 - Si pubblica su **GitHub Pages** senza backend e senza chiavi API.
@@ -619,7 +629,7 @@ Tutte facoltative: i default funzionano. Vedi [`.env.example`](.env.example).
 npm test
 ```
 
-**248 test** su sei gruppi:
+**268 test** su sette gruppi:
 
 - `tests/data/` — coerenza dei dati generati, e corrispondenza fra i file scritti
   dalla pipeline in `data/` e le copie pubblicate in `public/data/`: 15 linee, CRS, colori, nodi dentro l’area di
@@ -645,7 +655,12 @@ npm test
   asciutto oltre le ore che conosce; e il conto del buio su un percorso **reale**, dove i
   metri illuminati, quelli non illuminati e quelli non dichiarati devono ricomporre
   esattamente il tratto percorso dopo il tramonto, senza che l'assenza del dato venga
-  scambiata per buio.
+  scambiata per buio;
+- `tests/gita/` — quel che si incontra sulla strada: punti reali del GeoPackage proiettati su
+  un percorso vero (in ordine di incontro, entro la deviazione dichiarata, barriere escluse),
+  tratto più lungo senza fontanelle, raggruppamento dei fondi OSM — dove un valore mai visto
+  non diventa «liscio» e l'assenza del tag non diventa «asfalto» — e vento confrontato con la
+  direzione di marcia, che tace quando è troppo debole per cambiare la pedalata.
 
 I punti di test non sono coordinate inventate: ognuno corrisponde a una via nominata nel
 grafo OSM o a un POI del GeoPackage.

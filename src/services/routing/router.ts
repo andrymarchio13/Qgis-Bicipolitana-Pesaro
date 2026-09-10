@@ -38,6 +38,7 @@ import type {
   RouteWarning,
   RoutingProfileId,
 } from '../../types';
+import { summarizeSurfaces } from '../surface';
 import { haversine, lineLength } from '../../utils/geo';
 import { findPath, type SearchStep } from './astar';
 import { attachEndpoints, isWalkEdge } from './attach';
@@ -402,6 +403,12 @@ function buildRoute(
       distanceMeters > 0 ? Math.round((bicipolitanaMeters / distanceMeters) * 100) : 0,
     warnings: collectWarnings(steps),
     obstacleIds,
+    surfaces: summarizeSurfaces([
+      ...steps.map((s) => ({ surface: s.edge.sf, meters: s.distanceMeters })),
+      // I raccordi fuori rete non hanno un fondo dichiarato: entrano fra i
+      // metri su cui i dati non dicono nulla, non fra quelli asfaltati.
+      { meters: walkingMeters },
+    ]),
     lighting: collectLighting(
       steps,
       startWalk?.durationSeconds ?? 0,

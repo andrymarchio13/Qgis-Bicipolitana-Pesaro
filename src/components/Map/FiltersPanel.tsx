@@ -17,6 +17,9 @@ const ROWS: { key: keyof LayerVisibility; label: string; icon: string }[] = [
 export function FiltersPanel(): JSX.Element {
   const layers = useAppStore((s) => s.layers);
   const toggleLayer = useAppStore((s) => s.toggleLayer);
+  const onlyAlongRoute = useAppStore((s) => s.onlyAlongRoute);
+  const toggleOnlyAlongRoute = useAppStore((s) => s.toggleOnlyAlongRoute);
+  const hasRoute = useAppStore((s) => s.routes.length > 0);
 
   return (
     <section className="panel-section">
@@ -34,6 +37,30 @@ export function FiltersPanel(): JSX.Element {
           </label>
         ))}
       </div>
+
+      {/*
+        Filtro trasversale: non accende o spegne una categoria, restringe
+        tutte quelle accese a cio' che si incontra davvero. Resta visibile
+        anche senza percorso, spiegando che serve un percorso per agire:
+        nasconderlo lo renderebbe una funzione che nessuno scopre.
+      */}
+      <label className="toggle-row toggle-row--separated">
+        <input
+          type="checkbox"
+          checked={onlyAlongRoute}
+          onChange={toggleOnlyAlongRoute}
+          disabled={!hasRoute}
+        />
+        <span aria-hidden="true">🧭</span>
+        <span>
+          Solo lungo il percorso
+          <small className="toggle-row__hint">
+            {hasRoute
+              ? 'Nasconde i punti a più di 200 m dal percorso scelto'
+              : 'Disponibile quando hai calcolato un percorso'}
+          </small>
+        </span>
+      </label>
     </section>
   );
 }
