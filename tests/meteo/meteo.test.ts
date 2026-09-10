@@ -117,7 +117,12 @@ describe('richiesta del meteo attuale', () => {
     expect(current.night).toBe(false);
     expect(current.measuredAt.getHours()).toBe(9);
 
-    const url = new URL(fetchMock.mock.calls[0]![0]);
+    // Le richieste sono due (meteo e aria) e partono insieme: si cerca
+    // quella del meteo invece di dare per scontato l'ordine.
+    const chiamata = fetchMock.mock.calls
+      .map((call) => call[0])
+      .find((value) => !value.includes('air-quality'));
+    const url = new URL(chiamata!);
     expect(url.searchParams.get('timezone')).toBe('Europe/Rome');
     expect(url.searchParams.get('current')).toContain('wind_speed_10m');
     // Ore e tramonto viaggiano nella stessa richiesta, non in una seconda.

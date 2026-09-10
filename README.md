@@ -103,6 +103,14 @@ alternative, segue la posizione GPS e ricalcola il percorso quando ci si allonta
   Un interruttore nasconde tutto ciò che dista più di 200 m dal percorso scelto, lasciando le
   fontanelle e le officine che si incontrano davvero. Senza un percorso calcolato non nasconde
   nulla e lo dichiara, invece di svuotare la mappa.
+- **Qualità dell'aria** nel riquadro meteo: indice europeo **EAQI** con il colore ufficiale
+  della fascia e il PM2,5, dallo stesso fornitore (servizio separato, sempre senza chiave).
+  Se il servizio dell'aria non risponde la riga sparisce e il meteo resta: le due richieste
+  partono insieme e sono indipendenti.
+- **«Vicino a te»**: con il GPS attivo, un riquadro sotto il meteo dice qual è la fontanella,
+  l'officina o il parcheggio bici più vicini, a che distanza e da che parte. Le distanze sono
+  **in linea d'aria** e il riquadro lo dichiara: per scegliere fra tre fontanelle bastano, ma
+  non sono lunghezze di percorso.
 - **Segnalazioni di chi pedala, che restano sulla mappa**: una buca, un cantiere, un cancello
   nuovo, una fontanella guasta, un punto utile. Si tocca «Segnala un punto», poi la mappa, si
   sceglie il tipo e si aggiunge una nota. Le segnalazioni restano fra un'apertura e l'altra
@@ -632,6 +640,7 @@ Tutte facoltative: i default funzionano. Vedi [`.env.example`](.env.example).
 | `VITE_WEATHER_REFRESH_MS` | 600000 | ogni quanto si richiede il dato aggiornato |
 | `VITE_WEATHER_TIMEOUT_MS` | 8000 | oltre questa attesa la richiesta viene abbandonata |
 | `VITE_WEATHER_FORECAST_HOURS` | 12 | quante ore di previsione mostrare |
+| `VITE_AIR_QUALITY_URL` | Open-Meteo Air Quality | indice EAQI; vuoto = riga dell'aria nascosta |
 
 `.env` è in `.gitignore`: nessuna chiave finisce nel repository.
 
@@ -641,7 +650,7 @@ Tutte facoltative: i default funzionano. Vedi [`.env.example`](.env.example).
 npm test
 ```
 
-**292 test** su otto gruppi:
+**299 test** su otto gruppi:
 
 - `tests/data/` — coerenza dei dati generati, e corrispondenza fra i file scritti
   dalla pipeline in `data/` e le copie pubblicate in `public/data/`: 15 linee, CRS, colori, nodi dentro l’area di
@@ -663,7 +672,8 @@ npm test
 - `tests/meteo/` — lettura del meteo e della luce: codici WMO tradotti secondo lo standard e
   codici fuori tabella dichiarati invece di essere interpretati, rosa dei venti che chiude il
   cerchio, valori mancanti lasciati vuoti e non stimati, risposte incomplete o in errore che
-  falliscono invece di produrre un meteo verosimile; finestra di pioggia che non promette
+  falliscono invece di produrre un meteo verosimile; fasce EAQI dell'aria alle soglie
+  ufficiali, con il meteo che resta valido quando il servizio dell'aria cade; finestra di pioggia che non promette
   asciutto oltre le ore che conosce; e il conto del buio su un percorso **reale**, dove i
   metri illuminati, quelli non illuminati e quelli non dichiarati devono ricomporre
   esattamente il tratto percorso dopo il tramonto, senza che l'assenza del dato venga

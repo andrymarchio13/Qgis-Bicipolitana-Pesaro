@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { NavLink, Route as RouterRoute, Routes, useLocation as useRouterLocation } from 'react-router-dom';
 
 import { MapView } from './components/Map/MapView';
+import { NearbyBadge } from './components/Map/NearbyBadge';
 import { ReportDetail } from './components/Reports/ReportDetail';
 import { ReportForm } from './components/Reports/ReportForm';
 import { WeatherBadge } from './components/Weather/WeatherBadge';
@@ -294,7 +295,44 @@ export function App(): JSX.Element {
 
           <WeatherBadge />
 
+          {/*
+            Sotto il meteo, nella stessa colonna: quel che c'e' vicino a dove
+            si e' adesso. Compare solo con una posizione GPS.
+          */}
+          <NearbyBadge
+            position={location.position ? [location.position.lng, location.position.lat] : null}
+          />
+
+          {/*
+            Modalita' segnalazione: finche' e' accesa la mappa aspetta un
+            tocco, e la fascia lo dice. Senza questa riga il puntatore
+            diventerebbe una trappola — si tocca la mappa per spostarla e ci
+            si ritrova un modulo aperto.
+          */}
+          {pickingMode === 'report' ? (
+            <div className="picking-hint" role="status">
+              <span>📌 Tocca sulla mappa il punto da segnalare</span>
+              <button type="button" onClick={() => setPickingMode(null)}>
+                Annulla
+              </button>
+            </div>
+          ) : null}
+
           <div className="map-controls">
+            {/*
+              Segnalare e' un gesto che si fa guardando la mappa, non
+              scorrendo un pannello: il pulsante sta dove si guarda.
+            */}
+            <button
+              type="button"
+              className={`icon-btn${pickingMode === 'report' ? ' icon-btn--active' : ''}`}
+              onClick={() => setPickingMode(pickingMode === 'report' ? null : 'report')}
+              aria-pressed={pickingMode === 'report'}
+              aria-label="Segnala un punto sulla mappa"
+              title="Segnala un punto (buca, cantiere, ostacolo…)"
+            >
+              📌
+            </button>
             <button
               type="button"
               className="icon-btn"

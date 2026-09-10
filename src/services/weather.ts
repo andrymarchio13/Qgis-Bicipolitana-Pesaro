@@ -15,6 +15,7 @@
  * cambiano il viaggio piu' di qualsiasi altra cosa, e sono in primo piano.
  */
 import {
+  AIR_QUALITY_URL,
   PESARO_CENTER,
   WEATHER_FORECAST_HOURS,
   WEATHER_TIMEOUT_MS,
@@ -58,6 +59,37 @@ export interface HourForecast {
  * Le tre cose arrivano in un'unica richiesta: sono lo stesso servizio, e
  * chiederle separatamente triplicherebbe il traffico senza aggiungere nulla.
  */
+/**
+ * Qualita' dell'aria secondo l'indice europeo EAQI.
+ *
+ * Le fasce sono quelle dell'Agenzia europea dell'ambiente, non una nostra
+ * interpretazione: 0-20 buona, 20-40 discreta, 40-60 media, 60-80 scarsa,
+ * 80-100 molto scarsa, oltre 100 estremamente scarsa.
+ */
+export interface AirQuality {
+  /** Indice europeo, 0..oltre 100. */
+  index: number;
+  label: string;
+  /** Colore ufficiale della fascia EAQI. */
+  color: string;
+  pm25: number | null;
+  pm10: number | null;
+}
+
+const EAQI: { limit: number; label: string; color: string }[] = [
+  { limit: 20, label: 'Buona', color: '#50f0e6' },
+  { limit: 40, label: 'Discreta', color: '#50ccaa' },
+  { limit: 60, label: 'Media', color: '#f0e641' },
+  { limit: 80, label: 'Scarsa', color: '#ff5050' },
+  { limit: 100, label: 'Molto scarsa', color: '#960032' },
+  { limit: Number.POSITIVE_INFINITY, label: 'Estremamente scarsa', color: '#7d2181' },
+];
+
+/** Fascia EAQI di un indice. */
+export function airQualityBand(index: number): { label: string; color: string } {
+  return EAQI.find((band) => index < band.limit) ?? EAQI[EAQI.length - 1]!;
+}
+
 export interface WeatherReport {
   current: CurrentWeather;
   /** Le prossime ore in ordine, a partire da quella in corso. */
@@ -65,6 +97,8 @@ export interface WeatherReport {
   /** Alba e tramonto di oggi, dichiarati dal servizio per Pesaro. */
   sunrise: Date | null;
   sunset: Date | null;
+  /** null quando il servizio dell'aria non risponde: il meteo resta valido. */
+  air: AirQuality | null;
 }
 
 /**
@@ -249,6 +283,43 @@ function readHours(hourly: Record<string, unknown> | undefined, from: Date): Hou
 
 
 /**
+ * Interroga il servizio della qualita' dell'aria.
+ *
+ * E' un servizio diverso da quello del meteo, quindi una richiesta a parte.
+ * Un suo errore NON fa fallire il meteo: chi vuole sapere se piove non deve
+ * restare a bocca asciutta perche' e' caduto il servizio dell'aria.
+ */
+async function fetchAirQuality(signal: AbortSignal): Promise<AirQuality | null> {
+  if (!AIR_QUALITY_URL) return null;
+
+  const [lng, lat] = PESARO_CENTER;
+  const url = new URL(AIR_QUALITY_URL);
+  url.searchParams.set('latitude', lat.toFixed(4));
+  url.searchParams.set('longitude', lng.toFixed(4));
+  url.searchParams.set('current', 'european_aqi,pm2_5,pm10');
+  url.searchParams.set('timezone', 'Europe/Rome');
+
+  try {
+    const response = await fetch(url.toString(), { signal });
+    if (!response.ok) return null;
+    const body = (await response.json()) as { current?: Record<string, unknown> };
+    const index = numberOrNull(body.current?.european_aqi);
+    if (index === null) return null;
+    const band = airQualityBand(index);
+    return {
+      index: Math.round(index),
+      label: band.label,
+      color: band.color,
+      pm25: numberOrNull(body.current?.pm2_5),
+      pm10: numberOrNull(body.current?.pm10),
+    };
+  } catch {
+    // Nessun valore inventato: l'aria semplicemente non si sa.
+    return null;
+  }
+}
+
+/**
  * Interroga il servizio.
  *
  * Un errore non viene addolcito: chi chiama deve poter dire "meteo non
@@ -286,6 +357,9 @@ export async function fetchWeatherReport(signal?: AbortSignal): Promise<WeatherR
   signal?.addEventListener('abort', onAbort);
 
   try {
+    // Le due richieste partono insieme: sono servizi diversi e aspettarle in
+    // fila raddoppierebbe l'attesa per nulla.
+    const airPromise = fetchAirQuality(timeout.signal);
     const response = await fetch(url.toString(), { signal: timeout.signal });
     if (!response.ok) {
       throw new Error(`Il servizio meteo ha risposto ${response.status}.`);
@@ -325,6 +399,7 @@ export async function fetchWeatherReport(signal?: AbortSignal): Promise<WeatherR
       hours: readHours(body.hourly, measuredAt),
       sunrise: firstOf('sunrise'),
       sunset: firstOf('sunset'),
+      air: await airPromise,
     };
   } finally {
     clearTimeout(timer);

@@ -170,6 +170,21 @@ export function WeatherBadge({ placement = 'map' }: WeatherBadgeProps): JSX.Elem
 
           {vento ? <p className="weather__note">💨 {vento}</p> : null}
 
+          {/*
+            Qualita' dell'aria: indice europeo EAQI, con il colore ufficiale
+            della fascia. Se il servizio non risponde la riga non compare —
+            non si scrive "buona" per riempire lo spazio.
+          */}
+          {report.air ? (
+            <p className="weather__air">
+              <span className="weather__air-dot" style={{ background: report.air.color }} />
+              Aria {report.air.label.toLowerCase()} · EAQI {report.air.index}
+              {report.air.pm25 !== null ? (
+                <span className="weather__air-detail"> · PM2,5 {Math.round(report.air.pm25)}</span>
+              ) : null}
+            </p>
+          ) : null}
+
           {prossime.length > 0 ? (
             <>
               {/*

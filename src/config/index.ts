@@ -203,6 +203,16 @@ export const WEATHER_FORECAST_HOURS = num(env.VITE_WEATHER_FORECAST_HOURS, 12);
 /** Oltre questa attesa la richiesta viene abbandonata. */
 export const WEATHER_TIMEOUT_MS = num(env.VITE_WEATHER_TIMEOUT_MS, 8000);
 
+/**
+ * Qualita' dell'aria. Stesso fornitore del meteo, servizio separato e
+ * ugualmente gratuito e senza chiave. L'indice europeo (EAQI) e' quello
+ * dell'Agenzia europea dell'ambiente: le fasce non sono una nostra lettura.
+ *
+ * Lasciare il valore vuoto toglie la riga dell'aria, lasciando il resto.
+ */
+export const AIR_QUALITY_URL =
+  env.VITE_AIR_QUALITY_URL ?? 'https://air-quality-api.open-meteo.com/v1/air-quality';
+
 /** Sotto questa distanza il collegamento e' troppo corto perche' valga una chiamata. */
 export const WALK_ROUTING_MIN_METERS = num(env.VITE_WALK_ROUTING_MIN_METERS, 40);
 
