@@ -1520,6 +1520,20 @@ a {
   color: var(--ink-900);
 }
 
+.weather--muted {
+  opacity: 0.85;
+}
+
+.weather--muted .weather__head {
+  cursor: default;
+}
+
+/* In navigazione il badge lascia libera la fascia alta degli avvisi. */
+.weather--nav {
+  top: auto;
+  bottom: 12px;
+}
+
 .weather--wet {
   border-color: #93c5fd;
   box-shadow: 0 6px 20px rgb(30 64 175 / 0.22);

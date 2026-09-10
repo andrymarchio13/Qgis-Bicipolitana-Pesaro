@@ -7,7 +7,12 @@
  * l'ora a cui si riferisce non e' verificabile.
  *
  * Sta in alto a sinistra perche' e' l'unico angolo libero: a destra ci sono i
- * comandi della mappa, in basso a sinistra la scala.
+ * comandi della mappa, in basso a sinistra la scala. In navigazione scende in
+ * basso a sinistra, dove non copre gli avvisi di fuori-percorso.
+ *
+ * L'indicatore resta sempre a schermo: mentre carica dice che sta caricando e
+ * se il servizio non risponde lo dichiara. Sparire in silenzio lascerebbe chi
+ * guarda a chiedersi se il meteo non c'e' o se l'app si e' rotta.
  */
 import { useState } from 'react';
 
@@ -17,25 +22,44 @@ import { describeWeather, isWet, windCardinal, windNote } from '../../services/w
 const orario = (date: Date): string =>
   date.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
 
-export function WeatherBadge(): JSX.Element | null {
+export interface WeatherBadgeProps {
+  /** In navigazione il badge scende in basso, sopra la barra dei dati. */
+  placement?: 'map' | 'nav';
+}
+
+export function WeatherBadge({ placement = 'map' }: WeatherBadgeProps): JSX.Element | null {
   const { weather, loading, error, enabled, refresh } = useWeather();
   const [open, setOpen] = useState(false);
 
+  // L'unico caso in cui non si mostra nulla e' il servizio spento a mano.
   if (!enabled) return null;
 
-  // Alla prima apertura non si mostra un riquadro vuoto: meglio nulla finche'
-  // non c'e' qualcosa da dire.
-  if (!weather && loading) return null;
+  const dove = placement === 'nav' ? ' weather--nav' : '';
+
+  if (!weather && loading) {
+    return (
+      <div className={`weather weather--muted${dove}`}>
+        <span className="weather__head" aria-live="polite">
+          <span className="weather__icon" aria-hidden="true">
+            🌡️
+          </span>
+          <span className="weather__temp">Meteo…</span>
+        </span>
+      </div>
+    );
+  }
 
   if (!weather) {
     return (
       <button
         type="button"
-        className="weather weather--error"
+        className={`weather weather--error${dove}`}
         onClick={refresh}
         title={error ?? 'Meteo non disponibile'}
       >
-        <span aria-hidden="true">🌡️</span>
+        <span className="weather__icon" aria-hidden="true">
+          🌡️
+        </span>
         <span className="weather__temp">Meteo non disponibile</span>
       </button>
     );
@@ -47,7 +71,9 @@ export function WeatherBadge(): JSX.Element | null {
   const bagnato = isWet(weather.code);
 
   return (
-    <div className={`weather${open ? ' weather--open' : ''}${bagnato ? ' weather--wet' : ''}`}>
+    <div
+      className={`weather${dove}${open ? ' weather--open' : ''}${bagnato ? ' weather--wet' : ''}`}
+    >
       <button
         type="button"
         className="weather__head"

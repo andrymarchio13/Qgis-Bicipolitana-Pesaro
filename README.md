@@ -77,7 +77,9 @@ alternative, segue la posizione GPS e ricalcola il percorso quando ci si allonta
   l'ora della misura, perche' un dato meteo senza l'ora a cui si riferisce non e'
   verificabile. I dati vengono da Open-Meteo: gratuito, senza chiave, senza backend. Se il
   servizio non risponde l'indicatore dichiara che il meteo non e' disponibile invece di
-  lasciare a schermo l'ultimo valore spacciandolo per attuale.
+  lasciare a schermo l'ultimo valore spacciandolo per attuale. L'indicatore c'e' sempre —
+  sulla mappa principale e, in basso a sinistra, anche durante la navigazione, dove sapere
+  se sta arrivando la pioggia conta di piu'.
 - Mostra servizi, ostacoli e punti di svago con tutti gli attributi del GeoPackage.
 - È installabile come **PWA** e funziona parzialmente offline.
 - Si pubblica su **GitHub Pages** senza backend e senza chiavi API.

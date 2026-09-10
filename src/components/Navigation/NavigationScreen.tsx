@@ -12,6 +12,7 @@ import type { UseNavigationResult } from '../../hooks/useNavigation';
 import { useVoiceGuidance } from '../../hooks/useVoiceGuidance';
 import { MapView } from '../Map/MapView';
 import { LineBadge, Notice } from '../UI';
+import { WeatherBadge } from '../Weather/WeatherBadge';
 
 export interface NavigationScreenProps {
   route: Route;
@@ -164,6 +165,13 @@ export function NavigationScreen({
             ) : null}
           </div>
         )}
+        {/*
+          Il meteo serve soprattutto qui: mentre si pedala si vuole sapere se
+          sta arrivando la pioggia. Sta in basso a sinistra per non finire
+          sotto gli avvisi di fuori-percorso, che occupano tutta la fascia
+          alta.
+        */}
+        <WeatherBadge placement="nav" />
       </div>
 
       <div className="nav-screen__footer">
