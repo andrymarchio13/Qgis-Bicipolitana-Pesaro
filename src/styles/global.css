@@ -1584,6 +1584,97 @@ a {
   }
 }
 
+.weather__lead {
+  font-size: 12px;
+  color: var(--ink-500);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 190px;
+}
+
+/* Prossime ore: colonne alte quanto la probabilita' di pioggia dichiarata. */
+.weather__hours {
+  display: flex;
+  gap: 6px;
+  align-items: flex-end;
+  margin: 10px 0 4px;
+}
+
+.weather__hour {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+}
+
+.weather__bar-track {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  height: 38px;
+  border-radius: 4px;
+  background: var(--surface-2, rgb(0 0 0 / 0.05));
+}
+
+.weather__bar {
+  width: 100%;
+  min-height: 2px;
+  border-radius: 4px;
+  background: var(--brand-300, #9ecfb8);
+}
+
+.weather__bar--wet {
+  background: #3b82f6;
+}
+
+/* Ora senza probabilita' dichiarata: si lascia vuota, non si disegna zero. */
+.weather__bar-unknown {
+  width: 100%;
+  height: 100%;
+  border-radius: 4px;
+  background: repeating-linear-gradient(
+    45deg,
+    rgb(0 0 0 / 0.05),
+    rgb(0 0 0 / 0.05) 3px,
+    transparent 3px,
+    transparent 6px
+  );
+}
+
+.weather__hour-label,
+.weather__hour-temp {
+  font-size: 10px;
+  line-height: 1.1;
+  color: var(--ink-500);
+}
+
+.weather__hour-temp {
+  font-weight: 600;
+  color: var(--ink-700, var(--ink-500));
+}
+
+.weather__scale {
+  margin: 0 0 8px;
+  font-size: 10px;
+  color: var(--ink-500);
+}
+
+/* Avviso sul tramonto nella scheda del percorso. */
+.daylight {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgb(251 146 60 / 0.12);
+  border: 1px solid rgb(251 146 60 / 0.35);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-700, var(--ink-500));
+}
+
 .weather__body {
   padding: 0 12px 12px;
   border-top: 1px solid var(--border);

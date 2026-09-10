@@ -1,18 +1,23 @@
 /**
- * Meteo di Pesaro, tenuto aggiornato.
+ * Meteo di Pesaro, tenuto aggiornato e condiviso.
  *
  * Si ricarica da solo a intervalli, ma soprattutto quando serve davvero:
  * tornando sull'app dopo averla lasciata in tasca, e appena la rete torna. Un
  * dato meteo di quaranta minuti prima non e' "attuale", e chi riapre l'app
  * vuole sapere se piove adesso.
+ *
+ * Lo stato sta fuori da React, in un piccolo deposito condiviso: il meteo
+ * serve in piu' punti — l'indicatore sulla mappa, l'avviso sul tramonto nella
+ * scheda del percorso — e ognuno con il proprio stato vorrebbe dire una
+ * richiesta a testa per lo stesso identico dato.
  */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { WEATHER_REFRESH_MS, WEATHER_URL } from '../config';
-import { fetchCurrentWeather, type CurrentWeather } from '../services/weather';
+import { fetchWeatherReport, type WeatherReport } from '../services/weather';
 
 export interface UseWeatherResult {
-  weather: CurrentWeather | null;
+  report: WeatherReport | null;
   loading: boolean;
   /** Messaggio d'errore, quando il meteo non e' disponibile. */
   error: string | null;
@@ -21,66 +26,91 @@ export interface UseWeatherResult {
   refresh: () => void;
 }
 
-export function useWeather(): UseWeatherResult {
-  const enabled = Boolean(WEATHER_URL);
-  const [weather, setWeather] = useState<CurrentWeather | null>(null);
-  const [loading, setLoading] = useState(enabled);
-  const [error, setError] = useState<string | null>(null);
-  const controller = useRef<AbortController | null>(null);
+interface WeatherState {
+  report: WeatherReport | null;
+  loading: boolean;
+  error: string | null;
+}
 
-  const load = useCallback(async () => {
-    if (!enabled) return;
-    // Una richiesta gia' in volo viene abbandonata: l'ultima chiamata e' quella
-    // che conta, e due risposte in ordine sparso mostrerebbero il dato vecchio.
-    controller.current?.abort();
-    const current = new AbortController();
-    controller.current = current;
+const enabled = Boolean(WEATHER_URL);
 
-    setLoading(true);
-    try {
-      const next = await fetchCurrentWeather(current.signal);
-      if (current.signal.aborted) return;
-      setWeather(next);
-      setError(null);
-    } catch (cause) {
-      if (current.signal.aborted) return;
-      /*
-       * Il dato precedente viene buttato via di proposito. Tenerlo a schermo
-       * dopo un errore lo farebbe passare per attuale, ed e' esattamente cio'
-       * che il progetto non fa con nessun altro dato.
-       */
-      setWeather(null);
-      setError(
+let state: WeatherState = { report: null, loading: enabled, error: null };
+const listeners = new Set<() => void>();
+let controller: AbortController | null = null;
+let subscribers = 0;
+let timer: number | null = null;
+
+function setState(next: WeatherState): void {
+  state = next;
+  for (const listener of listeners) listener();
+}
+
+async function load(): Promise<void> {
+  if (!enabled) return;
+  // Una richiesta gia' in volo viene abbandonata: l'ultima chiamata e' quella
+  // che conta, e due risposte in ordine sparso mostrerebbero il dato vecchio.
+  controller?.abort();
+  const current = new AbortController();
+  controller = current;
+
+  setState({ ...state, loading: true });
+  try {
+    const report = await fetchWeatherReport(current.signal);
+    if (current.signal.aborted) return;
+    setState({ report, loading: false, error: null });
+  } catch (cause) {
+    if (current.signal.aborted) return;
+    /*
+     * Il dato precedente viene buttato via di proposito. Tenerlo a schermo
+     * dopo un errore lo farebbe passare per attuale, ed e' esattamente cio'
+     * che il progetto non fa con nessun altro dato.
+     */
+    setState({
+      report: null,
+      loading: false,
+      error:
         cause instanceof Error && cause.message
           ? cause.message
           : 'Meteo non disponibile in questo momento.',
-      );
-    } finally {
-      if (!current.signal.aborted) setLoading(false);
-    }
-  }, [enabled]);
+    });
+  }
+}
 
-  useEffect(() => {
-    if (!enabled) return;
+/** Rinfresca tornando sull'app o appena la rete torna. */
+const onWake = (): void => {
+  if (document.visibilityState === 'visible') void load();
+};
+
+function subscribe(listener: () => void): () => void {
+  listeners.add(listener);
+  subscribers += 1;
+  if (enabled && subscribers === 1) {
     void load();
+    timer = window.setInterval(() => void load(), WEATHER_REFRESH_MS);
+    document.addEventListener('visibilitychange', onWake);
+    window.addEventListener('online', onWake);
+  }
 
-    const timer = window.setInterval(() => void load(), WEATHER_REFRESH_MS);
+  return () => {
+    listeners.delete(listener);
+    subscribers -= 1;
+    if (subscribers === 0) {
+      if (timer !== null) window.clearInterval(timer);
+      timer = null;
+      document.removeEventListener('visibilitychange', onWake);
+      window.removeEventListener('online', onWake);
+      controller?.abort();
+      controller = null;
+    }
+  };
+}
 
-    // Tornando sull'app il dato va rinfrescato subito: l'intervallo da solo
-    // lascerebbe a schermo il meteo di quando la si e' messa via.
-    const onVisible = (): void => {
-      if (document.visibilityState === 'visible') void load();
-    };
-    document.addEventListener('visibilitychange', onVisible);
-    window.addEventListener('online', onVisible);
+export function useWeather(): UseWeatherResult {
+  const [, force] = useState(0);
 
-    return () => {
-      window.clearInterval(timer);
-      document.removeEventListener('visibilitychange', onVisible);
-      window.removeEventListener('online', onVisible);
-      controller.current?.abort();
-    };
-  }, [enabled, load]);
+  useEffect(() => subscribe(() => force((n) => n + 1)), []);
 
-  return { weather, loading, error, enabled, refresh: () => void load() };
+  const refresh = useCallback(() => void load(), []);
+
+  return { report: state.report, loading: state.loading, error: state.error, enabled, refresh };
 }

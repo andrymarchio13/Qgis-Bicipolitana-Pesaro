@@ -197,6 +197,9 @@ export const WEATHER_URL =
 /** Ogni quanto si richiede il meteo aggiornato. */
 export const WEATHER_REFRESH_MS = num(env.VITE_WEATHER_REFRESH_MS, 10 * 60 * 1000);
 
+/** Quante ore di previsione mostrare: oltre mezza giornata non serve a una gita. */
+export const WEATHER_FORECAST_HOURS = num(env.VITE_WEATHER_FORECAST_HOURS, 12);
+
 /** Oltre questa attesa la richiesta viene abbandonata. */
 export const WEATHER_TIMEOUT_MS = num(env.VITE_WEATHER_TIMEOUT_MS, 8000);
 

@@ -3,6 +3,7 @@ import { connectorSummary, routeRationale } from '../../services/routing/instruc
 import type { Line, Route } from '../../types';
 import { formatDistance, formatDuration } from '../../utils/geo';
 import { EstimateChip, LineBadge } from '../UI';
+import { DaylightNotice } from '../Weather/DaylightNotice';
 
 export interface RouteCardProps {
   route: Route;
@@ -103,6 +104,13 @@ export function RouteCard({ route, lines, selected, onSelect, onStart }: RouteCa
             {route.warnings.length > 1 ? ` (+${route.warnings.length - 1})` : ''}
           </p>
         ) : null}
+
+        {/*
+          Se si arriva dopo il tramonto va detto qui, accanto al tempo che lo
+          determina, non in un angolo della mappa: e' un elemento con cui si
+          sceglie il percorso, non una curiosita' meteorologica.
+        */}
+        <DaylightNotice route={route} />
       </button>
 
       {selected ? (

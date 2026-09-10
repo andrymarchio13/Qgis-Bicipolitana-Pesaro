@@ -135,6 +135,11 @@ export interface GraphEdge {
   sf?: string;
   /** Fattore di velocita' della superficie. */
   sfc?: number;
+  /**
+   * Illuminazione pubblica dichiarata da OSM: 1 illuminato, 0 non illuminato.
+   * Assente quando il dato non c'e', e l'assenza non significa buio.
+   */
+  lt?: 0 | 1;
   /** Senso unico per la bici: 1 = a→b, -1 = b→a. */
   ow?: 1 | -1;
   /** Id degli ostacoli entro il raggio di influenza. */
@@ -272,6 +277,22 @@ export interface RouteWarning {
   location?: LngLat;
 }
 
+/**
+ * Un tratto di percorso con la stessa illuminazione dichiarata.
+ *
+ * Serve a rispondere a una domanda sola: di quel che resta da pedalare dopo
+ * il tramonto, quanto e' su strade che i dati dicono illuminate. I tratti
+ * consecutivi con lo stesso stato sono uniti, cosi' l'elenco resta corto.
+ */
+export interface LightingSpan {
+  /** Secondi dalla partenza a cui il tratto comincia. */
+  fromSeconds: number;
+  durationSeconds: number;
+  distanceMeters: number;
+  /** true illuminato, false non illuminato, null non dichiarato dai dati. */
+  lit: boolean | null;
+}
+
 export interface Route {
   id: string;
   profile: RoutingProfileId;
@@ -292,6 +313,8 @@ export interface Route {
   walkingMeters: number;
   warnings: RouteWarning[];
   obstacleIds: string[];
+  /** Illuminazione dichiarata lungo il percorso, in ordine di marcia. */
+  lighting: LightingSpan[];
   /** I tempi sono stime, non misure. */
   durationIsEstimate: true;
   /** true quando i tratti a piedi seguono le strade e non la linea d'aria. */

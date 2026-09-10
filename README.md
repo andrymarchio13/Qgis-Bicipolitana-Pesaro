@@ -80,6 +80,19 @@ alternative, segue la posizione GPS e ricalcola il percorso quando ci si allonta
   lasciare a schermo l'ultimo valore spacciandolo per attuale. L'indicatore c'e' sempre —
   sulla mappa principale e, in basso a sinistra, anche durante la navigazione, dove sapere
   se sta arrivando la pioggia conta di piu'.
+- **Dice quando smette (o quando comincia) a piovere**: la stessa richiesta porta le
+  **prossime 12 ore**, e l'indicatore le riassume in una riga — «Asciutto fino alle 17»,
+  «Piove: asciutto dalle 15» — con le colonne della probabilità ora per ora. Le ore su cui
+  il servizio non dichiara una probabilità restano vuote e tratteggiate: non vengono
+  disegnate a zero, che vorrebbe dire «non pioverà».
+- **Avvisa se torni dopo il tramonto**: incrociando l'ora del tramonto (dichiarata dal
+  servizio meteo), il tempo stimato del percorso e il tag `lit` di OSM sugli archi del
+  grafo, la scheda del percorso dice «Arrivo alle 19:40, tramonto alle 19:12: 28 min al
+  buio», e di quel tratto quanti metri sono su strade **dichiarate** illuminate. Il resto
+  non viene contato come buio: viene dichiarato come informazione che manca — nel grafo
+  l'illuminazione è nota su una minoranza dei tratti, e sommare le due cose darebbe un
+  numero che nessuno ha misurato. L'avviso compare solo quando serve, cioè quando si
+  arriva davvero dopo il tramonto.
 - Mostra servizi, ostacoli e punti di svago con tutti gli attributi del GeoPackage.
 - È installabile come **PWA** e funziona parzialmente offline.
 - Si pubblica su **GitHub Pages** senza backend e senza chiavi API.
@@ -259,7 +272,23 @@ grafo planarizzato:
 | Archi | 12.674 (di cui 1.906 di Bicipolitana) |
 | Componenti connesse | **1** |
 | Bicipolitana raggiungibile | **100%** (61,05 km) |
-| `graph.json` | 2,2 MB → **~457 KB** serviti compressi |
+| `graph.json` | 2,2 MB → **~458 KB** serviti compressi |
+
+### Illuminazione pubblica: un dato dichiarato, e la sua assenza pure
+
+Ogni arco porta il campo `lt` quando OSM dichiara il tag `lit`: **1** illuminato, **0** non
+illuminato. Se il tag manca, il campo **non c'è** — e la sua assenza non viene tradotta in
+«strada buia», perché nessuno l'ha rilevata.
+
+| | Archi | Lunghezza |
+|---|---|---|
+| Dichiarati illuminati (`lt: 1`) | 2.533 | 119,5 km |
+| Dichiarati non illuminati (`lt: 0`) | 88 | 5,2 km |
+| **Non dichiarati** (campo assente) | 10.053 | 591,9 km |
+
+La terza riga è il motivo per cui l'avviso sul tramonto (§1) tiene le tre voci separate
+invece di sommarle: dire «17 km al buio» quando 16 di quei chilometri sono semplicemente
+non rilevati sarebbe un numero inventato.
 
 Diagnostica completa in [`data/routing/topology_report.json`](data/routing/topology_report.json).
 
@@ -580,6 +609,7 @@ Tutte facoltative: i default funzionano. Vedi [`.env.example`](.env.example).
 | `VITE_WEATHER_URL` | Open-Meteo | meteo attuale di Pesaro; vuoto = indicatore disattivato |
 | `VITE_WEATHER_REFRESH_MS` | 600000 | ogni quanto si richiede il dato aggiornato |
 | `VITE_WEATHER_TIMEOUT_MS` | 8000 | oltre questa attesa la richiesta viene abbandonata |
+| `VITE_WEATHER_FORECAST_HOURS` | 12 | quante ore di previsione mostrare |
 
 `.env` è in `.gitignore`: nessuna chiave finisce nel repository.
 
@@ -589,7 +619,7 @@ Tutte facoltative: i default funzionano. Vedi [`.env.example`](.env.example).
 npm test
 ```
 
-**224 test** su sei gruppi:
+**248 test** su sei gruppi:
 
 - `tests/data/` — coerenza dei dati generati, e corrispondenza fra i file scritti
   dalla pipeline in `data/` e le copie pubblicate in `public/data/`: 15 linee, CRS, colori, nodi dentro l’area di
@@ -608,10 +638,14 @@ npm test
   maschile fra quelle installate, distanze scritte per essere pronunciate, annunci dati due
   volte e mai ripetuti, ciclista animato che smette di chiedere fotogrammi da fermo, e
   velocita' ricavata dallo spostamento quando il dispositivo non la dichiara.
-- `tests/meteo/` — lettura del meteo: codici WMO tradotti secondo lo standard e codici fuori
-  tabella dichiarati invece di essere interpretati, rosa dei venti che chiude il cerchio,
-  valori mancanti lasciati vuoti e non stimati, risposte incomplete o in errore che
-  falliscono invece di produrre un meteo verosimile.
+- `tests/meteo/` — lettura del meteo e della luce: codici WMO tradotti secondo lo standard e
+  codici fuori tabella dichiarati invece di essere interpretati, rosa dei venti che chiude il
+  cerchio, valori mancanti lasciati vuoti e non stimati, risposte incomplete o in errore che
+  falliscono invece di produrre un meteo verosimile; finestra di pioggia che non promette
+  asciutto oltre le ore che conosce; e il conto del buio su un percorso **reale**, dove i
+  metri illuminati, quelli non illuminati e quelli non dichiarati devono ricomporre
+  esattamente il tratto percorso dopo il tramonto, senza che l'assenza del dato venga
+  scambiata per buio.
 
 I punti di test non sono coordinate inventate: ognuno corrisponde a una via nominata nel
 grafo OSM o a un POI del GeoPackage.

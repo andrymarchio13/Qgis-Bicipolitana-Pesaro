@@ -28,6 +28,7 @@ import {
   WALK_LEG_MIN_METERS,
 } from '../../config';
 import type {
+  LightingSpan,
   Line,
   LngLat,
   Route,
@@ -97,6 +98,48 @@ function assembleGeometry(steps: RouteStep[]): LngLat[] {
     else geometry.push(...step.coordinates.slice(1));
   }
   return geometry;
+}
+
+/**
+ * Illuminazione dichiarata lungo il percorso, tratto per tratto.
+ *
+ * I tratti a piedi entrano come "non dichiarato": sono raccordi calcolati per
+ * la singola richiesta, non archi dei dati, e nessuno ha mai detto se quella
+ * strada abbia i lampioni.
+ *
+ * Tratti consecutivi con lo stesso stato vengono uniti: quel che interessa
+ * e' "due chilometri senza illuminazione dichiarata", non trecento archi.
+ */
+function collectLighting(
+  steps: RouteStep[],
+  startWalkSeconds: number,
+  startWalkMeters: number,
+  endWalkSeconds: number,
+  endWalkMeters: number,
+): LightingSpan[] {
+  const spans: LightingSpan[] = [];
+  let elapsed = 0;
+
+  const push = (durationSeconds: number, distanceMeters: number, lit: boolean | null): void => {
+    if (durationSeconds <= 0 && distanceMeters <= 0) return;
+    const last = spans[spans.length - 1];
+    if (last && last.lit === lit) {
+      last.durationSeconds += durationSeconds;
+      last.distanceMeters += distanceMeters;
+    } else {
+      spans.push({ fromSeconds: elapsed, durationSeconds, distanceMeters, lit });
+    }
+    elapsed += durationSeconds;
+  };
+
+  push(startWalkSeconds, startWalkMeters, null);
+  for (const step of steps) {
+    const lit = step.edge.lt === undefined ? null : step.edge.lt === 1;
+    push(step.durationSeconds, step.distanceMeters, lit);
+  }
+  push(endWalkSeconds, endWalkMeters, null);
+
+  return spans;
 }
 
 /**
@@ -359,6 +402,13 @@ function buildRoute(
       distanceMeters > 0 ? Math.round((bicipolitanaMeters / distanceMeters) * 100) : 0,
     warnings: collectWarnings(steps),
     obstacleIds,
+    lighting: collectLighting(
+      steps,
+      startWalk?.durationSeconds ?? 0,
+      startWalkMeters,
+      endWalk?.durationSeconds ?? 0,
+      endWalkMeters,
+    ),
     durationIsEstimate: true,
   };
 }

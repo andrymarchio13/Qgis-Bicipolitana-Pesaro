@@ -157,6 +157,15 @@ export function parseItinerary(text: string): ItineraryParseResult {
     return { ok: false, message: 'I punti di partenza e arrivo salvati non sono validi.' };
   }
 
+  /*
+   * Gli itinerari salvati prima che il percorso portasse con se'
+   * l'illuminazione non hanno quel campo. Non e' un file danneggiato: e' un
+   * file che su quel punto non dice nulla, e diventa un elenco vuoto —
+   * l'avviso sul tramonto lo leggera' come "informazione non disponibile"
+   * invece di inventarsi strade illuminate.
+   */
+  if (!Array.isArray(route.lighting)) route.lighting = [];
+
   return { ok: true, itinerary: candidate as unknown as ItineraryFile };
 }
 

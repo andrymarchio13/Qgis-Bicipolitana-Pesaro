@@ -3,10 +3,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   describeWeather,
-  fetchCurrentWeather,
+  fetchWeatherReport,
   isWet,
+  rainWindow,
   windCardinal,
   windNote,
+  type HourForecast,
 } from '../../src/services/weather';
 
 // ---------------------------------------------------------------------------
@@ -107,17 +109,20 @@ describe('richiesta del meteo attuale', () => {
     const fetchMock = vi.fn(async (_url: string) => risposta({ current: attuale }));
     vi.stubGlobal('fetch', fetchMock);
 
-    const meteo = await fetchCurrentWeather();
+    const { current } = await fetchWeatherReport();
 
-    expect(meteo.temperature).toBe(21.4);
-    expect(meteo.windSpeed).toBe(14.2);
-    expect(meteo.code).toBe(2);
-    expect(meteo.night).toBe(false);
-    expect(meteo.measuredAt.getHours()).toBe(9);
+    expect(current.temperature).toBe(21.4);
+    expect(current.windSpeed).toBe(14.2);
+    expect(current.code).toBe(2);
+    expect(current.night).toBe(false);
+    expect(current.measuredAt.getHours()).toBe(9);
 
     const url = new URL(fetchMock.mock.calls[0]![0]);
     expect(url.searchParams.get('timezone')).toBe('Europe/Rome');
     expect(url.searchParams.get('current')).toContain('wind_speed_10m');
+    // Ore e tramonto viaggiano nella stessa richiesta, non in una seconda.
+    expect(url.searchParams.get('hourly')).toContain('precipitation_probability');
+    expect(url.searchParams.get('daily')).toContain('sunset');
   });
 
   it('lascia a null i valori che il servizio non manda, senza stimarli', async () => {
@@ -128,11 +133,11 @@ describe('richiesta del meteo attuale', () => {
       ),
     );
 
-    const meteo = await fetchCurrentWeather();
+    const { current } = await fetchWeatherReport();
 
-    expect(meteo.windSpeed).toBeNull();
-    expect(meteo.apparentTemperature).toBeNull();
-    expect(meteo.precipitation).toBeNull();
+    expect(current.windSpeed).toBeNull();
+    expect(current.apparentTemperature).toBeNull();
+    expect(current.precipitation).toBeNull();
   });
 
   it('segnala la notte quando il servizio la dichiara', async () => {
@@ -140,7 +145,7 @@ describe('richiesta del meteo attuale', () => {
       'fetch',
       vi.fn(async () => risposta({ current: { ...attuale, is_day: 0 } })),
     );
-    expect((await fetchCurrentWeather()).night).toBe(true);
+    expect((await fetchWeatherReport()).current.night).toBe(true);
   });
 
   it('fallisce invece di restituire un meteo incompleto', async () => {
@@ -148,7 +153,7 @@ describe('richiesta del meteo attuale', () => {
       'fetch',
       vi.fn(async () => risposta({ current: { time: attuale.time, weather_code: 1 } })),
     );
-    await expect(fetchCurrentWeather()).rejects.toThrow(/incompleta/);
+    await expect(fetchWeatherReport()).rejects.toThrow(/incompleta/);
   });
 
   it('fallisce quando il servizio risponde con un errore', async () => {
@@ -156,7 +161,7 @@ describe('richiesta del meteo attuale', () => {
       'fetch',
       vi.fn(async () => risposta({}, false)),
     );
-    await expect(fetchCurrentWeather()).rejects.toThrow(/503/);
+    await expect(fetchWeatherReport()).rejects.toThrow(/503/);
   });
 
   it('fallisce quando la risposta non contiene i dati attuali', async () => {
@@ -164,7 +169,7 @@ describe('richiesta del meteo attuale', () => {
       'fetch',
       vi.fn(async () => risposta({})),
     );
-    await expect(fetchCurrentWeather()).rejects.toThrow(/non ha restituito/);
+    await expect(fetchWeatherReport()).rejects.toThrow(/non ha restituito/);
   });
 
   it('abbandona la richiesta quando chi chiama annulla', async () => {
@@ -179,8 +184,119 @@ describe('richiesta del meteo attuale', () => {
       ),
     );
 
-    const attesa = fetchCurrentWeather(abort.signal);
+    const attesa = fetchWeatherReport(abort.signal);
     abort.abort();
     await expect(attesa).rejects.toThrow();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Prossime ore e tramonto
+// ---------------------------------------------------------------------------
+
+const ora = (h: number, rainChance: number | null, precipitation = 0): HourForecast => ({
+  time: new Date(2026, 8, 10, h, 0, 0),
+  temperature: 20,
+  rainChance,
+  precipitation,
+  windSpeed: 10,
+  code: 3,
+});
+
+describe('finestra di pioggia', () => {
+  it('dice fino a quando resta asciutto', () => {
+    const finestra = rainWindow([ora(9, 5), ora(10, 10), ora(11, 80), ora(12, 90)]);
+    expect(finestra?.rainingNow).toBe(false);
+    expect(finestra?.rainFrom?.getHours()).toBe(11);
+    expect(finestra?.peakChance).toBe(90);
+  });
+
+  it('quando piove dice da quando torna asciutto', () => {
+    const finestra = rainWindow([ora(9, 85), ora(10, 60), ora(11, 10)]);
+    expect(finestra?.rainingNow).toBe(true);
+    expect(finestra?.dryFrom?.getHours()).toBe(11);
+    expect(finestra?.rainFrom).toBeNull();
+  });
+
+  it('non promette asciutto oltre le ore che conosce', () => {
+    const finestra = rainWindow([ora(9, 90), ora(10, 80)]);
+    expect(finestra?.rainingNow).toBe(true);
+    expect(finestra?.dryFrom).toBeNull();
+  });
+
+  it('considera piovosa un ora con pioggia dichiarata anche senza probabilita', () => {
+    const finestra = rainWindow([ora(9, null, 1.4)]);
+    expect(finestra?.rainingNow).toBe(true);
+  });
+
+  it('tace quando il servizio non manda nessuna delle due informazioni', () => {
+    expect(rainWindow([])).toBeNull();
+    expect(rainWindow([{ ...ora(9, null), precipitation: null }])).toBeNull();
+  });
+
+  it('non tratta come pioggia una possibilita remota', () => {
+    const finestra = rainWindow([ora(9, 20), ora(10, 25)]);
+    expect(finestra?.rainingNow).toBe(false);
+    expect(finestra?.rainFrom).toBeNull();
+  });
+});
+
+describe('lettura delle ore e del tramonto dalla risposta', () => {
+  it('tiene le ore da quella in corso in poi e legge il tramonto', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        risposta({
+          current: attuale,
+          hourly: {
+            time: ['2026-09-10T07:00', '2026-09-10T08:00', '2026-09-10T09:00', '2026-09-10T10:00'],
+            temperature_2m: [16, 18, 21, 23],
+            precipitation_probability: [0, 0, 10, 40],
+            precipitation: [0, 0, 0, 0.3],
+            weather_code: [0, 1, 2, 61],
+            wind_speed_10m: [8, 10, 14, 16],
+          },
+          daily: { sunrise: ['2026-09-10T06:44'], sunset: ['2026-09-10T19:32'] },
+        }),
+      ),
+    );
+
+    const report = await fetchWeatherReport();
+
+    // L'ora in corso e' le 9: le 7 e le 8 sono passate e non servono piu'.
+    expect(report.hours.map((h) => h.time.getHours())).toEqual([9, 10]);
+    expect(report.hours[0]!.rainChance).toBe(10);
+    expect(report.sunset?.getHours()).toBe(19);
+    expect(report.sunset?.getMinutes()).toBe(32);
+    expect(report.sunrise?.getHours()).toBe(6);
+  });
+
+  it('senza ore e senza tramonto resta il meteo attuale, non un errore', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => risposta({ current: attuale })),
+    );
+
+    const report = await fetchWeatherReport();
+
+    expect(report.current.temperature).toBe(21.4);
+    expect(report.hours).toEqual([]);
+    expect(report.sunset).toBeNull();
+  });
+
+  it('non inventa una probabilita quando la colonna manca', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        risposta({
+          current: attuale,
+          hourly: { time: ['2026-09-10T09:00'], temperature_2m: [21] },
+        }),
+      ),
+    );
+
+    const report = await fetchWeatherReport();
+    expect(report.hours[0]!.rainChance).toBeNull();
+    expect(report.hours[0]!.temperature).toBe(21);
   });
 });

@@ -116,6 +116,7 @@ function percorsoDiProva(): Route {
     walkingMeters: Math.round(piedi.distanceMeters),
     warnings: [],
     obstacleIds: [],
+    lighting: [],
     durationIsEstimate: true,
   };
 }

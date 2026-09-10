@@ -14,7 +14,12 @@
  * Per un ciclista non conta solo la temperatura: il vento e la pioggia
  * cambiano il viaggio piu' di qualsiasi altra cosa, e sono in primo piano.
  */
-import { PESARO_CENTER, WEATHER_TIMEOUT_MS, WEATHER_URL } from '../config';
+import {
+  PESARO_CENTER,
+  WEATHER_FORECAST_HOURS,
+  WEATHER_TIMEOUT_MS,
+  WEATHER_URL,
+} from '../config';
 
 export interface CurrentWeather {
   /** Temperatura in gradi Celsius. */
@@ -33,6 +38,82 @@ export interface CurrentWeather {
   night: boolean;
   /** Istante della misura dichiarato dal servizio. */
   measuredAt: Date;
+}
+
+/** Una delle prossime ore: quel che serve per decidere quando uscire. */
+export interface HourForecast {
+  time: Date;
+  temperature: number | null;
+  /** Probabilita' di pioggia dichiarata dal servizio, 0..100. */
+  rainChance: number | null;
+  /** Millimetri previsti in quell'ora. */
+  precipitation: number | null;
+  windSpeed: number | null;
+  code: number | null;
+}
+
+/**
+ * Meteo attuale, prossime ore e luce del giorno.
+ *
+ * Le tre cose arrivano in un'unica richiesta: sono lo stesso servizio, e
+ * chiederle separatamente triplicherebbe il traffico senza aggiungere nulla.
+ */
+export interface WeatherReport {
+  current: CurrentWeather;
+  /** Le prossime ore in ordine, a partire da quella in corso. */
+  hours: HourForecast[];
+  /** Alba e tramonto di oggi, dichiarati dal servizio per Pesaro. */
+  sunrise: Date | null;
+  sunset: Date | null;
+}
+
+/**
+ * Quando smette o quando comincia a piovere.
+ *
+ * Non e' una previsione nostra: e' la lettura delle ore che il servizio
+ * dichiara. Se le ore non bastano a rispondere, si tace invece di estrapolare.
+ */
+export interface RainWindow {
+  /** true se nell'ora in corso il servizio prevede pioggia. */
+  rainingNow: boolean;
+  /** Prima ora asciutta dopo la pioggia, se c'e' nelle ore disponibili. */
+  dryFrom: Date | null;
+  /** Prima ora di pioggia, se arriva nelle ore disponibili. */
+  rainFrom: Date | null;
+  /** Probabilita' massima nelle ore considerate. */
+  peakChance: number | null;
+}
+
+/**
+ * Sopra questa probabilita' l'ora viene considerata "con pioggia".
+ *
+ * E' una soglia di lettura dichiarata, non un dato: sotto il 30% il servizio
+ * segnala una possibilita' remota, e trattarla come pioggia terrebbe a casa
+ * chi poteva uscire tranquillamente.
+ */
+export const RAIN_CHANCE_THRESHOLD = 30;
+
+/**
+ * Legge le prossime ore e dice quando piove.
+ *
+ * `hours` deve essere in ordine di tempo, a partire dall'ora in corso.
+ */
+export function rainWindow(hours: HourForecast[]): RainWindow | null {
+  const usable = hours.filter((h) => h.rainChance !== null || h.precipitation !== null);
+  if (usable.length === 0) return null;
+
+  const wet = (hour: HourForecast): boolean =>
+    (hour.rainChance ?? 0) >= RAIN_CHANCE_THRESHOLD || (hour.precipitation ?? 0) >= 0.2;
+
+  const rainingNow = wet(usable[0]!);
+  const chances = usable.map((h) => h.rainChance).filter((c): c is number => c !== null);
+
+  return {
+    rainingNow,
+    dryFrom: rainingNow ? (usable.find((h) => !wet(h))?.time ?? null) : null,
+    rainFrom: rainingNow ? null : (usable.find(wet)?.time ?? null),
+    peakChance: chances.length > 0 ? Math.max(...chances) : null,
+  };
 }
 
 /**
@@ -123,13 +204,61 @@ export function isWet(code: number): boolean {
 const numberOrNull = (value: unknown): number | null =>
   typeof value === 'number' && Number.isFinite(value) ? value : null;
 
+/** Legge un istante dichiarato dal servizio, o null se non e' leggibile. */
+const dateOrNull = (value: unknown): Date | null => {
+  if (typeof value !== 'string') return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+/** Estrae le prossime ore dagli array paralleli di Open-Meteo. */
+function readHours(hourly: Record<string, unknown> | undefined, from: Date): HourForecast[] {
+  const times = Array.isArray(hourly?.time) ? (hourly.time as unknown[]) : [];
+  if (times.length === 0) return [];
+
+  const at = (key: string, index: number): number | null => {
+    const column = hourly?.[key];
+    return Array.isArray(column) ? numberOrNull(column[index]) : null;
+  };
+
+  /*
+   * Si parte dall'ora in corso, non da quella dopo: se sono le 9:40 l'ora
+   * delle 9 e' ancora quella che si sta vivendo. Il riferimento e' l'istante
+   * dichiarato dal servizio, non l'orologio del dispositivo, che puo' essere
+   * su un altro fuso o semplicemente sbagliato.
+   */
+  const since = new Date(from);
+  since.setMinutes(0, 0, 0);
+
+  const hours: HourForecast[] = [];
+  for (let i = 0; i < times.length; i += 1) {
+    const time = dateOrNull(times[i]);
+    if (!time || time.getTime() < since.getTime()) continue;
+    hours.push({
+      time,
+      temperature: at('temperature_2m', i),
+      rainChance: at('precipitation_probability', i),
+      precipitation: at('precipitation', i),
+      windSpeed: at('wind_speed_10m', i),
+      code: at('weather_code', i),
+    });
+    if (hours.length >= WEATHER_FORECAST_HOURS) break;
+  }
+  return hours;
+}
+
+
 /**
  * Interroga il servizio.
  *
  * Un errore non viene addolcito: chi chiama deve poter dire "meteo non
  * disponibile" invece di mostrare un valore vecchio spacciato per attuale.
+ *
+ * Meteo attuale, prossime ore e orari di alba e tramonto arrivano insieme:
+ * e' una sola richiesta, e le tre cose servono nello stesso momento — che
+ * tempo fa, se sta per piovere, e se si torna con la luce.
  */
-export async function fetchCurrentWeather(signal?: AbortSignal): Promise<CurrentWeather> {
+export async function fetchWeatherReport(signal?: AbortSignal): Promise<WeatherReport> {
   const [lng, lat] = PESARO_CENTER;
   const url = new URL(WEATHER_URL);
   url.searchParams.set('latitude', lat.toFixed(4));
@@ -138,6 +267,12 @@ export async function fetchCurrentWeather(signal?: AbortSignal): Promise<Current
     'current',
     'temperature_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_direction_10m,is_day',
   );
+  url.searchParams.set(
+    'hourly',
+    'temperature_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m',
+  );
+  url.searchParams.set('daily', 'sunrise,sunset');
+  url.searchParams.set('forecast_days', '2');
   url.searchParams.set('timezone', 'Europe/Rome');
 
   /*
@@ -155,7 +290,11 @@ export async function fetchCurrentWeather(signal?: AbortSignal): Promise<Current
     if (!response.ok) {
       throw new Error(`Il servizio meteo ha risposto ${response.status}.`);
     }
-    const body = (await response.json()) as { current?: Record<string, unknown> };
+    const body = (await response.json()) as {
+      current?: Record<string, unknown>;
+      hourly?: Record<string, unknown>;
+      daily?: Record<string, unknown>;
+    };
     const current = body.current;
     if (!current) throw new Error('Il servizio meteo non ha restituito i dati attuali.');
 
@@ -165,17 +304,27 @@ export async function fetchCurrentWeather(signal?: AbortSignal): Promise<Current
       throw new Error('Il servizio meteo ha restituito una risposta incompleta.');
     }
 
-    const measuredAt = typeof current.time === 'string' ? new Date(current.time) : new Date();
+    const measuredAt = dateOrNull(current.time) ?? new Date();
+    const daily = body.daily;
+    const firstOf = (key: string): Date | null => {
+      const column = daily?.[key];
+      return Array.isArray(column) ? dateOrNull(column[0]) : null;
+    };
 
     return {
-      temperature,
-      apparentTemperature: numberOrNull(current.apparent_temperature),
-      windSpeed: numberOrNull(current.wind_speed_10m),
-      windDirection: numberOrNull(current.wind_direction_10m),
-      precipitation: numberOrNull(current.precipitation),
-      code,
-      night: current.is_day === 0,
-      measuredAt: Number.isNaN(measuredAt.getTime()) ? new Date() : measuredAt,
+      current: {
+        temperature,
+        apparentTemperature: numberOrNull(current.apparent_temperature),
+        windSpeed: numberOrNull(current.wind_speed_10m),
+        windDirection: numberOrNull(current.wind_direction_10m),
+        precipitation: numberOrNull(current.precipitation),
+        code,
+        night: current.is_day === 0,
+        measuredAt,
+      },
+      hours: readHours(body.hourly, measuredAt),
+      sunrise: firstOf('sunrise'),
+      sunset: firstOf('sunset'),
     };
   } finally {
     clearTimeout(timer);

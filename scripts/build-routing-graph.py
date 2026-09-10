@@ -491,6 +491,19 @@ def safety_score(kind: str, tags: dict, obstacle_count: int) -> float:
     return round(max(0.0, min(1.0, s)), 3)
 
 
+def lit_flag(tags: dict) -> int | None:
+    """1 se il tratto e' dichiarato illuminato, 0 se dichiarato non illuminato.
+
+    None quando OSM non lo dice: il buio non si deduce dal silenzio dei dati.
+    """
+    value = tags.get("lit")
+    if value in ("yes", "24/7", "automatic", "sunset-sunrise"):
+        return 1
+    if value in ("no", "disused"):
+        return 0
+    return None
+
+
 def surface_factor(tags: dict) -> float:
     return SURFACE_SPEED_FACTOR.get(tags.get("surface"), 1.0)
 
@@ -645,6 +658,13 @@ def main() -> int:
             rec["n"] = tags["name"]
         if tags.get("surface"):
             rec["sf"] = tags["surface"]
+        # Illuminazione pubblica: serve a dire quanta strada si fara' al buio
+        # se si torna dopo il tramonto. Il tag manca su molti tratti, e la sua
+        # assenza NON viene letta come "non illuminata": resta assente, e chi
+        # legge il grafo la tratta come informazione mancante.
+        lit = lit_flag(tags)
+        if lit is not None:
+            rec["lt"] = lit
         if sfactor != 1.0:
             rec["sfc"] = sfactor
         if bike_oneway(tags):
@@ -689,6 +709,7 @@ def main() -> int:
                 "l": "id linea Bicipolitana", "c": "colore linea",
                 "hw": "tag highway OSM", "n": "nome via",
                 "sf": "tag surface", "sfc": "fattore di velocita' per superficie",
+                "lt": "1 illuminato, 0 non illuminato; assente = non dichiarato",
                 "ow": "senso unico per bici: 1 = a->b, -1 = b->a",
                 "o": "ostacoli entro il raggio di influenza",
                 "dm": "presente ostacolo con obbligo di scendere",
