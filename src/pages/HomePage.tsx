@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { FiltersPanel } from '../components/Map/FiltersPanel';
+import { ItineraryExport, ItineraryImport } from '../components/Routing/Itinerary';
 import { RouteCard } from '../components/Routing/RouteCard';
 import { SearchField } from '../components/Search/SearchField';
 import { InstructionList } from '../components/Navigation/NavigationScreen';
@@ -192,6 +193,13 @@ export function HomePage({
           {calculating ? 'Calcolo in corso…' : 'VAI'}
         </button>
 
+        {/*
+          Riapertura di un itinerario salvato. Sta accanto al calcolo perche'
+          e' l'altro modo di arrivare a un percorso: chi ha gia' il file non
+          deve reinserire partenza e destinazione per rivederlo.
+        */}
+        <ItineraryImport />
+
         {routingError ? (
           <div style={{ marginTop: 12 }}>
             <Notice variant="danger" icon="⚠️">
@@ -215,7 +223,27 @@ export function HomePage({
 
       {routes.length > 0 ? (
         <section className="panel-section" ref={resultsRef}>
-          <h2 className="panel-title">Percorsi disponibili</h2>
+          <h2 className="panel-title">
+            {selectedRoute?.imported ? 'Itinerario salvato' : 'Percorsi disponibili'}
+          </h2>
+
+          {/*
+            Un percorso riaperto da file e' una fotografia: la rete puo' essere
+            cambiata dopo il salvataggio, e dirlo evita che una differenza
+            rispetto alla realta' sembri un errore di calcolo.
+          */}
+          {selectedRoute?.imported ? (
+            <div style={{ marginBottom: 12 }}>
+              <Notice variant="info" icon="📂">
+                Itinerario ripristinato da file
+                {selectedRoute.importedAt
+                  ? `, salvato il ${new Date(selectedRoute.importedAt).toLocaleDateString('it-IT')}`
+                  : ''}
+                . È il percorso com’era al momento del salvataggio: premi «VAI» per ricalcolarlo sui
+                dati aggiornati.
+              </Notice>
+            </div>
+          ) : null}
           <div className="grid-cards">
             {routes.map((route) => (
               <RouteCard
@@ -245,6 +273,13 @@ export function HomePage({
                   <InstructionList route={selectedRoute} lines={lines} />
                 </div>
               ) : null}
+
+              {/*
+                Salvataggio del percorso scelto: sta sotto le indicazioni
+                perche' e' li' che l'itinerario e' completo di tutto quello che
+                il file conterra'.
+              */}
+              <ItineraryExport route={selectedRoute} />
 
               {selectedRoute.warnings.length > 0 ? (
                 <div style={{ marginTop: 12, display: 'grid', gap: 8 }}>

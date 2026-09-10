@@ -54,6 +54,11 @@ alternative, segue la posizione GPS e ricalcola il percorso quando ci si allonta
   così segue le strade invece di attraversare i campi; se il servizio non risponde resta
   il segmento in linea d'aria calcolato offline, dichiarato come tale.
 - Genera **istruzioni passo-passo** e segnala i cambi di linea.
+- **Salva e riapre un itinerario**: scelto un percorso fra le alternative, «Salva itinerario»
+  lo scrive in un file `.bicipesaro.json` con geometria, tappe, indicazioni e avvisi;
+  «Apri itinerario salvato», nella schermata iniziale, lo ripristina identico senza
+  ricalcolarlo, dichiarando la data di salvataggio. Accanto c'è l'esportazione **GPX** per
+  ciclocomputer e altre app (sola andata: il GPX non conserva indicazioni e linee percorse).
 - Naviga con GPS, distanza e tempo residui, avviso di fuori-percorso e **ricalcolo automatico**.
 - Mostra servizi, ostacoli e punti di svago con tutti gli attributi del GeoPackage.
 - È installabile come **PWA** e funziona parzialmente offline.
@@ -131,7 +136,7 @@ public/data/             i soli file scaricati dal browser
 src/
   components/            Map, Search, Routing, Lines, Navigation, UI
   pages/                 Home, Linee, Dettaglio linea, Servizi, Info, Privacy
-  services/              routing/, geocoding/, data.ts
+  services/              routing/, geocoding/, data.ts, itinerary.ts
   hooks/                 useLocation, useNavigation, useGeocoding, useWakeLock
   store/                 stato globale (Zustand)
   types/                 tipi condivisi
@@ -557,7 +562,7 @@ Tutte facoltative: i default funzionano. Vedi [`.env.example`](.env.example).
 npm test
 ```
 
-**155 test** su quattro gruppi:
+**166 test** su quattro gruppi:
 
 - `tests/data/` — coerenza dei dati generati, e corrispondenza fra i file scritti
   dalla pipeline in `data/` e le copie pubblicate in `public/data/`: 15 linee, CRS, colori, nodi dentro l’area di
@@ -565,7 +570,9 @@ npm test
 - `tests/routing/` — percorsi reali fra luoghi **presi dai dati** (Parcheggio San Decenzio,
   Velomarche, Viale Trieste, Piazzale della Libertà, Via Solferino, Pista Cardinali), coerenza
   fra geometria e distanza dichiarata, comportamento dei profili, messaggi d’errore
-  comprensibili;
+  comprensibili, oltre al salvataggio su file di un itinerario e alla sua riapertura
+  (ripristino identico, rifiuto dei file di altre applicazioni o di formato piu' recente,
+  esportazione GPX con i caratteri speciali protetti);
 - `tests/utils/` — geometria e formattazione, con verifica esplicita che l’interfaccia non
   mostri mai `undefined` o `NaN`;
 - `tests/geocoding/` — ricerca nei dati locali del progetto: corrispondenze parziali,

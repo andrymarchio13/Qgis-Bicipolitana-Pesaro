@@ -9,6 +9,7 @@ import {
   NominatimProvider,
   streetIndexFromGraph,
 } from '../services/geocoding';
+import type { ItineraryFile } from '../services/itinerary';
 import { RoutingGraphIndex } from '../services/routing/graph';
 import { BicipolitanaRouter, RoutingError } from '../services/routing/router';
 import { refineRoutes } from '../services/routing/walk';
@@ -103,6 +104,11 @@ interface AppState {
   replaceRoutes: (routes: Route[], selectedId?: string | null) => void;
   selectRoute: (id: string | null) => void;
   clearRoutes: () => void;
+  /**
+   * Ripristina un itinerario letto da un file salvato. Non ricalcola nulla:
+   * mostra il percorso com'era al momento del salvataggio.
+   */
+  importItinerary: (itinerary: ItineraryFile) => void;
   toggleLayer: (key: keyof LayerVisibility) => void;
   setHighlightedLine: (lineId: string | null) => void;
   setPickingMode: (mode: 'origin' | 'destination' | null) => void;
@@ -247,6 +253,32 @@ export const useAppStore = create<AppState>((set, get) => ({
   clearRoutes() {
     refineToken += 1;
     set({ routes: [], selectedRouteId: null, routingError: null });
+  },
+
+  importItinerary(itinerary) {
+    /*
+     * Il gettone sale senza avviare una nuova rifinitura: il percorso salvato
+     * ha gia' i suoi tratti a piedi, ricalcolarli lo farebbe cambiare sotto
+     * gli occhi di chi lo ha appena riaperto. Serve solo a scartare una
+     * rifinitura ancora in volo dal calcolo precedente.
+     */
+    refineToken += 1;
+
+    const route: Route = {
+      ...itinerary.route,
+      imported: true,
+      importedAt: itinerary.savedAt,
+    };
+
+    set({
+      origin: itinerary.origin,
+      destination: itinerary.destination,
+      routes: [route],
+      selectedRouteId: route.id,
+      routingError: null,
+      calculating: false,
+      pickingMode: null,
+    });
   },
 
   toggleLayer(key) {

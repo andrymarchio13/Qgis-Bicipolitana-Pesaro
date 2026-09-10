@@ -302,6 +302,14 @@ export interface Route {
    * "piu' tranquillo", sono un'altra strada per lo stesso viaggio.
    */
   isVariant?: boolean;
+  /**
+   * true per i percorsi ripristinati da un file salvato invece che calcolati
+   * ora. L'interfaccia deve dirlo: la rete puo' essere cambiata dopo il
+   * salvataggio, e chi guarda deve sapere che sta vedendo una fotografia.
+   */
+  imported?: true;
+  /** Data di salvataggio del file da cui il percorso e' stato ripristinato. */
+  importedAt?: string;
 }
 
 // ---------------------------------------------------------------------------
