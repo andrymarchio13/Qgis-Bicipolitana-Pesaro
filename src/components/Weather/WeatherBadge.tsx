@@ -1,0 +1,115 @@
+/**
+ * Indicatore del meteo di Pesaro, in alto a sinistra sulla mappa.
+ *
+ * Chiuso mostra il minimo che serve a decidere se uscire in bici: simbolo e
+ * temperatura. Toccandolo si apre e dice il resto — percepita, vento,
+ * pioggia — con l'ora della misura e la fonte, perche' un dato meteo senza
+ * l'ora a cui si riferisce non e' verificabile.
+ *
+ * Sta in alto a sinistra perche' e' l'unico angolo libero: a destra ci sono i
+ * comandi della mappa, in basso a sinistra la scala.
+ */
+import { useState } from 'react';
+
+import { useWeather } from '../../hooks/useWeather';
+import { describeWeather, isWet, windCardinal, windNote } from '../../services/weather';
+
+const orario = (date: Date): string =>
+  date.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+
+export function WeatherBadge(): JSX.Element | null {
+  const { weather, loading, error, enabled, refresh } = useWeather();
+  const [open, setOpen] = useState(false);
+
+  if (!enabled) return null;
+
+  // Alla prima apertura non si mostra un riquadro vuoto: meglio nulla finche'
+  // non c'e' qualcosa da dire.
+  if (!weather && loading) return null;
+
+  if (!weather) {
+    return (
+      <button
+        type="button"
+        className="weather weather--error"
+        onClick={refresh}
+        title={error ?? 'Meteo non disponibile'}
+      >
+        <span aria-hidden="true">🌡️</span>
+        <span className="weather__temp">Meteo non disponibile</span>
+      </button>
+    );
+  }
+
+  const look = describeWeather(weather.code, weather.night);
+  const cardinal = windCardinal(weather.windDirection);
+  const vento = windNote(weather.windSpeed);
+  const bagnato = isWet(weather.code);
+
+  return (
+    <div className={`weather${open ? ' weather--open' : ''}${bagnato ? ' weather--wet' : ''}`}>
+      <button
+        type="button"
+        className="weather__head"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-label={`Meteo a Pesaro: ${look.text}, ${Math.round(weather.temperature)} gradi. ${
+          open ? 'Nascondi' : 'Mostra'
+        } i dettagli`}
+      >
+        <span className="weather__icon" aria-hidden="true">
+          {look.icon}
+        </span>
+        <span className="weather__temp">{Math.round(weather.temperature)}°</span>
+        {loading ? (
+          <span className="weather__dot" aria-label="Aggiornamento in corso" />
+        ) : null}
+      </button>
+
+      {open ? (
+        <div className="weather__body">
+          <p className="weather__text">{look.text}</p>
+
+          <dl className="weather__grid">
+            {weather.apparentTemperature !== null ? (
+              <>
+                <dt>Percepita</dt>
+                <dd>{Math.round(weather.apparentTemperature)}°</dd>
+              </>
+            ) : null}
+            {weather.windSpeed !== null ? (
+              <>
+                <dt>Vento</dt>
+                <dd>
+                  {Math.round(weather.windSpeed)} km/h{cardinal ? ` da ${cardinal}` : ''}
+                </dd>
+              </>
+            ) : null}
+            {weather.precipitation !== null ? (
+              <>
+                <dt>Pioggia</dt>
+                <dd>{weather.precipitation > 0 ? `${weather.precipitation} mm` : 'assente'}</dd>
+              </>
+            ) : null}
+          </dl>
+
+          {vento ? <p className="weather__note">💨 {vento}</p> : null}
+
+          <p className="weather__meta">
+            Rilevato alle {orario(weather.measuredAt)} · Pesaro
+            <br />
+            Dati{' '}
+            <a href="https://open-meteo.com/" target="_blank" rel="noreferrer noopener">
+              Open-Meteo
+            </a>{' '}
+            (CC BY 4.0) · si aggiorna da solo
+          </p>
+
+          <button type="button" className="weather__refresh" onClick={refresh} disabled={loading}>
+            {loading ? 'Aggiornamento…' : 'Aggiorna ora'}
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}

@@ -1496,3 +1496,155 @@ a {
     display: none;
   }
 }
+
+/* --------------------------------------------------------------------- */
+/* Meteo                                                                  */
+/* --------------------------------------------------------------------- */
+
+/*
+ * Angolo in alto a sinistra della mappa: e' l'unico libero. A destra stanno i
+ * comandi di MapLibre, in basso a sinistra la scala.
+ */
+.weather {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 6;
+  max-width: min(260px, calc(100% - 24px));
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 6px 20px rgb(15 23 42 / 0.14);
+  overflow: hidden;
+  font-size: 13px;
+  color: var(--ink-900);
+}
+
+.weather--wet {
+  border-color: #93c5fd;
+  box-shadow: 0 6px 20px rgb(30 64 175 / 0.22);
+}
+
+.weather__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+
+.weather__icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.weather__temp {
+  font-weight: 700;
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+/* Puntino che pulsa mentre il dato si sta aggiornando. */
+.weather__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--brand-500);
+  animation: weather-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes weather-pulse {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .weather__dot {
+    animation: none;
+    opacity: 0.6;
+  }
+}
+
+.weather__body {
+  padding: 0 12px 12px;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+
+.weather__text {
+  margin: 0 0 8px;
+  font-weight: 600;
+}
+
+.weather__grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 3px 10px;
+  margin: 0 0 8px;
+}
+
+.weather__grid dt {
+  color: var(--ink-500);
+}
+
+.weather__grid dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.weather__note {
+  margin: 0 0 8px;
+  padding: 6px 8px;
+  background: var(--info-bg);
+  color: var(--info);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+}
+
+.weather__meta {
+  margin: 0 0 8px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--ink-500);
+}
+
+.weather__meta a {
+  color: var(--brand-700);
+}
+
+.weather__refresh {
+  width: 100%;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-alt);
+  color: var(--ink-700);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.weather__refresh:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.weather--error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--ink-500);
+}
+
+.weather--error .weather__temp {
+  font-size: 12px;
+  font-weight: 500;
+}

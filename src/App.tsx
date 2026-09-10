@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { NavLink, Route as RouterRoute, Routes, useLocation as useRouterLocation } from 'react-router-dom';
 
 import { MapView } from './components/Map/MapView';
+import { WeatherBadge } from './components/Weather/WeatherBadge';
 import { NavigationScreen } from './components/Navigation/NavigationScreen';
 import { Notice } from './components/UI';
 import { useBottomSheet } from './hooks/useBottomSheet';
@@ -241,6 +242,8 @@ export function App(): JSX.Element {
             fitTo={fitTo}
             obscured={obscured}
           />
+
+          <WeatherBadge />
 
           <div className="map-controls">
             <button

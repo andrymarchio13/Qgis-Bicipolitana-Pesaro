@@ -71,6 +71,13 @@ alternative, segue la posizione GPS e ricalcola il percorso quando ci si allonta
   **italiana maschile** fra quelle installate; se non ce n'e' una, usa la migliore voce
   italiana disponibile e lo dichiara invece di fingere. Si zittisce con un tocco e la scelta
   resta memorizzata. Nessun audio scaricato, nessuna chiave, nessun testo fuori dal telefono.
+- **Dice che tempo fa adesso a Pesaro**: in alto a sinistra sulla mappa, simbolo e
+  temperatura; toccando si aprono percepita, vento (in km/h e punto della rosa dei venti,
+  con una nota su quanto si fara' sentire pedalando) e pioggia dell'ultima ora. E' scritta
+  l'ora della misura, perche' un dato meteo senza l'ora a cui si riferisce non e'
+  verificabile. I dati vengono da Open-Meteo: gratuito, senza chiave, senza backend. Se il
+  servizio non risponde l'indicatore dichiara che il meteo non e' disponibile invece di
+  lasciare a schermo l'ultimo valore spacciandolo per attuale.
 - Mostra servizi, ostacoli e punti di svago con tutti gli attributi del GeoPackage.
 - È installabile come **PWA** e funziona parzialmente offline.
 - Si pubblica su **GitHub Pages** senza backend e senza chiavi API.
@@ -568,6 +575,9 @@ Tutte facoltative: i default funzionano. Vedi [`.env.example`](.env.example).
 | `VITE_WALK_ROUTING_URL` | Valhalla OSM | rete pedonale per i tratti a piedi; vuoto = solo offline |
 | `VITE_WALK_ROUTING_TIMEOUT_MS` | 6000 | oltre questa attesa si tiene il tratto in linea d’aria |
 | `VITE_WALK_ROUTING_MIN_METERS` | 40 | sotto questa soglia il tratto non vale una chiamata |
+| `VITE_WEATHER_URL` | Open-Meteo | meteo attuale di Pesaro; vuoto = indicatore disattivato |
+| `VITE_WEATHER_REFRESH_MS` | 600000 | ogni quanto si richiede il dato aggiornato |
+| `VITE_WEATHER_TIMEOUT_MS` | 8000 | oltre questa attesa la richiesta viene abbandonata |
 
 `.env` è in `.gitignore`: nessuna chiave finisce nel repository.
 
@@ -577,7 +587,7 @@ Tutte facoltative: i default funzionano. Vedi [`.env.example`](.env.example).
 npm test
 ```
 
-**207 test** su cinque gruppi:
+**224 test** su sei gruppi:
 
 - `tests/data/` — coerenza dei dati generati, e corrispondenza fra i file scritti
   dalla pipeline in `data/` e le copie pubblicate in `public/data/`: 15 linee, CRS, colori, nodi dentro l’area di
@@ -596,6 +606,10 @@ npm test
   maschile fra quelle installate, distanze scritte per essere pronunciate, annunci dati due
   volte e mai ripetuti, ciclista animato che smette di chiedere fotogrammi da fermo, e
   velocita' ricavata dallo spostamento quando il dispositivo non la dichiara.
+- `tests/meteo/` — lettura del meteo: codici WMO tradotti secondo lo standard e codici fuori
+  tabella dichiarati invece di essere interpretati, rosa dei venti che chiude il cerchio,
+  valori mancanti lasciati vuoti e non stimati, risposte incomplete o in errore che
+  falliscono invece di produrre un meteo verosimile.
 
 I punti di test non sono coordinate inventate: ognuno corrisponde a una via nominata nel
 grafo OSM o a un POI del GeoPackage.

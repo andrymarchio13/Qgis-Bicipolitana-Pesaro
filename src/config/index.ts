@@ -180,6 +180,26 @@ export const WALK_ROUTING_URL =
 /** Tempo massimo di attesa del servizio pedonale: scaduto, si tiene il tratto offline. */
 export const WALK_ROUTING_TIMEOUT_MS = num(env.VITE_WALK_ROUTING_TIMEOUT_MS, 6000);
 
+// ---------------------------------------------------------------------------
+// Meteo
+// ---------------------------------------------------------------------------
+
+/**
+ * Servizio meteo. Il valore predefinito e' Open-Meteo: gratuito, senza chiave
+ * e senza registrazione, quindi non introduce segreti da custodire ne' un
+ * backend da mantenere. I dati sono CC BY 4.0 e l'attribuzione va mostrata.
+ *
+ * Lasciare il valore vuoto disattiva del tutto l'indicatore del meteo.
+ */
+export const WEATHER_URL =
+  env.VITE_WEATHER_URL ?? 'https://api.open-meteo.com/v1/forecast';
+
+/** Ogni quanto si richiede il meteo aggiornato. */
+export const WEATHER_REFRESH_MS = num(env.VITE_WEATHER_REFRESH_MS, 10 * 60 * 1000);
+
+/** Oltre questa attesa la richiesta viene abbandonata. */
+export const WEATHER_TIMEOUT_MS = num(env.VITE_WEATHER_TIMEOUT_MS, 8000);
+
 /** Sotto questa distanza il collegamento e' troppo corto perche' valga una chiamata. */
 export const WALK_ROUTING_MIN_METERS = num(env.VITE_WALK_ROUTING_MIN_METERS, 40);
 
