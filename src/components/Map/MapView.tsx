@@ -20,6 +20,7 @@ import {
   PESARO_CENTER,
 } from '../../config';
 import { POI_EMOJI, POI_KIND_COLOR } from '../../config/poi';
+import { REPORT_TYPES, isStale, reportLook } from '../../services/reports';
 import type { LngLat, Poi, PoiCategory, Route } from '../../types';
 import { boundsOf } from '../../utils/geo';
 import { poisAlongRoute } from '../../services/alongRoute';
@@ -62,6 +63,8 @@ export interface MapViewProps {
   onPoiClick?: (poi: Poi) => void;
   /** Gruppo di POI che non si scioglie oltre: va mostrato come elenco. */
   onClusterClick?: (pois: Poi[], at: LngLat) => void;
+  /** Tocco su una segnalazione dell'utente: ne arriva l'id. */
+  onReportClick?: (id: string) => void;
   onLineClick?: (lineId: string) => void;
   /** Scelta di un'alternativa toccandola sulla mappa. */
   onRouteSelect?: (routeId: string) => void;
@@ -82,6 +85,7 @@ const SOURCE = {
   lines: 'bicipolitana-lines',
   cycle: 'cycle-roads',
   pois: 'pois',
+  reports: 'user-reports',
   route: 'route',
   alternatives: 'route-alternatives',
   endpoints: 'endpoints',
@@ -118,7 +122,16 @@ function emojiToIcon(emoji: string): ImageData | null {
 /** Nome dell'icona registrata per una categoria di POI. */
 export const iconIdFor = (category: string): string => `poi-${category}`;
 
+/** Nome dell'icona registrata per un tipo di segnalazione. */
+export const reportIconIdFor = (type: string): string => `report-${type}`;
+
 function registerEmojiIcons(instance: maplibregl.Map): void {
+  for (const look of REPORT_TYPES) {
+    const id = reportIconIdFor(look.type);
+    if (instance.hasImage(id)) continue;
+    const image = emojiToIcon(look.icon);
+    if (image) instance.addImage(id, image, { pixelRatio: 2 });
+  }
   for (const [category, emoji] of Object.entries(POI_EMOJI)) {
     const id = iconIdFor(category);
     if (instance.hasImage(id)) continue;
@@ -182,6 +195,7 @@ export function MapView({
   onMapClick,
   onPoiClick,
   onClusterClick,
+  onReportClick,
   onLineClick,
   onRouteSelect,
   fitTo,
@@ -199,6 +213,7 @@ export function MapView({
   const data = useAppStore((s) => s.data);
   const layers = useAppStore((s) => s.layers);
   const onlyAlongRoute = useAppStore((s) => s.onlyAlongRoute);
+  const reports = useAppStore((s) => s.reports);
   const highlightedLineId = useAppStore((s) => s.highlightedLineId);
   const origin = useAppStore((s) => s.origin);
   const destination = useAppStore((s) => s.destination);
@@ -258,6 +273,10 @@ export function MapView({
         clusterRadius: 46,
         clusterMaxZoom: 14,
       });
+
+      // Le segnalazioni non vengono raggruppate: sono poche e ognuna e' un
+      // fatto a se', nasconderle dentro un numero le renderebbe inutili.
+      instance.addSource(SOURCE.reports, { type: 'geojson', data: EMPTY_FC });
 
       // Rete ciclabile OSM di supporto
       instance.addLayer({
@@ -492,6 +511,50 @@ export function MapView({
         },
       });
 
+      /*
+       * Segnalazioni di chi usa l'app.
+       *
+       * Devono distinguersi a colpo d'occhio dai punti del GeoPackage: qui
+       * la pastiglia e' colorata e non bianca, e sotto c'e' un alone chiaro.
+       * Un dato scritto da una persona ieri non deve poter essere scambiato
+       * per un rilievo del progetto.
+       */
+      instance.addLayer({
+        id: 'report-halo',
+        type: 'circle',
+        source: SOURCE.reports,
+        paint: {
+          'circle-color': ['get', 'color'],
+          'circle-opacity': 0.18,
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, 10, 14, 18, 17, 24],
+        },
+      });
+      instance.addLayer({
+        id: 'report-points',
+        type: 'circle',
+        source: SOURCE.reports,
+        paint: {
+          'circle-color': ['get', 'color'],
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, 6, 14, 12, 17, 15],
+          'circle-stroke-width': 2.5,
+          'circle-stroke-color': '#ffffff',
+          // Una segnalazione vecchia sbiadisce: e' ancora li', ma dichiara
+          // di essere da verificare anche prima che la si apra.
+          'circle-opacity': ['case', ['get', 'stale'], 0.55, 1],
+        },
+      });
+      instance.addLayer({
+        id: 'report-glyph',
+        type: 'symbol',
+        source: SOURCE.reports,
+        layout: {
+          'icon-image': ['get', 'icon'],
+          'icon-size': ['interpolate', ['linear'], ['zoom'], 11, 0.4, 14, 0.62, 17, 0.85],
+          'icon-allow-overlap': true,
+          'icon-ignore-placement': true,
+        },
+      });
+
       // Origine / destinazione
       instance.addLayer({
         id: 'endpoints',
@@ -601,7 +664,15 @@ export function MapView({
     if (!instance || !interactive) return;
 
     const handleClick = (event: maplibregl.MapMouseEvent): void => {
-      const layers = ['poi-points', 'poi-clusters', 'alternatives-hit', 'lines'].filter(
+      const layers = [
+        // Le segnalazioni stanno per prime: sono disegnate sopra i punti dei
+        // dati, e toccando dove si sovrappongono si intende quella.
+        'report-points',
+        'poi-points',
+        'poi-clusters',
+        'alternatives-hit',
+        'lines',
+      ].filter(
         (id) => instance.getLayer(id),
       );
       const features = instance.queryRenderedFeatures(event.point, { layers });
@@ -633,6 +704,11 @@ export function MapView({
           .catch(() => {
             instance.easeTo({ center: centre, zoom: instance.getZoom() + 2 });
           });
+        return;
+      }
+      if (hit?.layer.id === 'report-points') {
+        const id = hit.properties?.id as string;
+        if (id) onReportClick?.(id);
         return;
       }
       if (hit?.layer.id === 'poi-points') {
@@ -681,7 +757,16 @@ export function MapView({
         instance.off('mouseleave', layer, resetPointer);
       }
     };
-  }, [data, interactive, onMapClick, onPoiClick, onClusterClick, onLineClick, onRouteSelect]);
+  }, [
+    data,
+    interactive,
+    onMapClick,
+    onPoiClick,
+    onClusterClick,
+    onReportClick,
+    onLineClick,
+    onRouteSelect,
+  ]);
 
   // --------------------------------------------------------------- dati
   const setData = useCallback((id: string, value: GeoJSON.FeatureCollection) => {
@@ -724,6 +809,24 @@ export function MapView({
       if (!data) return;
       setData(SOURCE.lines, layers.linee ? (data.linesGeoJson as never) : EMPTY_FC);
       setData(SOURCE.cycle, layers.ciclabili ? (data.cycleRoadsGeoJson as never) : EMPTY_FC);
+      setData(
+        SOURCE.reports,
+        layers.segnalazioni
+          ? {
+              type: 'FeatureCollection',
+              features: reports.map((report) => ({
+                type: 'Feature' as const,
+                properties: {
+                  id: report.id,
+                  icon: reportIconIdFor(report.type),
+                  color: reportLook(report.type).color,
+                  stale: isStale(report),
+                },
+                geometry: { type: 'Point' as const, coordinates: [report.lng, report.lat] },
+              })),
+            }
+          : EMPTY_FC,
+      );
       setData(SOURCE.pois, {
         type: 'FeatureCollection',
         features: visiblePois.map((poi) => ({
@@ -741,7 +844,7 @@ export function MapView({
     };
     if (ready.current) apply();
     else map.current.once('load', apply);
-  }, [data, layers, visiblePois, setData]);
+  }, [data, layers, visiblePois, reports, setData]);
 
   // Evidenziare una linea porta la mappa sulla sua estensione.
   // L'opacita' dei livelli e' gestita dall'effetto di messa in evidenza piu'

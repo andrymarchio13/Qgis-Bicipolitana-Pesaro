@@ -10,11 +10,18 @@ import {
   streetIndexFromGraph,
 } from '../services/geocoding';
 import type { ItineraryFile } from '../services/itinerary';
+import {
+  loadReports,
+  mergeReports,
+  saveReports,
+  type UserReport,
+} from '../services/reports';
 import { RoutingGraphIndex } from '../services/routing/graph';
 import { BicipolitanaRouter, RoutingError } from '../services/routing/router';
 import { refineRoutes } from '../services/routing/walk';
 import type {
   GeocodingProvider,
+  LngLat,
   Location,
   PoiCategory,
   Route,
@@ -34,6 +41,8 @@ export interface LayerVisibility {
   parchi: boolean;
   belvedere: boolean;
   ostacoli: boolean;
+  /** Le segnalazioni scritte da chi usa l'app. */
+  segnalazioni: boolean;
 }
 
 export const DEFAULT_LAYERS: LayerVisibility = {
@@ -47,6 +56,7 @@ export const DEFAULT_LAYERS: LayerVisibility = {
   parchi: true,
   belvedere: true,
   ostacoli: true,
+  segnalazioni: true,
 };
 
 /** Categorie POI associate a ciascun interruttore del pannello filtri. */
@@ -92,10 +102,20 @@ interface AppState {
    * che si incontrano davvero.
    */
   onlyAlongRoute: boolean;
+  /**
+   * Segnalazioni scritte da chi usa l'app, lette dal deposito locale
+   * all'avvio. Non sono dati del progetto e non entrano nel calcolo del
+   * percorso: vivono accanto ai dati, mai dentro.
+   */
+  reports: UserReport[];
+  /** false quando il browser non ha permesso di salvarle (navigazione privata). */
+  reportsPersisted: boolean;
+  /** Punto su cui portare la mappa, scelto dall'elenco delle segnalazioni. */
+  focusPoint: LngLat | null;
   highlightedLineId: string | null;
 
   /** Punto che l'utente sta scegliendo cliccando sulla mappa. */
-  pickingMode: 'origin' | 'destination' | null;
+  pickingMode: 'origin' | 'destination' | 'report' | null;
 
   init: () => Promise<void>;
   setOrigin: (location: Location | null) => void;
@@ -118,8 +138,12 @@ interface AppState {
   importItinerary: (itinerary: ItineraryFile) => void;
   toggleLayer: (key: keyof LayerVisibility) => void;
   toggleOnlyAlongRoute: () => void;
+  addReport: (report: UserReport) => void;
+  removeReport: (id: string) => void;
+  importReports: (incoming: UserReport[]) => number;
+  setFocusPoint: (point: LngLat | null) => void;
   setHighlightedLine: (lineId: string | null) => void;
-  setPickingMode: (mode: 'origin' | 'destination' | null) => void;
+  setPickingMode: (mode: 'origin' | 'destination' | 'report' | null) => void;
 }
 
 /**
@@ -149,6 +173,9 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   layers: DEFAULT_LAYERS,
   onlyAlongRoute: false,
+  reports: loadReports(),
+  reportsPersisted: true,
+  focusPoint: null,
   highlightedLineId: null,
   pickingMode: null,
 
@@ -296,6 +323,36 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   toggleOnlyAlongRoute() {
     set((state) => ({ onlyAlongRoute: !state.onlyAlongRoute }));
+  },
+
+  /*
+   * Le tre azioni sulle segnalazioni scrivono subito nel deposito locale: se
+   * il salvataggio non riesce lo stato lo registra, cosi' l'interfaccia puo'
+   * dire che quella segnalazione non sopravvivera' alla chiusura della
+   * pagina invece di lasciarlo credere.
+   */
+  addReport(report) {
+    set((state) => {
+      const reports = [report, ...state.reports];
+      return { reports, reportsPersisted: saveReports(reports) };
+    });
+  },
+
+  removeReport(id) {
+    set((state) => {
+      const reports = state.reports.filter((r) => r.id !== id);
+      return { reports, reportsPersisted: saveReports(reports) };
+    });
+  },
+
+  importReports(incoming) {
+    const { reports, added } = mergeReports(get().reports, incoming);
+    set({ reports, reportsPersisted: saveReports(reports) });
+    return added;
+  },
+
+  setFocusPoint(point) {
+    set({ focusPoint: point });
   },
 
   setHighlightedLine(lineId) {

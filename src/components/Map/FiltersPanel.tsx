@@ -12,6 +12,7 @@ const ROWS: { key: keyof LayerVisibility; label: string; icon: string }[] = [
   { key: 'parchi', label: 'Parchi e aree picnic', icon: '🌳' },
   { key: 'belvedere', label: 'Belvedere', icon: '👁️' },
   { key: 'ostacoli', label: 'Ostacoli', icon: '⚠️' },
+  { key: 'segnalazioni', label: 'Le mie segnalazioni', icon: '📌' },
 ];
 
 export function FiltersPanel(): JSX.Element {

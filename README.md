@@ -103,6 +103,18 @@ alternative, segue la posizione GPS e ricalcola il percorso quando ci si allonta
   Un interruttore nasconde tutto ciò che dista più di 200 m dal percorso scelto, lasciando le
   fontanelle e le officine che si incontrano davvero. Senza un percorso calcolato non nasconde
   nulla e lo dichiara, invece di svuotare la mappa.
+- **Segnalazioni di chi pedala, che restano sulla mappa**: una buca, un cantiere, un cancello
+  nuovo, una fontanella guasta, un punto utile. Si tocca «Segnala un punto», poi la mappa, si
+  sceglie il tipo e si aggiunge una nota. Le segnalazioni restano fra un'apertura e l'altra
+  dell'app, hanno un segno **visivamente diverso** dai punti del GeoPackage (pastiglia
+  colorata con alone, non pastiglia bianca), portano sempre la data, e dopo 90 giorni si
+  presentano da sé come «da verificare» invece di sembrare fresche. **Vivono nel browser di
+  chi le scrive e in nessun altro posto**: il progetto non ha un backend, e l'app lo dice
+  prima che si prema Salva, invece di lasciar credere che qualcuno le riceva. Per condividerle
+  si esporta un file `.json` che un'altra persona può importare (i doppioni vengono
+  riconosciuti); per avvisare chi può intervenire c'è il canale ufficiale del Comune. Non
+  entrano nel calcolo dei percorsi: cambiare di nascosto un itinerario in base a una nota non
+  verificata sarebbe la cosa peggiore che questa funzione potrebbe fare.
 - Mostra servizi, ostacoli e punti di svago con tutti gli attributi del GeoPackage.
 - È installabile come **PWA** e funziona parzialmente offline.
 - Si pubblica su **GitHub Pages** senza backend e senza chiavi API.
@@ -629,7 +641,7 @@ Tutte facoltative: i default funzionano. Vedi [`.env.example`](.env.example).
 npm test
 ```
 
-**268 test** su sette gruppi:
+**292 test** su otto gruppi:
 
 - `tests/data/` — coerenza dei dati generati, e corrispondenza fra i file scritti
   dalla pipeline in `data/` e le copie pubblicate in `public/data/`: 15 linee, CRS, colori, nodi dentro l’area di
@@ -661,6 +673,12 @@ npm test
   tratto più lungo senza fontanelle, raggruppamento dei fondi OSM — dove un valore mai visto
   non diventa «liscio» e l'assenza del tag non diventa «asfalto» — e vento confrontato con la
   direzione di marcia, che tace quando è troppo debole per cambiare la pedalata.
+- `tests/segnalazioni/` — le note scritte da chi usa l'app: validazione di tutto ciò che
+  arriva da fuori (`localStorage` e file importati possono contenere qualsiasi cosa, e una
+  voce corrotta viene scartata, non mostrata a metà), deposito che sopravvive a un browser
+  che vieta di scrivere, invecchiamento oltre i 90 giorni, e scambio via file — dove
+  reimportare lo stesso file non crea doppioni e una segnalazione propria non viene mai
+  sovrascritta da quella di un altro.
 
 I punti di test non sono coordinate inventate: ognuno corrisponde a una via nominata nel
 grafo OSM o a un POI del GeoPackage.

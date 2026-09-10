@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { FiltersPanel } from '../components/Map/FiltersPanel';
 import { ItineraryExport, ItineraryImport } from '../components/Routing/Itinerary';
+import { ReportsPanel } from '../components/Reports/ReportsPanel';
 import { RoadAhead } from '../components/Routing/RoadAhead';
 import { RouteCard } from '../components/Routing/RouteCard';
 import { SearchField } from '../components/Search/SearchField';
@@ -315,6 +316,12 @@ export function HomePage({
           ) : null}
         </section>
       ) : null}
+
+      {/*
+        Le segnalazioni stanno sopra l'elenco delle linee: sono la cosa che
+        si aggiunge tornando da un giro, mentre le linee si consultano.
+      */}
+      <ReportsPanel />
 
       <section className="panel-section">
         <h2 className="panel-title">Linee della Bicipolitana</h2>

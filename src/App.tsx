@@ -7,6 +7,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { NavLink, Route as RouterRoute, Routes, useLocation as useRouterLocation } from 'react-router-dom';
 
 import { MapView } from './components/Map/MapView';
+import { ReportDetail } from './components/Reports/ReportDetail';
+import { ReportForm } from './components/Reports/ReportForm';
 import { WeatherBadge } from './components/Weather/WeatherBadge';
 import { NavigationScreen } from './components/Navigation/NavigationScreen';
 import { Notice } from './components/UI';
@@ -47,6 +49,10 @@ export function App(): JSX.Element {
     selectRoute,
     replaceRoutes,
   } = useAppStore();
+  const reports = useAppStore((st) => st.reports);
+  const removeReport = useAppStore((st) => st.removeReport);
+  const focusPoint = useAppStore((st) => st.focusPoint);
+  const setFocusPoint = useAppStore((st) => st.setFocusPoint);
   const selectedRoute = useSelectedRoute();
   const router = useAppStore((s) => s.router);
 
@@ -54,6 +60,10 @@ export function App(): JSX.Element {
   const routerLocation = useRouterLocation();
 
   const [navigating, setNavigating] = useState(false);
+  /** Punto scelto sulla mappa per una nuova segnalazione. */
+  const [reportPoint, setReportPoint] = useState<LngLat | null>(null);
+  /** Segnalazione aperta dal tocco sulla mappa. */
+  const [openReportId, setOpenReportId] = useState<string | null>(null);
   /*
    * Presentazione iniziale. Chi apre un link diretto a una pagina interna —
    * una linea, la privacy — l'ha gia' scelta: mostrargli prima la copertina
@@ -134,10 +144,38 @@ export function App(): JSX.Element {
     [sheet.isSheet, sheet.visibleHeight],
   );
 
+  const openReport = useMemo(
+    () => reports.find((r) => r.id === openReportId) ?? null,
+    [reports, openReportId],
+  );
+
+  /*
+   * Il punto messo a fuoco serve una volta sola: lasciarlo acceso terrebbe
+   * la mappa incollata li' anche dopo aver calcolato un nuovo percorso.
+   */
+  useEffect(() => {
+    if (!focusPoint) return;
+    const timer = window.setTimeout(() => setFocusPoint(null), 1200);
+    return () => window.clearTimeout(timer);
+  }, [focusPoint, setFocusPoint]);
+
   const fitTo = useMemo(() => {
+    /*
+     * Un punto scelto dall'elenco delle segnalazioni ha la precedenza sul
+     * percorso: e' un gesto appena fatto, e la mappa deve rispondere a
+     * quello. Il riquadro e' allargato di una manciata di metri, perche'
+     * inquadrare un punto solo porterebbe allo zoom massimo.
+     */
+    if (focusPoint) {
+      const d = 0.0016;
+      return [
+        [focusPoint[0] - d, focusPoint[1] - d],
+        [focusPoint[0] + d, focusPoint[1] + d],
+      ] as [[number, number], [number, number]];
+    }
     if (!selectedRoute) return null;
     return boundsOf(selectedRoute.geometry);
-  }, [selectedRoute]);
+  }, [focusPoint, selectedRoute]);
 
   const handleMapClick = useCallback(
     (point: LngLat) => {
@@ -151,6 +189,12 @@ export function App(): JSX.Element {
         label: `Punto sulla mappa (${point[1].toFixed(5)}, ${point[0].toFixed(5)})`,
         source: 'map' as const,
       };
+      if (pickingMode === 'report') {
+        setReportPoint(point);
+        setPickingMode(null);
+        sheet.setSnap('half');
+        return;
+      }
       if (pickingMode === 'origin') setOrigin(value);
       else setDestination(value);
       setPickingMode(null);
@@ -237,6 +281,11 @@ export function App(): JSX.Element {
             onMapClick={handleMapClick}
             onPoiClick={handlePoiClick}
             onClusterClick={handleClusterClick}
+            onReportClick={(id) => {
+              setOpenReportId(id);
+              setReportPoint(null);
+              sheet.setSnap('half');
+            }}
             onLineClick={handleLineClick}
             onRouteSelect={selectRoute}
             fitTo={fitTo}
@@ -273,6 +322,21 @@ export function App(): JSX.Element {
                 </button>
               </Notice>
             </div>
+          ) : null}
+
+          {reportPoint ? (
+            <ReportForm point={reportPoint} onClose={() => setReportPoint(null)} />
+          ) : null}
+
+          {openReport ? (
+            <ReportDetail
+              report={openReport}
+              onClose={() => setOpenReportId(null)}
+              onDelete={() => {
+                removeReport(openReport.id);
+                setOpenReportId(null);
+              }}
+            />
           ) : null}
 
           {clusterPois ? (
