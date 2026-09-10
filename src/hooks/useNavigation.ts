@@ -18,7 +18,7 @@ import {
   REROUTE_DISTANCE_THRESHOLD,
 } from '../config';
 import type { NavigationState, Route, RouteInstruction } from '../types';
-import { projectOnLine } from '../utils/geo';
+import { bearing, projectOnLine } from '../utils/geo';
 import type { UserPosition } from './useLocation';
 
 export interface UseNavigationOptions {
@@ -36,6 +36,15 @@ export interface UseNavigationResult extends NavigationState {
   distanceToManeuver: number;
   /** Posizione agganciata al percorso, da mostrare sulla mappa. */
   snappedPosition: [number, number] | null;
+  /**
+   * Direzione di marcia in gradi, per orientare il segno della posizione.
+   *
+   * Viene dal percorso, non dal GPS: la bussola del telefono manca su molti
+   * dispositivi e resta a null da fermi, mentre il tratto che si sta
+   * percorrendo la direzione ce l'ha sempre. Il dato GPS resta come ripiego
+   * per il fuori-percorso, dove il tracciato non dice piu' dove si va.
+   */
+  courseDegrees: number | null;
   dismissOffRoute: () => void;
 }
 
@@ -149,6 +158,20 @@ export function useNavigation({
     };
   }, [active, isOffRoute, offRouteSince, arrived]);
 
+  /*
+   * Direzione del tratto su cui si e' agganciati. Se ci si e' allontanati dal
+   * percorso quella direzione non descrive piu' il movimento reale: li' vale
+   * di piu' la bussola, quando c'e'.
+   */
+  const courseDegrees = useMemo(() => {
+    if (!route || !progress) return position?.heading ?? null;
+    if (isOffRoute) return position?.heading ?? null;
+    const from = route.geometry[progress.index];
+    const to = route.geometry[progress.index + 1];
+    if (!from || !to) return position?.heading ?? null;
+    return bearing(from, to);
+  }, [route, progress, isOffRoute, position?.heading]);
+
   const dismissOffRoute = useCallback(() => setDismissed(true), []);
 
   return {
@@ -166,6 +189,7 @@ export function useNavigation({
     nextInstruction,
     distanceToManeuver,
     snappedPosition: progress ? (progress.point as [number, number]) : null,
+    courseDegrees,
     dismissOffRoute,
   };
 }

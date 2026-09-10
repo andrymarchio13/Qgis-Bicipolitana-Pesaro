@@ -210,6 +210,16 @@ export const REROUTE_COOLDOWN_MS = num(env.VITE_REROUTE_COOLDOWN_MS, 8000);
 /** Distanza sotto la quale si considera raggiunta la destinazione. */
 export const ARRIVAL_THRESHOLD_METERS = num(env.VITE_ARRIVAL_THRESHOLD_METERS, 25);
 
+/**
+ * Guida vocale: distanze a cui una manovra viene annunciata.
+ *
+ * Sono tarate sulla bicicletta. A 15 km/h trecento metri sono poco piu' di un
+ * minuto — l'anticipo giusto per accostare o cambiare corsia — e sessanta
+ * metri sono i pochi secondi in cui la manovra va fatta davvero.
+ */
+export const VOICE_PREPARE_METERS = num(env.VITE_VOICE_PREPARE_METERS, 300);
+export const VOICE_NOW_METERS = num(env.VITE_VOICE_NOW_METERS, 60);
+
 /** Precisione GPS oltre la quale la posizione e' considerata inaffidabile. */
 export const GPS_MAX_ACCEPTABLE_ACCURACY_METERS = num(
   env.VITE_GPS_MAX_ACCURACY_METERS,

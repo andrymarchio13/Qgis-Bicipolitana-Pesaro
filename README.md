@@ -60,6 +60,17 @@ alternative, segue la posizione GPS e ricalcola il percorso quando ci si allonta
   ricalcolarlo, dichiarando la data di salvataggio. Accanto c'è l'esportazione **GPX** per
   ciclocomputer e altre app (sola andata: il GPX non conserva indicazioni e linee percorse).
 - Naviga con GPS, distanza e tempo residui, avviso di fuori-percorso e **ricalcolo automatico**.
+- **Ti mostra come un ciclista che pedala**, non come un pallino: il segno della posizione e'
+  un'icona disegnata su canvas e animata fotogramma per fotogramma, orientata secondo la
+  direzione del tratto che stai percorrendo. La cadenza della pedalata segue la velocita'
+  letta dal GPS e da fermo si ferma — anche per non tenere sveglia la mappa a un semaforo.
+  Chi ha chiesto meno animazioni al sistema riceve la stessa icona, immobile.
+- **Legge le indicazioni ad alta voce**, come un navigatore: ogni manovra viene annunciata
+  due volte, in anticipo (300 m) e al momento di farla (60 m), piu' partenza, arrivo,
+  fuori-percorso e ricalcolo. Usa la sintesi vocale del dispositivo, preferendo una voce
+  **italiana maschile** fra quelle installate; se non ce n'e' una, usa la migliore voce
+  italiana disponibile e lo dichiara invece di fingere. Si zittisce con un tocco e la scelta
+  resta memorizzata. Nessun audio scaricato, nessuna chiave, nessun testo fuori dal telefono.
 - Mostra servizi, ostacoli e punti di svago con tutti gli attributi del GeoPackage.
 - È installabile come **PWA** e funziona parzialmente offline.
 - Si pubblica su **GitHub Pages** senza backend e senza chiavi API.
@@ -136,13 +147,15 @@ public/data/             i soli file scaricati dal browser
 src/
   components/            Map, Search, Routing, Lines, Navigation, UI
   pages/                 Home, Linee, Dettaglio linea, Servizi, Info, Privacy
-  services/              routing/, geocoding/, data.ts, itinerary.ts
-  hooks/                 useLocation, useNavigation, useGeocoding, useWakeLock
+  services/              routing/, geocoding/, data.ts, itinerary.ts,
+                         voice.ts, voiceGuidance.ts
+  hooks/                 useLocation, useNavigation, useGeocoding, useWakeLock,
+                         useVoiceGuidance
   store/                 stato globale (Zustand)
   types/                 tipi condivisi
   config/                parametri e profili di calcolo
   utils/                 geometria e formattazione
-tests/                   data/, routing/, utils/
+tests/                   data/, routing/, utils/, geocoding/, navigation/
 ```
 
 ## 4. I dati GIS di partenza
@@ -550,6 +563,8 @@ Tutte facoltative: i default funzionano. Vedi [`.env.example`](.env.example).
 | `VITE_REROUTE_DISTANCE_THRESHOLD` | 45 | metri di scostamento prima del ricalcolo |
 | `VITE_REROUTE_DEBOUNCE_MS` | 4000 | attesa prima di ricalcolare |
 | `VITE_REROUTE_COOLDOWN_MS` | 8000 | attesa minima fra due ricalcoli consecutivi |
+| `VITE_VOICE_PREPARE_METERS` | 300 | distanza a cui la voce annuncia la manovra in anticipo |
+| `VITE_VOICE_NOW_METERS` | 60 | distanza a cui la voce annuncia la manovra da fare ora |
 | `VITE_WALK_ROUTING_URL` | Valhalla OSM | rete pedonale per i tratti a piedi; vuoto = solo offline |
 | `VITE_WALK_ROUTING_TIMEOUT_MS` | 6000 | oltre questa attesa si tiene il tratto in linea d’aria |
 | `VITE_WALK_ROUTING_MIN_METERS` | 40 | sotto questa soglia il tratto non vale una chiamata |
@@ -562,7 +577,7 @@ Tutte facoltative: i default funzionano. Vedi [`.env.example`](.env.example).
 npm test
 ```
 
-**166 test** su quattro gruppi:
+**200 test** su cinque gruppi:
 
 - `tests/data/` — coerenza dei dati generati, e corrispondenza fra i file scritti
   dalla pipeline in `data/` e le copie pubblicate in `public/data/`: 15 linee, CRS, colori, nodi dentro l’area di
@@ -576,7 +591,10 @@ npm test
 - `tests/utils/` — geometria e formattazione, con verifica esplicita che l’interfaccia non
   mostri mai `undefined` o `NaN`;
 - `tests/geocoding/` — ricerca nei dati locali del progetto: corrispondenze parziali,
-  accenti e maiuscole, ordinamento dei risultati.
+  accenti e maiuscole, ordinamento dei risultati;
+- `tests/navigation/` — guida vocale e segno della posizione: scelta della voce italiana
+  maschile fra quelle installate, distanze scritte per essere pronunciate, annunci dati due
+  volte e mai ripetuti, e ciclista animato che smette di chiedere fotogrammi da fermo.
 
 I punti di test non sono coordinate inventate: ognuno corrisponde a una via nominata nel
 grafo OSM o a un POI del GeoPackage.

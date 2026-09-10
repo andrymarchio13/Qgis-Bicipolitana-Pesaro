@@ -9,6 +9,7 @@ import type { Line, Route, RouteInstruction } from '../../types';
 import { formatDistance, formatDuration } from '../../utils/geo';
 import type { UserPosition } from '../../hooks/useLocation';
 import type { UseNavigationResult } from '../../hooks/useNavigation';
+import { useVoiceGuidance } from '../../hooks/useVoiceGuidance';
 import { MapView } from '../Map/MapView';
 import { LineBadge, Notice } from '../UI';
 
@@ -33,6 +34,17 @@ export function NavigationScreen({
   const activeLineId = navigation.currentInstruction?.lineId ?? null;
   const activeLine = activeLineId ? lines.get(activeLineId) : undefined;
   const bannerColor = activeLine?.color ?? 'var(--brand-800)';
+
+  const voice = useVoiceGuidance({
+    route,
+    instruction,
+    distanceToManeuver: navigation.distanceToManeuver,
+    remainingMeters: navigation.remainingMeters,
+    arrived: navigation.arrived,
+    offRoute: navigation.offRoute,
+    rerouting: navigation.rerouting,
+    active: navigation.active,
+  });
 
   return (
     <div className="nav-screen">
@@ -71,6 +83,32 @@ export function NavigationScreen({
           )}
         </div>
 
+        {voice.supported ? (
+          <button
+            type="button"
+            onClick={voice.toggle}
+            aria-pressed={voice.enabled}
+            aria-label={voice.enabled ? 'Disattiva la voce' : 'Attiva la voce'}
+            title={
+              voice.enabled
+                ? voiceTitle(voice.voiceName, voice.isMale, voice.hasItalianVoice)
+                : 'Le indicazioni non vengono lette ad alta voce'
+            }
+            style={{
+              background: 'rgb(255 255 255 / 0.18)',
+              border: 'none',
+              color: '#fff',
+              width: 40,
+              height: 40,
+              borderRadius: '50%',
+              fontSize: 18,
+              flexShrink: 0,
+            }}
+          >
+            {voice.enabled ? '🔊' : '🔇'}
+          </button>
+        ) : null}
+
         <div className="nav-screen__arrow" aria-hidden="true">
           {instruction ? maneuverIcon(instruction) : '↑'}
         </div>
@@ -101,7 +139,10 @@ export function NavigationScreen({
           snappedPosition={navigation.snappedPosition}
           showOrigin={false}
           followUser
-          bearing={position?.heading ?? null}
+          bearing={navigation.courseDegrees ?? position?.heading ?? null}
+          cyclist
+          course={navigation.courseDegrees}
+          speed={position?.speed ?? null}
           interactive
         />
 
@@ -140,6 +181,23 @@ export function NavigationScreen({
       </div>
     </div>
   );
+}
+
+/**
+ * Cosa dire del comando della voce.
+ *
+ * Se sul dispositivo non c'e' una voce italiana maschile non la si finge:
+ * quali voci esistono dipende dal sistema, non dall'app, e chi si aspettava
+ * un'altra voce merita di sapere perche' sente questa.
+ */
+function voiceTitle(name: string | null, male: boolean, italian: boolean): string {
+  if (!italian) {
+    return 'Nessuna voce italiana installata su questo dispositivo: le indicazioni vengono lette con la voce predefinita del sistema.';
+  }
+  if (!male) {
+    return `Le indicazioni vengono lette da ${name}. Su questo dispositivo non è installata una voce italiana maschile: puoi aggiungerne una dalle impostazioni di sistema.`;
+  }
+  return `Le indicazioni vengono lette da ${name}.`;
 }
 
 /** I due tratti a piedi che raccordano il percorso alla rete coperta dai dati. */

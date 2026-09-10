@@ -24,6 +24,12 @@ import type { LngLat, Poi, Route } from '../../types';
 import { boundsOf } from '../../utils/geo';
 import { useAppStore, LAYER_CATEGORIES } from '../../store/useAppStore';
 import type { UserPosition } from '../../hooks/useLocation';
+import {
+  createCyclistMarker,
+  CYCLIST_ICON_ID,
+  CYCLIST_PIXEL_RATIO,
+  type CyclistMarker,
+} from './cyclistMarker';
 
 import 'maplibre-gl/dist/maplibre-gl.css';
 
@@ -41,6 +47,16 @@ export interface MapViewProps {
   showOrigin?: boolean;
   followUser?: boolean;
   bearing?: number | null;
+  /**
+   * Mostra la posizione come ciclista animato invece che come pallino. Si
+   * accende in navigazione: fuori di li' non c'e' una direzione di marcia da
+   * rappresentare, e un ciclista fermo su una mappa ferma sarebbe un fregio.
+   */
+  cyclist?: boolean;
+  /** Direzione di marcia in gradi, per orientare il ciclista. */
+  course?: number | null;
+  /** Velocita' in m/s: regola la cadenza della pedalata. */
+  speed?: number | null;
   onMapClick?: (point: LngLat) => void;
   onPoiClick?: (poi: Poi) => void;
   /** Gruppo di POI che non si scioglie oltre: va mostrato come elenco. */
@@ -113,6 +129,23 @@ function registerEmojiIcons(instance: maplibregl.Map): void {
 }
 
 /**
+ * Registra il ciclista animato della posizione.
+ *
+ * Il riferimento serve dopo: la cadenza della pedalata va aggiornata a ogni
+ * punto GPS, e per farlo occorre l'oggetto che sta disegnando i fotogrammi.
+ */
+function registerCyclistIcon(
+  instance: maplibregl.Map,
+  holder: { current: CyclistMarker | null },
+): void {
+  if (instance.hasImage(CYCLIST_ICON_ID)) return;
+  const marker = createCyclistMarker();
+  if (!marker) return;
+  holder.current = marker;
+  instance.addImage(CYCLIST_ICON_ID, marker, { pixelRatio: CYCLIST_PIXEL_RATIO });
+}
+
+/**
  * Stile raster di ripiego, usato se lo stile vettoriale non e' raggiungibile.
  * Mantiene la mappa utilizzabile anche con il provider principale offline.
  */
@@ -142,6 +175,9 @@ export function MapView({
   showOrigin = true,
   followUser = false,
   bearing = null,
+  cyclist = false,
+  course = null,
+  speed = null,
   onMapClick,
   onPoiClick,
   onClusterClick,
@@ -157,6 +193,7 @@ export function MapView({
   const ready = useRef(false);
   const popup = useRef<maplibregl.Popup | null>(null);
   const fallbackApplied = useRef(false);
+  const cyclistMarker = useRef<CyclistMarker | null>(null);
 
   const data = useAppStore((s) => s.data);
   const layers = useAppStore((s) => s.layers);
@@ -204,6 +241,7 @@ export function MapView({
       ready.current = true;
 
       registerEmojiIcons(instance);
+      registerCyclistIcon(instance, cyclistMarker);
 
       instance.addSource(SOURCE.cycle, { type: 'geojson', data: EMPTY_FC });
       instance.addSource(SOURCE.lines, { type: 'geojson', data: EMPTY_FC });
@@ -465,17 +503,41 @@ export function MapView({
         },
       });
 
-      // Posizione utente
+      /*
+       * Posizione utente. Due rappresentazioni sulla stessa sorgente: il
+       * pallino sulla mappa normale, dove non c'e' una marcia in corso, e il
+       * ciclista animato in navigazione. Il filtro sceglie quale disegnare,
+       * cosi' non se ne vedono mai due sovrapposti.
+       */
       instance.addLayer({
         id: 'user-dot',
         type: 'circle',
         source: SOURCE.user,
-        filter: ['==', ['get', 'kind'], 'position'],
+        filter: ['all', ['==', ['get', 'kind'], 'position'], ['!', ['get', 'rider']]],
         paint: {
           'circle-color': '#1ba26d',
           'circle-radius': 8,
           'circle-stroke-width': 3,
           'circle-stroke-color': '#ffffff',
+        },
+      });
+
+      instance.addLayer({
+        id: 'user-cyclist',
+        type: 'symbol',
+        source: SOURCE.user,
+        filter: ['all', ['==', ['get', 'kind'], 'position'], ['get', 'rider']],
+        layout: {
+          'icon-image': CYCLIST_ICON_ID,
+          'icon-size': ['interpolate', ['linear'], ['zoom'], 12, 0.75, 16, 1, 19, 1.25],
+          'icon-rotate': ['get', 'course'],
+          // L'icona e' disegnata vista dall'alto: deve girare con la mappa e
+          // coricarsi con essa quando la vista e' inclinata, altrimenti a
+          // mappa ruotata indicherebbe una direzione che non e' quella vera.
+          'icon-rotation-alignment': 'map',
+          'icon-pitch-alignment': 'map',
+          'icon-allow-overlap': true,
+          'icon-ignore-placement': true,
         },
       });
 
@@ -871,7 +933,13 @@ export function MapView({
       const features: GeoJSON.Feature[] = [
         {
           type: 'Feature',
-          properties: { kind: 'position' },
+          properties: {
+            kind: 'position',
+            rider: cyclist,
+            // Senza direzione nota il ciclista punta verso l'alto della mappa
+            // invece di ruotare a caso a ogni punto GPS impreciso.
+            course: course ?? 0,
+          },
           geometry: { type: 'Point', coordinates: point },
         },
       ];
@@ -879,7 +947,15 @@ export function MapView({
     };
     if (ready.current) apply();
     else map.current.once('load', apply);
-  }, [userPosition, snappedPosition, setData]);
+  }, [userPosition, snappedPosition, cyclist, course, setData]);
+
+  // La pedalata segue la velocita' reale: da fermi il ciclista non pedala.
+  useEffect(() => {
+    cyclistMarker.current?.setSpeed(cyclist ? speed : null);
+    // Ripartire da fermo non genera un nuovo fotogramma da solo: l'animazione
+    // si e' spenta proprio per non tenere sveglia la mappa.
+    if (cyclist && speed !== null) map.current?.triggerRepaint();
+  }, [cyclist, speed]);
 
   // La mappa deve sapere quale parte di se' e' coperta dall'interfaccia.
   useEffect(() => {
