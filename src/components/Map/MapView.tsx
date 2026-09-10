@@ -513,7 +513,7 @@ export function MapView({
         id: 'user-dot',
         type: 'circle',
         source: SOURCE.user,
-        filter: ['all', ['==', ['get', 'kind'], 'position'], ['!', ['get', 'rider']]],
+        filter: ['all', ['==', ['get', 'kind'], 'position'], ['!=', ['get', 'rider'], true]],
         paint: {
           'circle-color': '#1ba26d',
           'circle-radius': 8,
@@ -526,7 +526,7 @@ export function MapView({
         id: 'user-cyclist',
         type: 'symbol',
         source: SOURCE.user,
-        filter: ['all', ['==', ['get', 'kind'], 'position'], ['get', 'rider']],
+        filter: ['all', ['==', ['get', 'kind'], 'position'], ['==', ['get', 'rider'], true]],
         layout: {
           'icon-image': CYCLIST_ICON_ID,
           'icon-size': ['interpolate', ['linear'], ['zoom'], 12, 0.75, 16, 1, 19, 1.25],

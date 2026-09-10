@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { GPS_MAX_ACCEPTABLE_ACCURACY_METERS } from '../config';
+import { haversine } from '../utils/geo';
 
 export type GeolocationStatus =
   | 'idle'
@@ -21,6 +22,12 @@ export interface UserPosition {
   lat: number;
   accuracy: number;
   heading: number | null;
+  /**
+   * Velocita' in m/s. Molti dispositivi non la riportano — quasi nessun
+   * portatile, e diversi telefoni finche' il GPS non si e' agganciato — quindi
+   * quando manca viene ricavata dallo spostamento fra due punti successivi.
+   * Resta `null` solo finche' non c'e' un secondo punto da confrontare.
+   */
   speed: number | null;
   timestamp: number;
   /** true se la precisione dichiarata supera la soglia accettabile. */
@@ -45,9 +52,34 @@ const MESSAGES: Record<number, string> = {
   3: 'Ricerca della posizione troppo lenta. Riprova all’aperto o scegli il punto sulla mappa.',
 };
 
-function toPosition(raw: GeolocationPosition): UserPosition {
+/**
+ * Velocita' ricavata da due punti successivi, quando il dispositivo non la
+ * dichiara. Esportata per poterla verificare da sola: e' il calcolo da cui
+ * dipende se il ciclista sulla mappa pedala o resta immobile.
+ *
+ * Le soglie servono a non scambiare il rumore del GPS per movimento: due
+ * misure troppo ravvicinate nel tempo, o uno spostamento piu' piccolo della
+ * precisione dichiarata, non dicono nulla sulla velocita' reale.
+ */
+const MIN_SPEED_SAMPLE_MS = 900;
+const MAX_PLAUSIBLE_SPEED = 25; // m/s: 90 km/h, oltre e' un salto del GPS
+
+export function derivedSpeed(previous: UserPosition | null, next: UserPosition): number | null {
+  if (!previous) return null;
+  const elapsed = next.timestamp - previous.timestamp;
+  if (elapsed < MIN_SPEED_SAMPLE_MS) return previous.speed;
+
+  const moved = haversine([previous.lng, previous.lat], [next.lng, next.lat]);
+  // Uno spostamento dentro l'incertezza della misura puo' essere solo deriva.
+  if (moved < Math.min(next.accuracy, 15)) return 0;
+
+  const speed = moved / (elapsed / 1000);
+  return speed > MAX_PLAUSIBLE_SPEED ? previous.speed : speed;
+}
+
+function toPosition(raw: GeolocationPosition, previous: UserPosition | null): UserPosition {
   const accuracy = raw.coords.accuracy ?? Number.POSITIVE_INFINITY;
-  return {
+  const position: UserPosition = {
     lng: raw.coords.longitude,
     lat: raw.coords.latitude,
     accuracy,
@@ -56,6 +88,8 @@ function toPosition(raw: GeolocationPosition): UserPosition {
     timestamp: raw.timestamp,
     imprecise: accuracy > GPS_MAX_ACCEPTABLE_ACCURACY_METERS,
   };
+  if (position.speed === null) position.speed = derivedSpeed(previous, position);
+  return position;
 }
 
 export function useLocation(): UseLocationResult {
@@ -66,6 +100,12 @@ export function useLocation(): UseLocationResult {
     supported ? null : 'Questo browser non supporta la geolocalizzazione.',
   );
   const watchId = useRef<number | null>(null);
+  /*
+   * Ultimo punto ricevuto. Sta in un riferimento e non nello stato perche'
+   * serve dentro le funzioni di richiamo del GPS, che vengono registrate una
+   * volta sola e vedrebbero per sempre il valore del primo render.
+   */
+  const lastPosition = useRef<UserPosition | null>(null);
 
   const locate = useCallback(async (): Promise<UserPosition | null> => {
     if (!supported) return null;
@@ -74,7 +114,8 @@ export function useLocation(): UseLocationResult {
     return new Promise((resolve) => {
       navigator.geolocation.getCurrentPosition(
         (raw) => {
-          const next = toPosition(raw);
+          const next = toPosition(raw, lastPosition.current);
+          lastPosition.current = next;
           setPosition(next);
           setStatus('idle');
           if (next.imprecise) {
@@ -99,7 +140,9 @@ export function useLocation(): UseLocationResult {
     setStatus('watching');
     watchId.current = navigator.geolocation.watchPosition(
       (raw) => {
-        setPosition(toPosition(raw));
+        const next = toPosition(raw, lastPosition.current);
+        lastPosition.current = next;
+        setPosition(next);
         setMessage(null);
       },
       (error) => {

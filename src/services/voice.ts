@@ -140,6 +140,28 @@ export function isSpeechSupported(): boolean {
 }
 
 /**
+ * Sblocca la sintesi vocale, e va chiamata dentro un gesto dell'utente.
+ *
+ * Safari e i browser su iOS rifiutano di parlare se la prima richiesta non
+ * nasce da un tocco, e lo fanno in silenzio: nessun errore, semplicemente
+ * nessuna voce per tutta la navigazione. Il primo annuncio pero' nasce da un
+ * effetto, all'apertura della schermata, non dal tocco. Qui si pronuncia una
+ * stringa muta dentro il tocco che avvia la navigazione: non si sente nulla,
+ * ma da quel momento il permesso c'e'.
+ *
+ * E' una funzione a se' e non un metodo dell'altoparlante perche' al momento
+ * del tocco la schermata di navigazione — e quindi l'altoparlante — non esiste
+ * ancora.
+ */
+export function unlockSpeech(): void {
+  if (!isSpeechSupported()) return;
+  const utterance = new SpeechSynthesisUtterance(' ');
+  utterance.volume = 0;
+  utterance.lang = 'it-IT';
+  window.speechSynthesis.speak(utterance);
+}
+
+/**
  * Altoparlante della navigazione.
  *
  * Tiene la voce scelta e impedisce che due annunci si accavallino: in

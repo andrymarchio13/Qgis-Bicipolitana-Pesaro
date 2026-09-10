@@ -19,6 +19,7 @@ import { LandingPage } from './pages/LandingPage';
 import { LineDetailPage, LinesPage } from './pages/LinesPage';
 import { ServicesPage } from './pages/ServicesPage';
 import { poiEmoji } from './config/poi';
+import { unlockSpeech } from './services/voice';
 import { useAppStore, useSelectedRoute } from './store/useAppStore';
 import type { LngLat, Poi } from './types';
 import { boundsOf } from './utils/geo';
@@ -307,6 +308,10 @@ export function App(): JSX.Element {
                   onRequestPanel={(expanded) => sheet.setSnap(expanded ? 'full' : 'half')}
                   onStartNavigation={() => {
                     if (selectedRoute) {
+                      // Dentro il tocco, non dopo: e' l'unico momento in cui
+                      // iOS concede il permesso di parlare, e la guida vocale
+                      // comincia da un effetto che arriva troppo tardi.
+                      unlockSpeech();
                       selectRoute(selectedRoute.id);
                       setNavigating(true);
                     }

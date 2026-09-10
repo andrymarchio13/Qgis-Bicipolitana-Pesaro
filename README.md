@@ -577,7 +577,7 @@ Tutte facoltative: i default funzionano. Vedi [`.env.example`](.env.example).
 npm test
 ```
 
-**200 test** su cinque gruppi:
+**207 test** su cinque gruppi:
 
 - `tests/data/` — coerenza dei dati generati, e corrispondenza fra i file scritti
   dalla pipeline in `data/` e le copie pubblicate in `public/data/`: 15 linee, CRS, colori, nodi dentro l’area di
@@ -594,7 +594,8 @@ npm test
   accenti e maiuscole, ordinamento dei risultati;
 - `tests/navigation/` — guida vocale e segno della posizione: scelta della voce italiana
   maschile fra quelle installate, distanze scritte per essere pronunciate, annunci dati due
-  volte e mai ripetuti, e ciclista animato che smette di chiedere fotogrammi da fermo.
+  volte e mai ripetuti, ciclista animato che smette di chiedere fotogrammi da fermo, e
+  velocita' ricavata dallo spostamento quando il dispositivo non la dichiara.
 
 I punti di test non sono coordinate inventate: ognuno corrisponde a una via nominata nel
 grafo OSM o a un POI del GeoPackage.
