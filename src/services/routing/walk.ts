@@ -26,6 +26,7 @@ import {
 } from '../../config';
 import type { LngLat, Route, RouteSegment } from '../../types';
 import { haversine, lineLength } from '../../utils/geo';
+import { transportForDistance, withDirectTransport } from './router';
 
 /** Il servizio restituisce la geometria come polyline con 6 decimali. */
 function decodePolyline6(encoded: string): LngLat[] {
@@ -284,7 +285,7 @@ export async function refineWalkingLegs(route: Route): Promise<Route> {
     return { ...instruction, offsetMeters: instruction.offsetMeters + leadingDelta };
   });
 
-  return {
+  const aggiornato = {
     ...route,
     geometry: assemble(segments),
     segments,
@@ -297,6 +298,20 @@ export async function refineWalkingLegs(route: Route): Promise<Route> {
       distanceMeters > 0 ? Math.round((route.bicipolitanaMeters / distanceMeters) * 100) : 0,
     walkingRouted: segments.some((s) => s.kind === 'piedi' && s.routed === true),
   };
+
+  /*
+   * Sulle strade reali il collegamento si allunga, e un cammino che in linea
+   * d'aria stava nei limiti puo' uscirne: quattro chilometri e mezzo dritti
+   * diventano sette di strade, che a piedi sono un'ora e mezza. Il percorso
+   * resta lo stesso, ma va dichiarato per come si percorre davvero.
+   */
+  if (aggiornato.direct) {
+    const mezzo = transportForDistance(aggiornato.distanceMeters);
+    if (mezzo !== (aggiornato.segments[0]?.transport ?? 'piedi')) {
+      return withDirectTransport(aggiornato, mezzo);
+    }
+  }
+  return aggiornato;
 }
 
 /** Rifinisce piu' percorsi in parallelo; quelli non rifinibili restano com'erano. */

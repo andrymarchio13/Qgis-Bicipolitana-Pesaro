@@ -13,6 +13,7 @@
 import {
   BUSY_ROAD_ESCAPE_LADDER,
   BUSY_ROAD_WARNING_METERS,
+  CONNECTOR_RIDE_COLOR,
   CONNECTOR_RIDE_THRESHOLD_METERS,
   CYCLING_SPEED_KMH,
   DEFAULT_PROFILE_ORDER,
@@ -253,7 +254,9 @@ function walkingLeg(path: LngLat[], streetNames: string[] = []): RouteSegment | 
   return {
     lineId: null,
     lineName: null,
-    color: WALK_COLOR,
+    // Il colore dice come si percorre: viola il cammino, grigio la pedalata
+    // sulla viabilita' ordinaria fuori dai dati del progetto.
+    color: transport === 'bici' ? CONNECTOR_RIDE_COLOR : WALK_COLOR,
     kind: 'piedi',
     transport,
     distanceMeters,
@@ -434,20 +437,100 @@ function buildRoute(
 }
 
 /**
- * Percorso diretto a piedi fra i due punti, senza passare dalla rete.
+ * Come si percorre un collegamento diretto, secondo la sua lunghezza.
  *
- * Serve dove la Bicipolitana non arriva. Il calcolo aggancia comunque i due
- * estremi alla rete coperta dai dati, e fra due punti che stanno entrambi
- * fuori — le frazioni attorno a Pesaro — il giro che ne esce puo' valere il
- * triplo della distanza reale, per toccare poche centinaia di metri di linea.
- * Qui si dice l'altra cosa vera: fra quei due punti si va a piedi, e sono
- * questi metri.
- *
- * Il tratto resta in linea d'aria come tutti i collegamenti fuori rete: se il
- * servizio pedonale opzionale risponde, viene ridisegnato sulle strade dopo il
- * calcolo (`walk.ts`), esattamente come i raccordi.
+ * Un cammino di qualche chilometro e' una cosa che si fa; uno di dodici no — e
+ * mostrarlo come tale non descrive un viaggio che qualcuno farebbe davvero.
+ * Oltre la soglia lo stesso collegamento resta, ma dichiarato per come si
+ * percorre: in bicicletta, sulla viabilita' ordinaria fuori dai dati.
  */
-export function walkOnlyRoute(
+export function transportForDistance(distanceMeters: number): 'piedi' | 'bici' {
+  return distanceMeters > WALK_ONLY_MAX_METERS ? 'bici' : 'piedi';
+}
+
+/** Etichette del percorso diretto, secondo il mezzo con cui si percorre. */
+const DIRECT_LABELS = {
+  piedi: { id: 'piedi', label: 'A piedi', icon: '🚶' },
+  bici: { id: 'diretto', label: 'In bicicletta, fuori rete', icon: '🚲' },
+} as const;
+
+const directStartText = (
+  transport: 'piedi' | 'bici',
+  destinationLabel: string | null,
+): string => {
+  const meta = destinationLabel ?? 'la destinazione';
+  return transport === 'bici'
+    ? `Pedala fino a ${meta}, fuori dalla rete del progetto`
+    : `Vai a piedi fino a ${meta}`;
+};
+
+/**
+ * Riscrive un percorso diretto secondo il mezzo con cui va percorso.
+ *
+ * Serve due volte: quando il percorso nasce, e di nuovo dopo che il tratto e'
+ * stato ridisegnato sulle strade reali — li' la lunghezza cambia, e un
+ * collegamento che in linea d'aria stava nei limiti del cammino puo' uscirne.
+ */
+export function withDirectTransport(route: Route, transport: 'piedi' | 'bici'): Route {
+  const meta = DIRECT_LABELS[transport];
+  const speed = transport === 'bici' ? CYCLING_SPEED_KMH : WALKING_SPEED_KMH;
+  const color = transport === 'bici' ? CONNECTOR_RIDE_COLOR : WALK_COLOR;
+
+  const segments = route.segments.map((segment) => ({
+    ...segment,
+    transport,
+    color,
+    durationSeconds: (segment.distanceMeters / 1000 / speed) * 3600,
+  }));
+  const durationSeconds = segments.reduce((sum, segment) => sum + segment.durationSeconds, 0);
+  const distanceMeters = segments.reduce((sum, segment) => sum + segment.distanceMeters, 0);
+
+  const instructions = route.instructions.map((instruction) =>
+    instruction.type === 'walk-start'
+      ? {
+          ...instruction,
+          text: directStartText(transport, route.destinationLabel ?? null),
+          transport,
+          color,
+          durationSeconds,
+        }
+      : { ...instruction, color },
+  );
+
+  return {
+    ...route,
+    id: meta.id,
+    profile: transport === 'bici' ? 'diretto' : 'piedi',
+    profileLabel: meta.label,
+    profileIcon: meta.icon,
+    direct: true,
+    onFoot: transport === 'piedi' ? true : undefined,
+    segments,
+    instructions,
+    durationSeconds: Math.round(durationSeconds),
+    durationMinutes: Math.max(1, Math.round(durationSeconds / 60)),
+    // I metri fuori rete sono tutti: nessuno di questi e' un arco dei dati.
+    walkingMeters: Math.round(distanceMeters),
+    lighting: [{ fromSeconds: 0, durationSeconds, distanceMeters, lit: null }],
+  };
+}
+
+/**
+ * Percorso diretto fra i due punti, senza passare dalla rete.
+ *
+ * Serve dove la Bicipolitana non arriva, o non collega. Il calcolo aggancia
+ * comunque i due estremi alla rete coperta dai dati, e fra due punti che
+ * stanno entrambi fuori — le frazioni attorno a Pesaro — il giro che ne esce
+ * puo' valere il triplo della distanza reale, per toccare poche centinaia di
+ * metri di linea. Qui si dice l'altra cosa vera: fra quei due punti si va
+ * dritti, e sono questi metri.
+ *
+ * Il mezzo lo decide la distanza: a piedi finche' e' un cammino che qualcuno
+ * farebbe davvero, in bicicletta quando sono chilometri. Il tratto resta in
+ * linea d'aria come tutti i collegamenti fuori rete: se il servizio opzionale
+ * risponde, viene ridisegnato sulle strade dopo il calcolo (`walk.ts`).
+ */
+export function directRoute(
   origin: LngLat,
   destination: LngLat,
   destinationLabel: string | null,
@@ -455,62 +538,58 @@ export function walkOnlyRoute(
   const coordinates: LngLat[] = [origin, destination];
   const distanceMeters = lineLength(coordinates);
   if (distanceMeters < WALK_LEG_MIN_METERS) return null;
-  const durationSeconds = (distanceMeters / 1000 / WALKING_SPEED_KMH) * 3600;
 
-  const segment: RouteSegment = {
-    lineId: null,
-    lineName: null,
-    color: WALK_COLOR,
-    kind: 'piedi',
-    transport: 'piedi',
-    distanceMeters,
-    durationSeconds,
-    coordinates,
-    streetNames: [],
-  };
-
-  const instructions: RouteInstruction[] = [
-    {
-      index: 0,
-      type: 'walk-start',
-      text: destinationLabel
-        ? `Vai a piedi fino a ${destinationLabel}`
-        : 'Vai a piedi fino alla destinazione',
-      transport: 'piedi',
-      distanceMeters,
-      durationSeconds,
-      location: origin,
-      lineId: null,
-      color: WALK_COLOR,
-      streetName: null,
-      offsetMeters: 0,
-    },
-    {
-      index: 1,
-      type: 'arrive',
-      text: destinationLabel ? `Sei arrivato: ${destinationLabel}` : 'Sei arrivato a destinazione',
-      distanceMeters: 0,
-      durationSeconds: 0,
-      location: destination,
-      lineId: null,
-      color: WALK_COLOR,
-      streetName: null,
-      offsetMeters: distanceMeters,
-    },
-  ];
-
-  return {
+  const base: Route = {
     id: 'piedi',
     profile: 'piedi',
     profileLabel: 'A piedi',
     profileIcon: '🚶',
-    onFoot: true,
+    direct: true,
+    destinationLabel,
     distanceMeters: Math.round(distanceMeters),
-    durationSeconds: Math.round(durationSeconds),
-    durationMinutes: Math.max(1, Math.round(durationSeconds / 60)),
+    durationSeconds: 0,
+    durationMinutes: 1,
     geometry: coordinates,
-    segments: [segment],
-    instructions,
+    segments: [
+      {
+        lineId: null,
+        lineName: null,
+        color: WALK_COLOR,
+        kind: 'piedi',
+        transport: 'piedi',
+        distanceMeters,
+        durationSeconds: 0,
+        coordinates,
+        streetNames: [],
+      },
+    ],
+    instructions: [
+      {
+        index: 0,
+        type: 'walk-start',
+        text: directStartText('piedi', destinationLabel),
+        transport: 'piedi',
+        distanceMeters,
+        durationSeconds: 0,
+        location: origin,
+        lineId: null,
+        color: WALK_COLOR,
+        streetName: null,
+        offsetMeters: 0,
+      },
+      {
+        index: 1,
+        type: 'arrive',
+        text: destinationLabel ? `Sei arrivato: ${destinationLabel}` : 'Sei arrivato a destinazione',
+        distanceMeters: 0,
+        durationSeconds: 0,
+        location: destination,
+        lineId: null,
+        color: WALK_COLOR,
+        streetName: null,
+        offsetMeters: distanceMeters,
+      },
+    ],
     linesUsed: [],
     bicipolitanaMeters: 0,
     walkingMeters: Math.round(distanceMeters),
@@ -525,9 +604,11 @@ export function walkOnlyRoute(
     warnings: [],
     obstacleIds: [],
     surfaces: summarizeSurfaces([{ meters: distanceMeters }]),
-    lighting: [{ fromSeconds: 0, durationSeconds, distanceMeters, lit: null }],
+    lighting: [],
     durationIsEstimate: true,
   };
+
+  return withDirectTransport(base, transportForDistance(distanceMeters));
 }
 
 /**
@@ -611,8 +692,10 @@ function pathMeters(steps: SearchStep[]): number {
  * perche' e' la proposta che il progetto rivendica, e dietro gli altri per
  * tempo stimato.
  *
- * Il percorso a piedi non appartiene a quel gruppo, e trova il suo posto in
- * due modi diversi a seconda di cosa lo ha generato.
+ * Il percorso diretto — quello che unisce i due punti senza passare dalla
+ * rete, a piedi o pedalando secondo la distanza — non appartiene a quel
+ * gruppo, e trova il suo posto in due modi diversi a seconda di cosa lo ha
+ * generato.
  *
  *   - Se il viaggio in bicicletta e' per lo piu' raccordo fuori rete, va
  *     davanti a tutti, e non per tempo: proprio sul tempo il confronto sarebbe
@@ -631,8 +714,8 @@ function pathMeters(steps: SearchStep[]): number {
  * un ordine calcolato prima non descrive piu' i percorsi che si mostrano.
  */
 export function orderRoutes(routes: Route[]): Route[] {
-  const aPiedi = routes.filter((route) => route.onFoot);
-  const pedalati = routes.filter((route) => !route.onFoot);
+  const diretti = routes.filter((route) => route.direct);
+  const pedalati = routes.filter((route) => !route.direct);
 
   // Il rango e' calcolato una volta per percorso: un confronto che risponde
   // "prima" a entrambi gli argomenti non e' un ordinamento.
@@ -642,17 +725,17 @@ export function orderRoutes(routes: Route[]): Route[] {
     (a, b) => rank(a) - rank(b) || a.durationSeconds - b.durationSeconds,
   );
 
-  if (aPiedi.length === 0) return ordinati;
-  if (ordinati.length === 0) return aPiedi;
+  if (diretti.length === 0) return ordinati;
+  if (ordinati.length === 0) return diretti;
 
   const migliore = ordinati.reduce((a, b) => (a.distanceMeters <= b.distanceMeters ? a : b));
   const fuoriRete =
     migliore.distanceMeters > 0 ? migliore.walkingMeters / migliore.distanceMeters : 0;
   const davanti =
     fuoriRete >= WALK_ONLY_MIN_CONNECTOR_SHARE ||
-    aPiedi.some((route) => route.durationSeconds < ordinati[0].durationSeconds);
+    diretti.some((route) => route.durationSeconds < ordinati[0].durationSeconds);
 
-  return davanti ? [...aPiedi, ...ordinati] : [...ordinati, ...aPiedi];
+  return davanti ? [...diretti, ...ordinati] : [...ordinati, ...diretti];
 }
 
 export class BicipolitanaRouter {
@@ -861,7 +944,7 @@ export class BicipolitanaRouter {
        * decide. Il tetto dei cinque chilometri vale per la proposta a piedi
        * messa *accanto* a un percorso ciclabile che esiste: qui non esiste.
        */
-      const ripiego = walkOnlyRoute(origin, destination, request.destinationLabel ?? null);
+      const ripiego = directRoute(origin, destination, request.destinationLabel ?? null);
       if (ripiego) return [ripiego];
       throw new RoutingError(
         'no-path',
@@ -916,8 +999,8 @@ export class BicipolitanaRouter {
         direct <= WALK_ONLY_MAX_METERS &&
         (trattoCorto || giroSproporzionato || viaggioFuoriRete)
       ) {
-        const onFoot = walkOnlyRoute(origin, destination, request.destinationLabel ?? null);
-        if (onFoot) results.push(onFoot);
+        const diretto = directRoute(origin, destination, request.destinationLabel ?? null);
+        if (diretto) results.push(diretto);
       }
     }
 
@@ -928,18 +1011,20 @@ export class BicipolitanaRouter {
      * viaggio: tagliarlo via perche' cinque percorsi ciclabili hanno gia'
      * riempito l'elenco vorrebbe dire nasconderlo proprio dove serve.
      */
-    const pedalati = results.filter((route) => !route.onFoot);
-    const aPiedi = results.filter((route) => route.onFoot);
-    return orderRoutes([...orderRoutes(pedalati).slice(0, maxAlternatives), ...aPiedi]);
+    const sullaRete = results.filter((route) => !route.direct);
+    const diretti = results.filter((route) => route.direct);
+    return orderRoutes([...orderRoutes(sullaRete).slice(0, maxAlternatives), ...diretti]);
   }
 
   /** Ricalcolo durante la navigazione: mantiene il profilo in uso. */
-  reroute(current: LngLat, destination: LngLat, profile: RoutingProfileId | 'piedi',
+  reroute(current: LngLat, destination: LngLat, profile: RoutingProfileId | 'piedi' | 'diretto',
     destinationLabel: string | null): Route | null {
     // Chi sta camminando continua a camminare: il percorso a piedi non passa
     // dal grafo ciclabile, e ricalcolarlo e' ridisegnare la linea dal punto in
     // cui ci si trova.
-    if (profile === 'piedi') return walkOnlyRoute(current, destination, destinationLabel);
+    if (profile === 'piedi' || profile === 'diretto') {
+      return directRoute(current, destination, destinationLabel);
+    }
     try {
       const routes = this.route({
         origin: current,

@@ -7,7 +7,8 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { walkOnlyRoute } from '../../src/services/routing/router';
+import { directRoute } from '../../src/services/routing/router';
+import { WALK_ONLY_MAX_METERS } from '../../src/config';
 import { refineWalkingLegs, walkingPath } from '../../src/services/routing/walk';
 import type { Route, RouteSegment } from '../../src/types';
 import { lineLength } from '../../src/utils/geo';
@@ -226,7 +227,7 @@ describe('percorso a piedi su strada', () => {
       ),
     );
 
-    const prima = walkOnlyRoute([12.9, 43.9], [12.902, 43.9], 'Case Bruciate') as Route;
+    const prima = directRoute([12.9, 43.9], [12.902, 43.9], 'Case Bruciate') as Route;
     const dopo = await refineWalkingLegs(prima);
 
     expect(dopo.segments).toHaveLength(1);
@@ -261,7 +262,7 @@ describe('percorso a piedi su strada', () => {
     vi.stubGlobal('fetch', vi.fn(async () => rispostaPedonale(giro)));
 
     const cammino = await refineWalkingLegs(
-      walkOnlyRoute([12.9, 43.9], [12.902, 43.9], null) as Route,
+      directRoute([12.9, 43.9], [12.902, 43.9], null) as Route,
     );
     expect(cammino.segments[0].routed).toBe(true);
     expect(cammino.distanceMeters).toBeGreaterThan(2.5 * lineLength([giro[0], giro[2]]));
@@ -269,6 +270,34 @@ describe('percorso a piedi su strada', () => {
     // Lo stesso giro, chiesto come raccordo, resta respinto.
     const raccordo = await refineWalkingLegs(percorsoDiProva());
     expect(raccordo.segments[0].routed).toBeUndefined();
+  });
+
+  it('se sulle strade il cammino diventa troppo lungo, lo dichiara pedalato', async () => {
+    /*
+     * In linea d'aria il collegamento sta nei limiti del cammino; seguendo le
+     * strade no. Il percorso resta lo stesso, ma il mezzo dichiarato cambia:
+     * mostrare sette chilometri di strade come una camminata non descrive un
+     * viaggio che qualcuno farebbe.
+     */
+    const meta: [number, number] = [12.9 + (WALK_ONLY_MAX_METERS - 500) / 81400, 43.9];
+    const giro: [number, number][] = [
+      [12.9, 43.9],
+      [12.9 + (WALK_ONLY_MAX_METERS - 500) / 81400 / 2, 43.918],
+      meta,
+    ];
+    vi.stubGlobal('fetch', vi.fn(async () => rispostaPedonale(giro)));
+
+    const prima = directRoute([12.9, 43.9], meta, null) as Route;
+    expect(prima.onFoot).toBe(true);
+
+    const dopo = await refineWalkingLegs(prima);
+    expect(dopo.distanceMeters).toBeGreaterThan(WALK_ONLY_MAX_METERS);
+    expect(dopo.onFoot).toBeUndefined();
+    expect(dopo.direct).toBe(true);
+    expect(dopo.segments.every((s) => s.transport === 'bici')).toBe(true);
+    expect(dopo.durationSeconds).toBeLessThan(prima.durationSeconds);
+    // La geometria rifinita non si perde nel cambio di mezzo.
+    expect(dopo.segments[0].coordinates.length).toBeGreaterThan(2);
   });
 
   it('lascia il percorso invariato se il servizio non risponde', async () => {

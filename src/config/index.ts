@@ -111,6 +111,18 @@ export const WALK_LEG_MIN_METERS = num(env.VITE_WALK_LEG_MIN_METERS, 20);
 export const WALK_COLOR = '#6d28d9';
 
 /**
+ * Colore dei collegamenti fuori rete che si percorrono in bicicletta.
+ *
+ * Un raccordo di dieci chilometri non lo fa nessuno a piedi, e infatti il
+ * calcolo lo considera pedalato — ma finche' era disegnato con il viola del
+ * cammino, la mappa raccontava il contrario, e un tratto del genere sembrava
+ * una camminata di due ore. Qui si usa il grigio della viabilita' ordinaria,
+ * che e' proprio cio' che quel raccordo attraversa; il tratteggio resta,
+ * perche' quelle strade sono fuori dai dati del progetto.
+ */
+export const CONNECTOR_RIDE_COLOR = '#475569';
+
+/**
  * Quanto pesa un minuto a piedi rispetto a un minuto in bicicletta.
  *
  * Il tempo da solo non basta a scoraggiare il cammino: spingere la bici e'

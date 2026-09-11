@@ -508,7 +508,21 @@ triplica la distanza reale riesce così a dichiarare *meno* minuti di una cammin
 evitare. Dove invece la rete c’è e semplicemente gira, i minuti sono confrontabili e
 decidono loro: il cammino passa davanti solo se costa meno tempo.
 
-**Quando in bicicletta non si passa, resta il cammino.** Se fra i due punti i dati non
+**Fin dove si va a piedi.** Un cammino di qualche chilometro è una cosa che si fa; uno di
+dodici no. Il collegamento diretto sceglie quindi il mezzo secondo la distanza: a piedi fino
+a `VITE_WALK_ONLY_MAX_METERS` (5 km), **in bicicletta** oltre — stesso percorso, etichetta
+«In bicicletta, fuori rete», tempo stimato alla velocità della bicicletta. La scelta viene
+rifatta **dopo** la rifinitura sulle strade: quattro chilometri e mezzo in linea d’aria che
+ne diventano sette di strade non sono più una camminata, e il percorso lo dichiara.
+
+Anche sulla mappa il mezzo ora si vede. I collegamenti fuori rete restano tratteggiati —
+non sono percorsi calcolati sui dati del progetto — ma quelli **a piedi** sono un punteggiato
+viola sottile, quelli **da pedalare** trattini lunghi e linea più spessa, nel grigio della
+viabilità ordinaria. Da Cattolica la rete del progetto è a quasi dieci chilometri: quel
+raccordo il calcolo lo considerava pedalato da sempre, ma finché portava il colore del
+cammino la mappa raccontava il contrario, e sembrava una camminata di due ore.
+
+**Quando in bicicletta non si passa, resta il collegamento diretto.** Se fra i due punti i dati non
 contengono nessuna strada percorribile — due tratti di rete scollegati, un senso unico che
 chiude l’unico sbocco, un capo isolato — il calcolo non risponde più con un messaggio e una
 mappa vuota: restituisce il cammino diretto, dichiarato per quello che è e **senza tetto di

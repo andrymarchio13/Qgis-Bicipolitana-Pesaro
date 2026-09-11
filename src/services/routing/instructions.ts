@@ -387,10 +387,13 @@ export function routeRationale(route: Route): string {
   if (route.isVariant) {
     return 'Un’altra strada per lo stesso viaggio: evita i tratti già proposti sopra.';
   }
-  // Il percorso a piedi non nasce da un criterio di calcolo: nasce dal fatto
+  // Il percorso diretto non nasce da un criterio di calcolo: nasce dal fatto
   // che fra questi due punti la rete non passa, e dirlo e' la sua ragione.
   if (route.onFoot) {
     return 'Fra questi due punti la rete del progetto obbliga a un lungo giro: a piedi la distanza è quella diretta.';
+  }
+  if (route.direct) {
+    return 'Collegamento diretto fuori dalla rete del progetto: troppo lungo per farlo a piedi, il tempo è stimato in bicicletta.';
   }
   switch (route.profile) {
     case 'fast':
@@ -417,14 +420,13 @@ export function connectorSummary(
   const connectors = route.segments.filter((segment) => segment.kind === 'piedi');
   if (connectors.length === 0) return null;
 
-  // Il percorso interamente a piedi non ha raccordi: e' tutto cammino, e
-  // chiamarlo "collegamento" lo farebbe sembrare un pezzo di qualcos'altro.
-  if (route.onFoot) {
-    return {
-      meters: connectors.reduce((sum, segment) => sum + segment.distanceMeters, 0),
-      icon: '🚶',
-      label: 'a piedi, fuori dalla rete',
-    };
+  // Il percorso diretto non ha raccordi: e' tutto fuori rete, e chiamarlo
+  // "collegamento" lo farebbe sembrare un pezzo di qualcos'altro.
+  if (route.direct) {
+    const meters = connectors.reduce((sum, segment) => sum + segment.distanceMeters, 0);
+    return route.onFoot
+      ? { meters, icon: '🚶', label: 'a piedi, fuori dalla rete' }
+      : { meters, icon: '🚲', label: 'in bicicletta, fuori dalla rete' };
   }
 
   const meters = connectors.reduce((sum, segment) => sum + segment.distanceMeters, 0);

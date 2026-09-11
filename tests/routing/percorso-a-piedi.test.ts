@@ -9,12 +9,19 @@
  */
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import { WALK_ONLY_MAX_METERS, WALK_ONLY_MIN_DETOUR } from '../../src/config';
+import {
+  CONNECTOR_RIDE_COLOR,
+  CYCLING_SPEED_KMH,
+  WALKING_SPEED_KMH,
+  WALK_COLOR,
+  WALK_ONLY_MAX_METERS,
+  WALK_ONLY_MIN_DETOUR,
+} from '../../src/config';
 import { RoutingGraphIndex } from '../../src/services/routing/graph';
 import {
   BicipolitanaRouter,
   orderRoutes,
-  walkOnlyRoute,
+  directRoute,
 } from '../../src/services/routing/router';
 import { connectorSummary, routeRationale } from '../../src/services/routing/instructions';
 import type { Line, Route } from '../../src/types';
@@ -139,7 +146,7 @@ describe('quando la proposta a piedi non serve', () => {
   });
 
   it('non propone un percorso per due punti che coincidono', () => {
-    expect(walkOnlyRoute([12.9, 43.9], [12.9, 43.9], null)).toBeNull();
+    expect(directRoute([12.9, 43.9], [12.9, 43.9], null)).toBeNull();
   });
 });
 
@@ -215,19 +222,19 @@ describe('ordine delle proposte', () => {
      * proprio il confronto che non si puo’ fare.
      */
     const bici = percorso({ id: 'bici', distanceMeters: 3100, walkingMeters: 2350, durationSeconds: 900 });
-    const piedi = percorso({ id: 'piedi', profile: 'piedi', onFoot: true, distanceMeters: 1820, walkingMeters: 1820, durationSeconds: 1380 });
+    const piedi = percorso({ id: 'piedi', profile: 'piedi', direct: true, onFoot: true, distanceMeters: 1820, walkingMeters: 1820, durationSeconds: 1380 });
     expect(orderRoutes([bici, piedi]).map((r) => r.id)).toEqual(['piedi', 'bici']);
   });
 
   it('mette il cammino dietro quando pedalare costa meno tempo sulla rete', () => {
     const bici = percorso({ id: 'bici', distanceMeters: 4400, walkingMeters: 0, durationSeconds: 1080 });
-    const piedi = percorso({ id: 'piedi', profile: 'piedi', onFoot: true, distanceMeters: 2700, walkingMeters: 2700, durationSeconds: 2040 });
+    const piedi = percorso({ id: 'piedi', profile: 'piedi', direct: true, onFoot: true, distanceMeters: 2700, walkingMeters: 2700, durationSeconds: 2040 });
     expect(orderRoutes([bici, piedi]).map((r) => r.id)).toEqual(['bici', 'piedi']);
   });
 
   it('mette il cammino davanti quando il giro in bicicletta costa piu’ tempo', () => {
     const bici = percorso({ id: 'bici', distanceMeters: 11900, walkingMeters: 240, durationSeconds: 2880 });
-    const piedi = percorso({ id: 'piedi', profile: 'piedi', onFoot: true, distanceMeters: 2485, walkingMeters: 2485, durationSeconds: 1860 });
+    const piedi = percorso({ id: 'piedi', profile: 'piedi', direct: true, onFoot: true, distanceMeters: 2485, walkingMeters: 2485, durationSeconds: 1860 });
     expect(orderRoutes([bici, piedi]).map((r) => r.id)).toEqual(['piedi', 'bici']);
   });
 
@@ -244,11 +251,68 @@ describe('ordine delle proposte', () => {
      * strade reali ne dichiara ottanta, e l’ordine di prima non descrive piu’
      * i percorsi che si stanno mostrando.
      */
-    const piedi = percorso({ id: 'piedi', profile: 'piedi', onFoot: true, distanceMeters: 2200, walkingMeters: 2200, durationSeconds: 1650 });
+    const piedi = percorso({ id: 'piedi', profile: 'piedi', direct: true, onFoot: true, distanceMeters: 2200, walkingMeters: 2200, durationSeconds: 1650 });
     const prima = percorso({ id: 'bici', distanceMeters: 3100, walkingMeters: 2350, durationSeconds: 900 });
     const dopo = { ...prima, distanceMeters: 6000, walkingMeters: 5250, durationSeconds: 4860 };
     expect(orderRoutes([prima, piedi]).map((r) => r.id)).toEqual(['piedi', 'bici']);
     expect(orderRoutes([dopo, piedi]).map((r) => r.id)).toEqual(['piedi', 'bici']);
     expect(orderRoutes([dopo, piedi])[0].durationSeconds).toBeLessThan(dopo.durationSeconds);
+  });
+});
+
+describe('fin dove si va a piedi', () => {
+  /*
+   * Un cammino di qualche chilometro e' una cosa che si fa; uno di dodici no.
+   * Oltre la soglia il collegamento diretto resta, ma dichiarato per come si
+   * percorre davvero — altrimenti la mappa mostra una camminata di due ore e
+   * mezza che nessuno farebbe.
+   */
+  const lontano = (metri: number): [number, number] => [12.9 + metri / 81400, 43.9];
+
+  it('a qualche chilometro il collegamento diretto si fa a piedi', () => {
+    const route = directRoute([12.9, 43.9], lontano(3000), null) as Route;
+    expect(route.onFoot).toBe(true);
+    expect(route.direct).toBe(true);
+    expect(route.profileLabel).toBe('A piedi');
+    expect(route.segments.every((s) => s.transport === 'piedi')).toBe(true);
+    expect(route.segments[0].color).toBe(WALK_COLOR);
+    expect(route.durationSeconds).toBeCloseTo(
+      (route.distanceMeters / 1000 / WALKING_SPEED_KMH) * 3600,
+      -1,
+    );
+  });
+
+  it('oltre la soglia lo stesso collegamento si pedala', () => {
+    const route = directRoute([12.9, 43.9], lontano(WALK_ONLY_MAX_METERS + 3000), null) as Route;
+    expect(route.direct).toBe(true);
+    expect(route.onFoot).toBeUndefined();
+    expect(route.profileLabel).toMatch(/bicicletta/i);
+    expect(route.segments.every((s) => s.transport === 'bici')).toBe(true);
+    // Colore diverso da quello del cammino: sulla mappa non deve sembrare una
+    // camminata di due ore.
+    expect(route.segments[0].color).toBe(CONNECTOR_RIDE_COLOR);
+    expect(route.segments[0].color).not.toBe(WALK_COLOR);
+    expect(route.durationSeconds).toBeCloseTo(
+      (route.distanceMeters / 1000 / CYCLING_SPEED_KMH) * 3600,
+      -1,
+    );
+    expect(route.instructions[0].text).toMatch(/Pedala/);
+    expect(route.instructions[0].transport).toBe('bici');
+  });
+
+  it('anche i raccordi lunghi si distinguono da quelli a piedi', () => {
+    /*
+     * Da Cattolica la rete del progetto e' a quasi dieci chilometri: quel
+     * raccordo il calcolo lo considera pedalato da sempre, ma finche' portava
+     * il colore del cammino la mappa raccontava il contrario.
+     */
+    const routes = router.route({ origin: [12.7386, 43.9631], destination: PLACES.piazzaleLiberta });
+    const raccordi = routes[0].segments.filter((s) => s.kind === 'piedi');
+    expect(raccordi.length).toBeGreaterThan(0);
+    for (const raccordo of raccordi) {
+      const atteso = raccordo.transport === 'bici' ? CONNECTOR_RIDE_COLOR : WALK_COLOR;
+      expect(raccordo.color).toBe(atteso);
+    }
+    expect(raccordi.some((s) => s.transport === 'bici')).toBe(true);
   });
 });

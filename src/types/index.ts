@@ -308,12 +308,14 @@ export interface LightingSpan {
 export interface Route {
   id: string;
   /**
-   * Il criterio con cui il percorso e' stato calcolato. `piedi` non e' un
-   * profilo del grafo ciclabile: e' il percorso diretto fra i due punti, che
-   * nasce quando la rete coperta dai dati obbligherebbe a un giro molto piu'
-   * lungo della distanza reale.
+   * Il criterio con cui il percorso e' stato calcolato. `piedi` e `diretto`
+   * non sono profili del grafo ciclabile: sono il percorso diretto fra i due
+   * punti, che nasce quando la rete coperta dai dati obbligherebbe a un giro
+   * molto piu' lungo della distanza reale, o non li collega affatto. Fra i due
+   * decide la distanza: oltre qualche chilometro quel collegamento non lo fa
+   * nessuno a piedi.
    */
-  profile: RoutingProfileId | 'piedi';
+  profile: RoutingProfileId | 'piedi' | 'diretto';
   profileLabel: string;
   profileIcon: string;
   distanceMeters: number;
@@ -346,11 +348,19 @@ export interface Route {
    */
   isVariant?: boolean;
   /**
-   * true per il percorso interamente a piedi fra i due punti, calcolato senza
-   * passare dalla rete del progetto. Non ha tratti pedalati: l'interfaccia lo
-   * presenta come un'alternativa alla bicicletta, non come un raccordo.
+   * true per il percorso diretto fra i due punti, calcolato senza passare
+   * dalla rete del progetto. L'interfaccia lo presenta come l'altro modo di
+   * fare lo stesso viaggio, non come un raccordo.
+   */
+  direct?: true;
+  /**
+   * true quando quel percorso diretto si percorre a piedi. Oltre qualche
+   * chilometro no: resta diretto, ma si pedala, e chiamarlo cammino
+   * descriverebbe un viaggio che nessuno farebbe.
    */
   onFoot?: true;
+  /** Nome della destinazione, quando il percorso diretto lo conosce. */
+  destinationLabel?: string | null;
   /**
    * true per i percorsi ripristinati da un file salvato invece che calcolati
    * ora. L'interfaccia deve dirlo: la rete puo' essere cambiata dopo il

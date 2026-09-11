@@ -415,9 +415,16 @@ export function MapView({
         },
       });
       /*
-       * Tratti a piedi: collegano il punto scelto alla rete coperta dai dati.
-       * Tratteggio tondo e colore neutro perche' non sono un percorso
-       * calcolato ma un collegamento in linea d'aria.
+       * Collegamenti fuori rete: uniscono il punto scelto alla rete coperta dai
+       * dati, o direttamente i due punti quando la rete non li collega. Restano
+       * tratteggiati perche' non sono percorsi calcolati sui dati del progetto,
+       * ma il tratteggio dice anche come si percorrono.
+       *
+       * A piedi: punteggiato tondo e fitto, sottile — il passo.
+       * In bicicletta: trattini lunghi e linea piu' spessa, del grigio della
+       * viabilita' ordinaria. Con lo stesso punteggiato di prima un raccordo di
+       * dodici chilometri sembrava una camminata di due ore, che non e' cio'
+       * che il calcolo dice ne' cio' che qualcuno farebbe.
        */
       instance.addLayer({
         id: 'route-walk-casing',
@@ -427,19 +434,39 @@ export function MapView({
         layout: { 'line-cap': 'round', 'line-join': 'round' },
         paint: {
           'line-color': '#ffffff',
-          'line-width': ['interpolate', ['linear'], ['zoom'], 11, 7, 16, 11],
+          'line-width': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            11,
+            ['case', ['==', ['get', 'transport'], 'bici'], 9, 7],
+            16,
+            ['case', ['==', ['get', 'transport'], 'bici'], 14, 11],
+          ],
         },
       });
       instance.addLayer({
         id: 'route-walk',
         type: 'line',
         source: SOURCE.route,
-        filter: ['==', ['get', 'mode'], 'piedi'],
+        filter: ['all', ['==', ['get', 'mode'], 'piedi'], ['!=', ['get', 'transport'], 'bici']],
         layout: { 'line-cap': 'round', 'line-join': 'round' },
         paint: {
           'line-color': ['get', 'color'],
           'line-width': ['interpolate', ['linear'], ['zoom'], 11, 3.5, 16, 6],
           'line-dasharray': [0, 1.9],
+        },
+      });
+      instance.addLayer({
+        id: 'route-ride',
+        type: 'line',
+        source: SOURCE.route,
+        filter: ['all', ['==', ['get', 'mode'], 'piedi'], ['==', ['get', 'transport'], 'bici']],
+        layout: { 'line-cap': 'butt', 'line-join': 'round' },
+        paint: {
+          'line-color': ['get', 'color'],
+          'line-width': ['interpolate', ['linear'], ['zoom'], 11, 4.5, 16, 9],
+          'line-dasharray': [2.2, 1.4],
         },
       });
       // Tratteggio bianco che scorre nel verso di marcia: mostra la direzione
@@ -900,6 +927,10 @@ export function MapView({
                 color: segment.color,
                 lineId: segment.lineId,
                 mode: segment.kind,
+                // Un collegamento fuori rete lungo chilometri si pedala, e la
+                // mappa deve dirlo: con il punteggiato del cammino sembrava
+                // una camminata di due ore.
+                transport: segment.transport ?? 'piedi',
                 index: i,
               },
               geometry: { type: 'LineString' as const, coordinates: segment.coordinates },

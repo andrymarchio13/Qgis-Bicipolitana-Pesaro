@@ -6,7 +6,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { WALK_ONLY_MAX_METERS } from '../../src/config';
+import { WALKING_SPEED_KMH, WALK_ONLY_MAX_METERS } from '../../src/config';
 import { attachEndpoints, isWalkEdge } from '../../src/services/routing/attach';
 import { RoutingGraphIndex } from '../../src/services/routing/graph';
 import { BicipolitanaRouter } from '../../src/services/routing/router';
@@ -132,11 +132,13 @@ describe('rete non connessa', () => {
     }
   });
 
-  it('lo restituisce a qualsiasi distanza, senza il tetto delle proposte', () => {
+  it('lo restituisce a qualsiasi distanza, ma oltre i chilometri si pedala', () => {
     /*
-     * Il tetto dei cinque chilometri vale per il cammino proposto *accanto* a
-     * un percorso ciclabile che esiste. Qui non esiste: meglio un cammino
-     * lungo, con la sua distanza scritta, che un messaggio e una mappa vuota.
+     * Il collegamento diretto non ha tetto: meglio un percorso lungo, con la
+     * sua distanza scritta, che un messaggio e una mappa vuota. Ma oltre
+     * qualche chilometro non e' piu' un cammino — nessuno farebbe otto
+     * chilometri a piedi per raggiungere una ciclabile — e viene dichiarato
+     * per come si percorre: in bicicletta, fuori dalla rete.
      */
     const lontano: [number, number] = [
       nodes[NODI_SCONNESSO.B_FINE][0] + 0.1,
@@ -148,8 +150,14 @@ describe('rete non connessa', () => {
       profiles: ['fast'],
     });
     expect(routes).toHaveLength(1);
-    expect(routes[0].onFoot).toBe(true);
+    expect(routes[0].direct).toBe(true);
     expect(routes[0].distanceMeters).toBeGreaterThan(WALK_ONLY_MAX_METERS);
+    expect(routes[0].onFoot).toBeUndefined();
+    expect(routes[0].segments.every((s) => s.transport === 'bici')).toBe(true);
+    // Il tempo segue il mezzo dichiarato: a velocita' di cammino sarebbero ore.
+    expect(routes[0].durationSeconds).toBeLessThan(
+      (routes[0].distanceMeters / 1000 / WALKING_SPEED_KMH) * 3600,
+    );
   });
 
   it('calcola invece il percorso interno a un singolo tratto', () => {
