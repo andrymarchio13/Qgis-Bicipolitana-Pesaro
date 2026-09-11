@@ -6,9 +6,10 @@
  */
 import { describe, expect, it } from 'vitest';
 
+import { WALK_ONLY_MAX_METERS } from '../../src/config';
 import { attachEndpoints, isWalkEdge } from '../../src/services/routing/attach';
 import { RoutingGraphIndex } from '../../src/services/routing/graph';
-import { BicipolitanaRouter, RoutingError } from '../../src/services/routing/router';
+import { BicipolitanaRouter } from '../../src/services/routing/router';
 import type { RoutingGraph } from '../../src/types';
 import { haversine, lineLength, projectOnLine } from '../../src/utils/geo';
 import {
@@ -109,19 +110,46 @@ describe('rete non connessa', () => {
   const router = routerSu(GRAFO_SCONNESSO);
   const { nodes } = GRAFO_SCONNESSO;
 
-  it('non inventa un percorso fra due tratti scollegati', () => {
-    try {
-      router.route({
-        origin: nodes[NODI_SCONNESSO.A_INIZIO],
-        destination: nodes[NODI_SCONNESSO.B_FINE],
-        profiles: ['bicipolitana', 'fast'],
-      });
-      throw new Error('doveva fallire');
-    } catch (error) {
-      expect(error).toBeInstanceOf(RoutingError);
-      expect((error as RoutingError).code).toBe('no-path');
-      expect((error as RoutingError).message).not.toMatch(/undefined|NaN/);
+  it('non inventa un percorso ciclabile fra due tratti scollegati', () => {
+    const routes = router.route({
+      origin: nodes[NODI_SCONNESSO.A_INIZIO],
+      destination: nodes[NODI_SCONNESSO.B_FINE],
+      profiles: ['bicipolitana', 'fast'],
+    });
+
+    /*
+     * Fra i due tratti non esiste una strada percorribile, e il router non se
+     * ne inventa una: quello che restituisce e' il cammino diretto, tutto
+     * dichiarato a piedi e senza un metro di rete.
+     */
+    expect(routes).toHaveLength(1);
+    expect(routes[0].onFoot).toBe(true);
+    expect(routes[0].segments.every((s) => s.kind === 'piedi')).toBe(true);
+    expect(routes[0].bicipolitanaMeters).toBe(0);
+    expect(routes[0].linesUsed).toHaveLength(0);
+    for (const instruction of routes[0].instructions) {
+      expect(instruction.text).not.toMatch(/undefined|NaN|null/);
     }
+  });
+
+  it('lo restituisce a qualsiasi distanza, senza il tetto delle proposte', () => {
+    /*
+     * Il tetto dei cinque chilometri vale per il cammino proposto *accanto* a
+     * un percorso ciclabile che esiste. Qui non esiste: meglio un cammino
+     * lungo, con la sua distanza scritta, che un messaggio e una mappa vuota.
+     */
+    const lontano: [number, number] = [
+      nodes[NODI_SCONNESSO.B_FINE][0] + 0.1,
+      nodes[NODI_SCONNESSO.B_FINE][1],
+    ];
+    const routes = router.route({
+      origin: nodes[NODI_SCONNESSO.A_INIZIO],
+      destination: lontano,
+      profiles: ['fast'],
+    });
+    expect(routes).toHaveLength(1);
+    expect(routes[0].onFoot).toBe(true);
+    expect(routes[0].distanceMeters).toBeGreaterThan(WALK_ONLY_MAX_METERS);
   });
 
   it('calcola invece il percorso interno a un singolo tratto', () => {

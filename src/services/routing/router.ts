@@ -848,9 +848,24 @@ export class BicipolitanaRouter {
     }
 
     if (results.length === 0) {
+      /*
+       * Nessun percorso ciclabile fra i due punti: i dati non contengono una
+       * strada percorribile che li unisca — due tratti di rete scollegati fra
+       * loro, un senso unico che chiude l'unico sbocco, un capo isolato.
+       *
+       * Dirlo e basta lascia chi guarda davanti a una mappa vuota e a un
+       * messaggio, che non e' una risposta alla domanda "come ci arrivo".
+       * Fra due punti a piedi si passa quasi sempre, e quel cammino il
+       * progetto puo' mostrarlo: dichiarato per quello che e', senza tetto di
+       * distanza — se sono dieci chilometri il percorso lo dice, e chi guarda
+       * decide. Il tetto dei cinque chilometri vale per la proposta a piedi
+       * messa *accanto* a un percorso ciclabile che esiste: qui non esiste.
+       */
+      const ripiego = walkOnlyRoute(origin, destination, request.destinationLabel ?? null);
+      if (ripiego) return [ripiego];
       throw new RoutingError(
         'no-path',
-        'Non è stato trovato un percorso ciclabile fra i due punti con i dati disponibili.',
+        'Non è stato trovato un percorso fra i due punti con i dati disponibili.',
       );
     }
 

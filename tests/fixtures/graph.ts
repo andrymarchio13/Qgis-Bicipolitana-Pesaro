@@ -147,8 +147,9 @@ export const NODI_SENSO_UNICO = { SUD: 0, NORD: 1, EST: 2 } as const;
 
 /**
  * Due tratti vicini (circa 400 m) ma non collegati fra loro: entrambi gli
- * estremi si agganciano al grafo, eppure nessun percorso li unisce. E' il caso
- * che deve dare `no-path` invece di un percorso inventato.
+ * estremi si agganciano al grafo, eppure nessun percorso ciclabile li unisce.
+ * E' il caso in cui il router non deve inventare una strada che non c'e': la
+ * risposta e' il cammino diretto, dichiarato per quello che e'.
  */
 export const GRAFO_SCONNESSO = grafoSintetico(
   [

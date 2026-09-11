@@ -508,6 +508,16 @@ triplica la distanza reale riesce così a dichiarare *meno* minuti di una cammin
 evitare. Dove invece la rete c’è e semplicemente gira, i minuti sono confrontabili e
 decidono loro: il cammino passa davanti solo se costa meno tempo.
 
+**Quando in bicicletta non si passa, resta il cammino.** Se fra i due punti i dati non
+contengono nessuna strada percorribile — due tratti di rete scollegati, un senso unico che
+chiude l’unico sbocco, un capo isolato — il calcolo non risponde più con un messaggio e una
+mappa vuota: restituisce il cammino diretto, dichiarato per quello che è e **senza tetto di
+distanza**. Il limite dei cinque chilometri vale per il cammino proposto *accanto* a un
+percorso ciclabile che esiste; qui non esiste, e un cammino lungo con la sua distanza
+scritta è più utile di un errore. Resta invece il messaggio per i punti oltre
+`VITE_WALK_SNAP_MAX_DISTANCE_METERS` (40 km dalla rete): lì il progetto non ha dati di alcun
+tipo, e una retta su un territorio che non conosce non sarebbe un percorso.
+
 **Il cammino segue le strade, non i campi.** Come i raccordi, il percorso a piedi viene
 ridisegnato sulla rete pedonale OSM (`VITE_WALK_ROUTING_URL`): fra Borgo Santa Maria e Case
 Bruciate la linea d’aria è 1,8 km e il tracciato reale 3,4 km lungo Strada della Selva
