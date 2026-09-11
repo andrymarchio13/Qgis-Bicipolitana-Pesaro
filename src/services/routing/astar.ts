@@ -5,7 +5,11 @@
  * teorica raggiungibile: cosi' non sovrastima mai il costo residuo e il
  * risultato resta ottimo (euristica ammissibile).
  */
-import { BUSY_ROAD_PENALTY_FACTOR, DANGER_BOOST } from '../../config';
+import {
+  BUSY_ROAD_ESCAPE_METERS,
+  BUSY_ROAD_PENALTY_FACTOR,
+  DANGER_BOOST,
+} from '../../config';
 import type { GraphEdge, LngLat, RoutingProfile } from '../../types';
 import { haversine } from '../../utils/geo';
 import { isBusyRoad } from './busy';
@@ -14,7 +18,10 @@ import type { AdjacencyEntry, RoutingGraphView } from './graph';
 /**
  * Come trattare statali, provinciali e grandi arterie urbane.
  *
- *   - `forbid`   non si percorrono: il percorso o esiste senza, o non esiste;
+ *   - `forbid`   non si percorrono, salvo il margine di uscita attorno ai due
+ *                capi del viaggio (`BUSY_ROAD_ESCAPE_METERS`): chi abita sulla
+ *                statale ci si immette comunque, ma in mezzo al percorso
+ *                resta vietata;
  *   - `penalise` si possono percorrere, a un costo che le rende l'ultima
  *                risorsa e ne riduce i metri al minimo;
  *   - assente    nessun trattamento a parte, oltre al peso della sicurezza.
@@ -149,6 +156,11 @@ export interface AStarOptions {
   penaltyFactor?: number;
   /** Trattamento delle strade a traffico intenso. */
   busyRoads?: BusyRoadPolicy;
+  /**
+   * Raggio del margine di uscita attorno ai due capi del viaggio, quando le
+   * strade a traffico intenso sono vietate.
+   */
+  busyEscapeMeters?: number;
   /** Limite di sicurezza sui nodi esplorati. */
   maxVisited?: number;
 }
@@ -163,13 +175,25 @@ export function findPath(
   const penalised = options.penalisedEdges;
   const penaltyFactor = options.penaltyFactor ?? 3;
   const busyRoads = options.busyRoads;
+  const busyEscape = options.busyEscapeMeters ?? BUSY_ROAD_ESCAPE_METERS;
   const maxVisited = options.maxVisited ?? index.nodes.length * 4;
 
   if (start === goal) return { steps: [], totalCost: 0, visitedNodes: 0 };
 
   const speed = maxSpeedMetersPerSecond(profile, cyclingSpeedKmh);
+  const startPoint: LngLat = index.nodes[start];
   const goalPoint: LngLat = index.nodes[goal];
   const heuristic = (node: number): number => haversine(index.nodes[node], goalPoint) / speed;
+
+  /*
+   * Il margine di uscita: una strada vietata resta percorribile solo a ridosso
+   * di un capo del viaggio. Serve a chi parte o arriva sulla statale stessa,
+   * senza che quel permesso si estenda al resto del percorso — dove la statale
+   * non e' la strada di casa di nessuno, e' solo la piu' diretta.
+   */
+  const nearTerminal = (node: number): boolean =>
+    haversine(index.nodes[node], startPoint) <= busyEscape ||
+    haversine(index.nodes[node], goalPoint) <= busyEscape;
 
   const gScore = new Float64Array(index.nodes.length).fill(Number.POSITIVE_INFINITY);
   const cameFrom = new Int32Array(index.nodes.length).fill(-1);
@@ -217,11 +241,17 @@ export function findPath(
     for (const entry of neighbours) {
       if (closed[entry.to]) continue;
       const busy = busyRoads !== undefined && isBusyRoad(entry.edge);
-      // Vietata vuol dire vietata: l'arco non entra proprio nella ricerca, e
-      // il percorso o si costruisce senza statali o non si costruisce.
-      if (busy && busyRoads === 'forbid') continue;
+      // Vietata vuol dire vietata: l'arco non entra proprio nella ricerca. Lo
+      // fa solo se entrambi i suoi estremi stanno a ridosso di un capo del
+      // viaggio, cioe' quando e' l'unico modo di entrare in rete o di
+      // arrivare a destinazione.
+      const escape =
+        busy && busyRoads === 'forbid' && nearTerminal(current) && nearTerminal(entry.to);
+      if (busy && busyRoads === 'forbid' && !escape) continue;
       let cost = edgeCost(entry.edge, profile, lineAt[current]);
-      if (busy && busyRoads === 'penalise') cost *= BUSY_ROAD_PENALTY_FACTOR;
+      // Anche dentro il margine la statale resta l'ultima scelta: il permesso
+      // serve a poter uscire di casa, non a guadagnare una scorciatoia.
+      if (busy && (escape || busyRoads === 'penalise')) cost *= BUSY_ROAD_PENALTY_FACTOR;
       if (penalised?.has(entry.edge.i)) cost *= penaltyFactor;
 
       const tentative = gScore[current] + cost;

@@ -322,6 +322,50 @@ export const BUSY_ROAD_WARNING_METERS = num(env.VITE_BUSY_ROAD_WARNING_METERS, 1
 export const BUSY_ROAD_PENALTY_FACTOR = num(env.VITE_BUSY_ROAD_PENALTY, 12);
 
 /**
+ * Quanto vicino a un capo del viaggio una strada a traffico intenso resta
+ * percorribile anche quando e' vietata.
+ *
+ * Chi abita sulla Statale 746 ci si immette comunque: e' la strada di casa, e
+ * un percorso che si rifiuta di partire non aiuta nessuno. Senza questo
+ * margine l'unico modo di rispondergli era riaprire le statali per l'intero
+ * percorso, e allora ne uscivano chilometri di corridoio — la segnalazione da
+ * cui e' nato questo parametro: 1675 m di SS746 fra Chiusa di Ginestreto e
+ * Villa Fastiggi, un tratto che nessuno percorrerebbe in bicicletta.
+ *
+ * Il margine vale solo attorno all'origine e alla destinazione: in mezzo al
+ * viaggio la statale resta vietata, perche' li' non e' la strada di casa di
+ * nessuno, e' solo la piu' diretta.
+ */
+export const BUSY_ROAD_ESCAPE_METERS = num(env.VITE_BUSY_ROAD_ESCAPE_METERS, 150);
+
+/**
+ * Margine di uscita allargato, per i punti che sulla rete ordinaria non hanno
+ * proprio nessuno sbocco.
+ *
+ * A Chiusa di Ginestreto il nodo della rete non ha un solo arco che non sia la
+ * Statale 746: l'estratto dei dati finisce li'. Con il margine normale il
+ * percorso non esisterebbe, e l'unica risposta sarebbe riaprire le statali per
+ * tutto il viaggio — cioe' ritrovarsele anche in mezzo, dove un'alternativa
+ * c'era. Allargare l'uscita invece che togliere il divieto tiene la statale
+ * confinata ai primi metri, quelli che non si possono evitare.
+ */
+export const BUSY_ROAD_ESCAPE_MAX_METERS = num(env.VITE_BUSY_ROAD_ESCAPE_MAX_METERS, 2500);
+
+/**
+ * I margini di uscita provati in ordine, dal piu' stretto.
+ *
+ * Si allarga solo quando il percorso non esiste, e ci si ferma al primo che
+ * funziona: un punto che ha uno sbocco a cento metri non deve ricevere il
+ * permesso di percorrere due chilometri di statale solo perche' un altro punto
+ * altrimenti resterebbe irraggiungibile.
+ */
+export const BUSY_ROAD_ESCAPE_LADDER: readonly number[] = [
+  BUSY_ROAD_ESCAPE_METERS,
+  BUSY_ROAD_ESCAPE_METERS * 4,
+  BUSY_ROAD_ESCAPE_MAX_METERS,
+].filter((metri, indice, tutti) => indice === 0 || metri > tutti[indice - 1]);
+
+/**
  * Profili di calcolo.
  *
  * Il costo di un arco parte dal tempo stimato e viene modulato da:

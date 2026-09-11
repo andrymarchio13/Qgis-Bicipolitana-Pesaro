@@ -361,19 +361,26 @@ essere `tertiary` quanto quella di una via di quartiere. Fanno eccezione i tratt
 ciclabile propria, fisicamente separata dalla carreggiata; una corsia dipinta a bordo
 strada no, perché lì si pedala comunque a fianco delle auto.
 
-Il router cerca poi il percorso **in due tempi**:
+Il router cerca poi il percorso **a gradini**, concedendo ogni volta il meno possibile:
 
-1. le strade marcate sono **vietate**: l’arco non entra proprio nella ricerca, e il
-   percorso o si costruisce senza o non si costruisce;
-2. solo se fra i due punti non esiste nessun’altra strada — succede sui ponti del Foglia
-   e sull’aggancio di qualche frazione — si ritenta permettendole al costo di
-   `VITE_BUSY_ROAD_PENALTY` (12×). Il percorso esiste, ne usa il minimo indispensabile, e
-   l’avviso `traffico` lo dichiara con i riferimenti delle strade toccate.
+1. le strade marcate sono **vietate**: l’arco non entra proprio nella ricerca. Fa
+   eccezione il **margine di uscita** (`VITE_BUSY_ROAD_ESCAPE_METERS`, 150 m) attorno
+   all’origine e alla destinazione — chi abita sulla Statale 746 ci si immette comunque —
+   e anche lì l’arco costa 12×, perché il permesso serve a uscire di casa, non a
+   guadagnare una scorciatoia;
+2. se il percorso non esiste, il margine si allarga (600 m, poi
+   `VITE_BUSY_ROAD_ESCAPE_MAX_METERS`, 2500 m) e ci si ferma al primo che funziona. Serve
+   ai punti che sulla rete ordinaria non hanno **nessuno** sbocco: a Chiusa di Ginestreto
+   il nodo del grafo non ha un solo arco che non sia la SS746, perché l’estratto dei dati
+   finisce lì. Allargare l’uscita invece di togliere il divieto tiene la statale confinata
+   ai primi metri, invece di riaprirla anche in mezzo al viaggio;
+3. ultima risorsa, permesse ovunque a 12× (`VITE_BUSY_ROAD_PENALTY`), con l’avviso
+   `traffico` che lo dichiara nominando le strade toccate.
 
-Sugli otto tragitti di prova di `tests/routing/strade-trafficate.test.ts` non resta un
-metro di SS746 o SP423; il massimo residuo su una qualunque strada a traffico intenso è
-226 m, sull’aggancio di Santa Maria Fabbrecce alla SS16, dove nei dati non esiste
-alternativa.
+La differenza che conta è fra i due casi: **attraversare** il corridoio non è più
+possibile, **uscirne** sì. Sugli otto tragitti di prova non resta un metro di SS746 o
+SP423, e il massimo residuo su una qualunque strada a traffico intenso è 226 m,
+sull’aggancio di Santa Maria Fabbrecce alla SS16.
 
 Il profilo Bicipolitana **non sceglie sempre la Bicipolitana**: se la destinazione è
 lontana dalla rete ufficiale, il costo di un lungo aggiramento supera quello del
@@ -658,6 +665,8 @@ Tutte facoltative: i default funzionano. Vedi [`.env.example`](.env.example).
 | `VITE_DANGER_BOOST` | 2 | quanto la penalità di pericolosità cresce più che proporzionalmente (0 = lineare) |
 | `VITE_BUSY_ROAD_WARNING_METERS` | 150 | metri su statali/provinciali oltre i quali il percorso lo dichiara |
 | `VITE_BUSY_ROAD_PENALTY` | 12 | quanto costa una statale quando è l’unico collegamento esistente |
+| `VITE_BUSY_ROAD_ESCAPE_METERS` | 150 | entro questo raggio dai capi del viaggio la statale resta percorribile |
+| `VITE_BUSY_ROAD_ESCAPE_MAX_METERS` | 2500 | margine massimo, per i punti che non hanno nessun altro sbocco |
 | `VITE_REROUTE_DISTANCE_THRESHOLD` | 45 | metri di scostamento prima del ricalcolo |
 | `VITE_REROUTE_DEBOUNCE_MS` | 4000 | attesa prima di ricalcolare |
 | `VITE_REROUTE_COOLDOWN_MS` | 8000 | attesa minima fra due ricalcoli consecutivi |

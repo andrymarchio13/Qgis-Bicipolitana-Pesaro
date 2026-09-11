@@ -11,6 +11,7 @@
  * piedi dichiarato, non con un percorso calcolato da un servizio terzo.
  */
 import {
+  BUSY_ROAD_ESCAPE_LADDER,
   BUSY_ROAD_WARNING_METERS,
   CONNECTOR_RIDE_THRESHOLD_METERS,
   CYCLING_SPEED_KMH,
@@ -566,6 +567,7 @@ export class BicipolitanaRouter {
       avoid: Iterable<number>,
       penaltyFactor: number,
       busyRoads: BusyRoadPolicy,
+      busyEscapeMeters?: number,
     ): { cycling: SearchStep[]; walk: WalkLegs } | null => {
       const penalisedEdges = new Set<number>([...preferredPenalty, ...avoid]);
       const found = findPath(graph, graph.origin.node, graph.destination.node, {
@@ -574,6 +576,7 @@ export class BicipolitanaRouter {
         penalisedEdges: penalisedEdges.size > 0 ? penalisedEdges : undefined,
         penaltyFactor: penalisedEdges.size > 0 ? penaltyFactor : undefined,
         busyRoads,
+        busyEscapeMeters,
       });
       if (!found || found.steps.length === 0) return null;
       const split = splitWalkLegs(found.steps);
@@ -581,22 +584,33 @@ export class BicipolitanaRouter {
     };
 
     /**
-     * Ricerca in due tempi rispetto alle strade a traffico intenso.
+     * Ricerca a gradini rispetto alle strade a traffico intenso.
      *
-     * Il primo tentativo le vieta del tutto: la Statale 746 e la Provinciale
-     * 423 non sono un itinerario ciclabile, e un progetto che le propone come
-     * tale non descrive un percorso che qualcuno farebbe davvero. Solo quando
-     * fra i due punti non esiste nessun'altra strada — succede sui ponti e
-     * verso alcune frazioni — si ritenta permettendole a caro prezzo, cosi' il
-     * percorso esiste, ne usa il minimo indispensabile, e l'avviso lo dichiara.
+     * La Statale 746 e la Provinciale 423 non sono un itinerario ciclabile, e
+     * un progetto che le propone come tale non descrive un percorso che
+     * qualcuno farebbe davvero. Quindi si parte dal divieto pieno, e ogni
+     * gradino successivo concede il meno possibile:
+     *
+     *   1. vietate, con il margine di uscita piu' stretto attorno ai due capi;
+     *   2. vietate, allargando il margine finche' il percorso non esiste: serve
+     *      ai punti che sulla rete ordinaria non hanno nessuno sbocco — a
+     *      Chiusa di Ginestreto il nodo del grafo non ha un solo arco che non
+     *      sia la SS746 — e tiene comunque la statale confinata ai primi metri,
+     *      invece di riaprirla per tutto il viaggio;
+     *   3. permesse ovunque a caro prezzo: l'ultima risorsa, quando fra i due
+     *      punti non esiste proprio nient'altro. L'avviso lo dichiara.
      */
     const search = (
       profileId: RoutingProfileId,
       avoid: Iterable<number>,
       penaltyFactor: number,
-    ): { cycling: SearchStep[]; walk: WalkLegs } | null =>
-      attempt(profileId, avoid, penaltyFactor, 'forbid') ??
-      attempt(profileId, avoid, penaltyFactor, 'penalise');
+    ): { cycling: SearchStep[]; walk: WalkLegs } | null => {
+      for (const margine of BUSY_ROAD_ESCAPE_LADDER) {
+        const trovato = attempt(profileId, avoid, penaltyFactor, 'forbid', margine);
+        if (trovato) return trovato;
+      }
+      return attempt(profileId, avoid, penaltyFactor, 'penalise');
+    };
 
     /** Registra un percorso se aggiunge davvero una strada diversa. */
     const accept = (

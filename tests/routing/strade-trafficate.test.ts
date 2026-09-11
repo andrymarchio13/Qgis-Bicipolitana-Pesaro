@@ -17,10 +17,12 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import {
+  BUSY_ROAD_ESCAPE_METERS,
   CYCLING_SPEED_KMH,
   MAX_ROUTE_ALTERNATIVES,
   ROUTING_PROFILES,
 } from '../../src/config';
+import { haversine } from '../../src/utils/geo';
 import { edgeCost, findPath } from '../../src/services/routing/astar';
 import { isBusyRoad } from '../../src/services/routing/busy';
 import { RoutingGraphIndex } from '../../src/services/routing/graph';
@@ -135,15 +137,17 @@ describe('esclusione delle statali e delle provinciali', () => {
     expect(riferimenti).toContain('SP423');
   });
 
-  it('il divieto e’ un divieto: non un metro, mai', () => {
+  it('col divieto attivo la statale resta solo a ridosso dei due capi', () => {
     /*
-     * Cercato con `busyRoads: 'forbid'`, un percorso o non contiene nemmeno un
-     * metro di strada a traffico intenso o non esiste. Il secondo caso e' reale
-     * — qui i due punti si agganciano al nodo piu' vicino, che a Cattabrighe o
-     * sulla Panoramica Ardizio e' sulla statale stessa — ed e' esattamente
-     * quello in cui il router ripiega sul tentativo a caro prezzo.
+     * Cercato con `busyRoads: 'forbid'`, un percorso puo' toccare una strada a
+     * traffico intenso solo dentro il margine di uscita attorno all'origine o
+     * alla destinazione: chi parte da un punto che sulla rete ordinaria non ha
+     * sbocco — a Cattabrighe, sulla Panoramica Ardizio, a Chiusa di Ginestreto
+     * — ci si immette comunque. In mezzo al viaggio no: li' la statale non e'
+     * la strada di casa di nessuno, e' solo la piu' diretta, ed e' il caso da
+     * cui e' nata la segnalazione.
      */
-    let senzaStatali = 0;
+    let percorsiTrovati = 0;
     for (const [nome, origine, destinazione] of TRAGITTI) {
       const a = index.nearestNode(origine, 2000);
       const b = index.nearestNode(destinazione, 2000);
@@ -154,13 +158,21 @@ describe('esclusione delle statali e delle provinciali', () => {
         busyRoads: 'forbid',
       });
       if (!risultato) continue;
-      senzaStatali += 1;
-      const trafficati = risultato.steps
-        .filter((passo) => isBusyRoad(passo.edge))
-        .reduce((somma, passo) => somma + passo.edge.d, 0);
-      expect(trafficati, `${nome}: ${Math.round(trafficati)} m di strade trafficate`).toBe(0);
+      percorsiTrovati += 1;
+      for (const passo of risultato.steps) {
+        if (!isBusyRoad(passo.edge)) continue;
+        const distanzaDaiCapi = Math.min(
+          ...passo.edge.g.map((punto) =>
+            Math.min(haversine(punto, index.nodes[a.nodeId]), haversine(punto, index.nodes[b.nodeId])),
+          ),
+        );
+        expect(
+          distanzaDaiCapi,
+          `${nome}: ${passo.edge.rf ?? passo.edge.n} percorsa a ${Math.round(distanzaDaiCapi)} m dai capi del viaggio`,
+        ).toBeLessThanOrEqual(BUSY_ROAD_ESCAPE_METERS);
+      }
     }
-    expect(senzaStatali, 'nessun tragitto percorribile senza statali').toBeGreaterThan(0);
+    expect(percorsiTrovati, 'nessun tragitto percorribile col divieto attivo').toBeGreaterThan(0);
   });
 
   it('quel che resta di statale e’ poco e dichiarato', () => {
