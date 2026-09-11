@@ -11,7 +11,6 @@
  * piedi dichiarato, non con un percorso calcolato da un servizio terzo.
  */
 import {
-  BUSY_HIGHWAY_CLASSES,
   BUSY_ROAD_WARNING_METERS,
   CONNECTOR_RIDE_THRESHOLD_METERS,
   CYCLING_SPEED_KMH,
@@ -40,8 +39,9 @@ import type {
 } from '../../types';
 import { summarizeSurfaces } from '../surface';
 import { haversine, lineLength } from '../../utils/geo';
-import { findPath, type SearchStep } from './astar';
+import { findPath, type BusyRoadPolicy, type SearchStep } from './astar';
 import { attachEndpoints, isWalkEdge } from './attach';
+import { busyRoadLabel, isBusyRoad } from './busy';
 import type { RoutingGraphIndex } from './graph';
 import { buildInstructions, buildSegments } from './instructions';
 
@@ -176,18 +176,24 @@ function collectWarnings(steps: RouteStep[]): RouteWarning[] {
     });
   }
   /*
-   * Strade a traffico intenso. Il calcolo le evita gia' quanto puo', ma nei
-   * dati alcune sono l'unico collegamento esistente — un ponte, un tratto di
-   * provinciale senza parallele — e in quel caso il percorso ci passa per
-   * forza. Dichiararlo e' l'unica risposta onesta: chi pedala decide se
-   * accettare quel tratto o cercarne un altro, invece di trovarsi la statale
-   * sotto le ruote.
+   * Strade a traffico intenso. Il calcolo prova prima a non toccarle affatto,
+   * ma nei dati alcune sono l'unico collegamento esistente — un ponte sul
+   * Foglia, un tratto di provinciale senza parallele — e in quel caso il
+   * percorso ci passa per forza. Dichiararlo e' l'unica risposta onesta: chi
+   * pedala decide se accettare quel tratto o cercarne un altro, invece di
+   * trovarsi la statale sotto le ruote.
    */
-  const busySteps = steps.filter((s) => BUSY_HIGHWAY_CLASSES.has(s.edge.hw ?? ''));
+  const busySteps = steps.filter((s) => isBusyRoad(s.edge));
   const busyMeters = busySteps.reduce((sum, s) => sum + s.distanceMeters, 0);
   if (busyMeters >= BUSY_ROAD_WARNING_METERS) {
-    // I nomi rendono l'avviso verificabile: senza, resta un'impressione.
-    const nomi = [...new Set(busySteps.map((s) => s.edge.n).filter((n): n is string => !!n))];
+    // I nomi rendono l'avviso verificabile: senza, resta un'impressione. Il
+    // riferimento amministrativo viene prima del nome della via, perche' "SS746"
+    // dice a colpo d'occhio di che strada si tratta.
+    const nomi = [
+      ...new Set(
+        busySteps.map((s) => busyRoadLabel(s.edge)).filter((n): n is string => !!n),
+      ),
+    ];
     const elenco = nomi.slice(0, 2).join(', ');
     const altre = nomi.length > 2 ? ` e altre ${nomi.length - 2}` : '';
     warnings.push({
@@ -195,7 +201,8 @@ function collectWarnings(steps: RouteStep[]): RouteWarning[] {
       message:
         `Il percorso segue ${Math.round(busyMeters)} m di strade a traffico intenso` +
         (elenco ? ` (${elenco}${altre})` : '') +
-        '. Il calcolo le evita quando puo’: qui sono la via piu’ diretta rimasta.',
+        '. Il calcolo le esclude sempre quando esiste un’alternativa: qui, nei ' +
+        'dati, non ne esiste nessuna.',
       location: busySteps[0].coordinates[0],
     });
   }
@@ -482,7 +489,7 @@ function overlap(a: SearchStep[], b: SearchStep[]): number {
 function busyMeters(steps: SearchStep[]): number {
   let meters = 0;
   for (const step of steps) {
-    if (BUSY_HIGHWAY_CLASSES.has(step.edge.hw ?? '')) meters += step.edge.d;
+    if (isBusyRoad(step.edge)) meters += step.edge.d;
   }
   return meters;
 }
@@ -554,10 +561,11 @@ export class BicipolitanaRouter {
      * altri percorsi: non sono vietati, solo resi piu' cari, altrimenti dove
      * la strada e' una sola non si troverebbe piu' nulla.
      */
-    const search = (
+    const attempt = (
       profileId: RoutingProfileId,
       avoid: Iterable<number>,
       penaltyFactor: number,
+      busyRoads: BusyRoadPolicy,
     ): { cycling: SearchStep[]; walk: WalkLegs } | null => {
       const penalisedEdges = new Set<number>([...preferredPenalty, ...avoid]);
       const found = findPath(graph, graph.origin.node, graph.destination.node, {
@@ -565,11 +573,30 @@ export class BicipolitanaRouter {
         cyclingSpeedKmh: CYCLING_SPEED_KMH,
         penalisedEdges: penalisedEdges.size > 0 ? penalisedEdges : undefined,
         penaltyFactor: penalisedEdges.size > 0 ? penaltyFactor : undefined,
+        busyRoads,
       });
       if (!found || found.steps.length === 0) return null;
       const split = splitWalkLegs(found.steps);
       return split.cycling.length > 0 ? split : null;
     };
+
+    /**
+     * Ricerca in due tempi rispetto alle strade a traffico intenso.
+     *
+     * Il primo tentativo le vieta del tutto: la Statale 746 e la Provinciale
+     * 423 non sono un itinerario ciclabile, e un progetto che le propone come
+     * tale non descrive un percorso che qualcuno farebbe davvero. Solo quando
+     * fra i due punti non esiste nessun'altra strada — succede sui ponti e
+     * verso alcune frazioni — si ritenta permettendole a caro prezzo, cosi' il
+     * percorso esiste, ne usa il minimo indispensabile, e l'avviso lo dichiara.
+     */
+    const search = (
+      profileId: RoutingProfileId,
+      avoid: Iterable<number>,
+      penaltyFactor: number,
+    ): { cycling: SearchStep[]; walk: WalkLegs } | null =>
+      attempt(profileId, avoid, penaltyFactor, 'forbid') ??
+      attempt(profileId, avoid, penaltyFactor, 'penalise');
 
     /** Registra un percorso se aggiunge davvero una strada diversa. */
     const accept = (

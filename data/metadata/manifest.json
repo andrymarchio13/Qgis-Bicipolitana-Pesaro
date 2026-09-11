@@ -1,6 +1,6 @@
 {
   "project": "Bicipolitana Pesaro",
-  "generatedAt": "2026-09-10T14:13:10+00:00",
+  "generatedAt": "2026-09-11T09:37:04+00:00",
   "pipeline": [
     {
       "step": "validate-gis.py",
@@ -24,7 +24,7 @@
     },
     {
       "step": "build-routing-graph.py",
-      "generatedAt": "2026-09-10T14:12:50+00:00",
+      "generatedAt": "2026-09-11T09:33:45+00:00",
       "nodes": 9335,
       "edges": 12674,
       "components": 1
@@ -82,12 +82,12 @@
     },
     {
       "file": "graph.json",
-      "bytes": 2300983,
-      "gzipBytes": 469303
+      "bytes": 2313079,
+      "gzipBytes": 470386
     }
   ],
-  "totalBytes": 2534772,
-  "totalGzipBytes": 507047,
+  "totalBytes": 2546868,
+  "totalGzipBytes": 508130,
   "notPublished": {
     "data/processed/strade_routing.geojson": "rete stradale completa: usata solo per costruire il grafo",
     "data/raw/*.gpkg": "dati GIS originali: conservati intatti nel repository, non serviti al browser",

@@ -308,6 +308,20 @@ export const BUSY_HIGHWAY_CLASSES = new Set([
 export const BUSY_ROAD_WARNING_METERS = num(env.VITE_BUSY_ROAD_WARNING_METERS, 150);
 
 /**
+ * Quanto costa un metro di strada a traffico intenso quando non se ne puo'
+ * fare a meno.
+ *
+ * Il calcolo prova prima a costruire il percorso **senza toccarle affatto**:
+ * la Statale 746 e la Provinciale 423 non sono un itinerario ciclabile, e
+ * proporle come tale rende finto tutto il resto. Solo se fra i due punti non
+ * esiste nessun'altra strada si ritenta permettendole a questo prezzo, che le
+ * rende l'ultima risorsa e ne riduce comunque i metri al minimo indispensabile
+ * — un ponte sul Foglia, l'innesto di una frazione — invece di lasciarle
+ * diventare il corridoio principale del percorso.
+ */
+export const BUSY_ROAD_PENALTY_FACTOR = num(env.VITE_BUSY_ROAD_PENALTY, 12);
+
+/**
  * Profili di calcolo.
  *
  * Il costo di un arco parte dal tempo stimato e viene modulato da:

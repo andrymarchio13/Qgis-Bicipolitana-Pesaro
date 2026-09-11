@@ -135,6 +135,14 @@ export interface GraphEdge {
   hw?: string;
   /** Nome della via. */
   n?: string;
+  /** Riferimento amministrativo della strada: `SS746`, `SP423`... */
+  rf?: string;
+  /**
+   * Strada a traffico intenso senza ciclabile propria: statale, provinciale o
+   * grande arteria urbana. Il calcolo del percorso la esclude finche' esiste
+   * un'alternativa. Marcata dalla pipeline, non dedotta qui.
+   */
+  bs?: 1;
   /** Tag `surface` OSM. */
   sf?: string;
   /** Fattore di velocita' della superficie. */

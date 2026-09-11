@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-10T14:12:50+00:00",
+  "generatedAt": "2026-09-11T09:33:45+00:00",
   "parameters": {
     "snapToleranceMeters": 5.0,
     "nearMissToleranceRoadToRoadMeters": 0.5,
@@ -1523,6 +1523,35 @@
       ]
     }
   ],
+  "busyRoads": {
+    "note": "strade a traffico intenso marcate bs=1: il router le evita finche' esiste un'alternativa",
+    "edges": 889,
+    "lengthKm": 68.59,
+    "byRef": {
+      "SS16": 16.43,
+      "Via Sandro Pertini": 8.35,
+      "SP44": 7.11,
+      "SS746": 5.88,
+      "SP60": 5.76,
+      "SP32": 4.72,
+      "Via Yuri Gagarin": 3.6,
+      "SP423": 3.57,
+      "SP25": 3.21,
+      "Via Solferino": 3.09,
+      "Via Amilcare Ponchielli": 1.66,
+      "senza riferimento": 1.6,
+      "Via Italo Bonino Bonini": 0.8,
+      "Via Enrico Berlinguer": 0.7,
+      "Strada Arnaldo Carloni": 0.56,
+      "Via Cesare Lombroso": 0.46,
+      "Via Santa Maria Fabbrecce": 0.29,
+      "Strada Pantano Castagni": 0.29,
+      "Via del Miralfiore": 0.18,
+      "Via Montegrappa": 0.14,
+      "Largo Ascoli Piceno": 0.13,
+      "Largo Tre Martiri": 0.07
+    }
+  },
   "obstacles": {
     "total": 31,
     "attachedToEdges": 29,

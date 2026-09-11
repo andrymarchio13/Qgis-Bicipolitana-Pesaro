@@ -17,12 +17,12 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import {
-  BUSY_HIGHWAY_CLASSES,
   CYCLING_SPEED_KMH,
   MAX_ROUTE_ALTERNATIVES,
   ROUTING_PROFILES,
 } from '../../src/config';
 import { edgeCost, findPath } from '../../src/services/routing/astar';
+import { isBusyRoad } from '../../src/services/routing/busy';
 import { RoutingGraphIndex } from '../../src/services/routing/graph';
 import { BicipolitanaRouter } from '../../src/services/routing/router';
 import type { Line, Route, RoutingProfileId } from '../../src/types';
@@ -64,7 +64,7 @@ function esposizione(profileId: RoutingProfileId): { trafficate: number; totali:
     if (!risultato) continue;
     for (const passo of risultato.steps) {
       totali += passo.edge.d;
-      if (BUSY_HIGHWAY_CLASSES.has(passo.edge.hw ?? '')) trafficate += passo.edge.d;
+      if (isBusyRoad(passo.edge)) trafficate += passo.edge.d;
     }
   }
   return { trafficate, totali };
@@ -113,6 +113,100 @@ describe('esposizione alle strade a traffico intenso', () => {
     // Con la penalita' lineare il rapporto era 1,24: una statale piu' corta
     // del 19% vinceva. Ora deve servire uno scarto molto piu' grande.
     expect(rapporto).toBeGreaterThan(1.6);
+  });
+});
+
+describe('esclusione delle statali e delle provinciali', () => {
+  /*
+   * Il grafo marca le strade a traffico intenso con `bs`, partendo dal
+   * riferimento amministrativo OSM. Prima che quel flag esistesse i percorsi
+   * infilavano la Statale 746 e la Provinciale 423 — il corridoio fra Villa
+   * Ceccolini e Villa Fastiggi — perche' erano solo "un po' piu' care": un
+   * itinerario che nessuno percorrerebbe in bicicletta.
+   */
+  it('il grafo marca davvero la SS746 e la SP423', () => {
+    const riferimenti = new Set(
+      graph()
+        .edges.filter((e) => isBusyRoad(e))
+        .map((e) => e.rf)
+        .filter((rf): rf is string => !!rf),
+    );
+    expect(riferimenti).toContain('SS746');
+    expect(riferimenti).toContain('SP423');
+  });
+
+  it('il divieto e’ un divieto: non un metro, mai', () => {
+    /*
+     * Cercato con `busyRoads: 'forbid'`, un percorso o non contiene nemmeno un
+     * metro di strada a traffico intenso o non esiste. Il secondo caso e' reale
+     * — qui i due punti si agganciano al nodo piu' vicino, che a Cattabrighe o
+     * sulla Panoramica Ardizio e' sulla statale stessa — ed e' esattamente
+     * quello in cui il router ripiega sul tentativo a caro prezzo.
+     */
+    let senzaStatali = 0;
+    for (const [nome, origine, destinazione] of TRAGITTI) {
+      const a = index.nearestNode(origine, 2000);
+      const b = index.nearestNode(destinazione, 2000);
+      if (!a || !b) continue;
+      const risultato = findPath(index, a.nodeId, b.nodeId, {
+        profile: ROUTING_PROFILES.bicipolitana,
+        cyclingSpeedKmh: CYCLING_SPEED_KMH,
+        busyRoads: 'forbid',
+      });
+      if (!risultato) continue;
+      senzaStatali += 1;
+      const trafficati = risultato.steps
+        .filter((passo) => isBusyRoad(passo.edge))
+        .reduce((somma, passo) => somma + passo.edge.d, 0);
+      expect(trafficati, `${nome}: ${Math.round(trafficati)} m di strade trafficate`).toBe(0);
+    }
+    expect(senzaStatali, 'nessun tragitto percorribile senza statali').toBeGreaterThan(0);
+  });
+
+  it('quel che resta di statale e’ poco e dichiarato', () => {
+    /*
+     * Dove la statale e' inevitabile — l'aggancio di una frazione, un ponte sul
+     * Foglia — il percorso ne usa il minimo e lo scrive nell'avviso. La misura
+     * si legge dall'avviso stesso, calcolato sugli archi realmente percorsi,
+     * invece di essere ristimata qui con una formula parallela.
+     */
+    const trafficati = (percorso: Route): number => {
+      const avviso = percorso.warnings.find((w) => w.type === 'traffico');
+      if (!avviso) return 0;
+      const trovato = /(\d+) m di strade a traffico intenso/.exec(avviso.message);
+      return trovato ? Number(trovato[1]) : 0;
+    };
+
+    for (const [nome, origine, destinazione] of TRAGITTI) {
+      const percorsi = router.route({ origin: origine, destination: destinazione });
+      expect(percorsi.length, `${nome}: nessun percorso`).toBeGreaterThan(0);
+      for (const percorso of percorsi) {
+        // Misurato al massimo a 226 m, sul solo aggancio di Santa Maria
+        // Fabbrecce. Prima del divieto erano chilometri.
+        expect(
+          trafficati(percorso),
+          `${nome} (${percorso.profileLabel}): troppa strada a traffico intenso`,
+        ).toBeLessThan(400);
+      }
+    }
+  });
+
+  it('i percorsi proposti non nominano la SS746 ne’ la SP423', () => {
+    // I due nomi del corridoio fra Villa Ceccolini e Villa Fastiggi, quello
+    // della segnalazione: nel grafo sono SS746 e SP423.
+    const VIETATE = ['Strada delle Regioni', 'Strada di Montefeltro'];
+    for (const [nome, origine, destinazione] of TRAGITTI) {
+      const percorsi = router.route({ origin: origine, destination: destinazione });
+      for (const percorso of percorsi) {
+        const vie = new Set(percorso.segments.flatMap((s) => s.streetNames));
+        for (const vietata of VIETATE) {
+          expect(
+            vie.has(vietata),
+            `${nome} (${percorso.profileLabel}): passa per ${vietata}`,
+          ).toBe(false);
+        }
+      }
+    }
   });
 });
 
@@ -215,17 +309,30 @@ describe('qualita’ delle varianti proposte', () => {
     }
   });
 
-  it('preferisce restituire meno percorsi che percorsi cattivi', () => {
+  it('nessuna alternativa e’ comprata con la Adriatica', () => {
     /*
-     * Piazzale della Liberta’ -> Cattabrighe: ogni strada diversa da quelle
-     * gia’ proposte o allunga molto o passa sulla Adriatica. Il router deve
-     * fermarsi, non riempire il numero massimo di alternative.
+     * Piazzale della Liberta’ -> Cattabrighe: finche’ le statali erano solo
+     * piu’ care, ogni strada diversa da quelle gia’ proposte finiva sulla
+     * Adriatica, e il router doveva fermarsi prima di riempire il numero
+     * massimo di alternative — restituire meno percorsi era l’unico modo di
+     * non restituirne di cattivi.
+     *
+     * Ora le statali sono vietate a monte: le alternative che restano sono
+     * tutte su viabilita’ ordinaria, e riempire l’elenco non e’ piu’ un
+     * sintomo. Quel che va verificato non e’ piu’ quante sono, ma che nessuna
+     * di loro paghi la propria diversita’ con il traffico.
      */
     const percorsi = router.route({
       origin: PLACES.piazzaleLiberta,
       destination: PLACES.cattabrighe,
     });
     expect(percorsi.length).toBeGreaterThan(0);
-    expect(percorsi.length).toBeLessThan(MAX_ROUTE_ALTERNATIVES);
+    expect(percorsi.length).toBeLessThanOrEqual(MAX_ROUTE_ALTERNATIVES);
+    for (const percorso of percorsi) {
+      expect(
+        percorso.warnings.find((w) => w.type === 'traffico'),
+        `${percorso.profileLabel}: ${percorso.warnings.find((w) => w.type === 'traffico')?.message}`,
+      ).toBeUndefined();
+    }
   });
 });

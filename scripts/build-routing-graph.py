@@ -118,6 +118,54 @@ SURFACE_SPEED_FACTOR = {
 EXCLUDED_HIGHWAY = {"motorway", "motorway_link", "trunk_link", "construction",
                     "proposed", "raceway", "bus_guideway", "escape"}
 
+# --------------------------------------------------------------------------
+# Strade a traffico intenso
+# --------------------------------------------------------------------------
+# Statali, provinciali e grandi arterie urbane. Restano nel grafo — servono a
+# dichiarare che esistono, e in qualche punto sono l'unico attraversamento del
+# Foglia o l'unico collegamento con una frazione — ma vengono marcate, e il
+# calcolo del percorso le tratta come vietate finche' esiste un'alternativa.
+#
+# Il riconoscimento parte dal riferimento amministrativo (ref=SS746, SP423)
+# prima che dalla classe OSM: e' il dato che dice davvero "qui passano le auto
+# a settanta all'ora", mentre la classe di una provinciale in collina puo'
+# essere tertiary quanto quella di una via di quartiere.
+BUSY_HIGHWAY = {"trunk", "primary", "primary_link", "secondary", "secondary_link"}
+BUSY_REF_PREFIXES = ("SS", "SP", "SR", "E")
+
+# Un tratto marcato come a traffico intenso torna percorribile solo se ha una
+# ciclabile propria, fisicamente separata dalla carreggiata. Una corsia
+# dipinta a bordo strada (`lane`) non e' una separazione: li' si pedala
+# comunque a fianco del traffico, che e' esattamente cio' che si vuole evitare.
+PROTECTED_CYCLEWAY = {"track", "opposite_track", "sidepath", "segregated"}
+
+
+def road_ref(tags: dict) -> str | None:
+    """Riferimento amministrativo della strada (SS746, SP423...), se dichiarato."""
+    ref = tags.get("ref")
+    if not ref:
+        return None
+    # OSM concatena i riferimenti multipli con ';': ne basta il primo.
+    return ref.split(";")[0].strip() or None
+
+
+def has_protected_cycleway(tags: dict) -> bool:
+    for k in ("cycleway", "cycleway:both", "cycleway:left", "cycleway:right"):
+        if tags.get(k) in PROTECTED_CYCLEWAY:
+            return True
+    return tags.get("bicycle") == "designated"
+
+
+def is_busy_road(kind: str, tags: dict) -> bool:
+    """True se l'arco e' una strada a traffico intenso senza ciclabile propria."""
+    if kind != "road":
+        return False
+    ref = road_ref(tags)
+    by_ref = bool(ref) and ref.replace(" ", "").upper().startswith(BUSY_REF_PREFIXES)
+    if not by_ref and tags.get("highway") not in BUSY_HIGHWAY:
+        return False
+    return not has_protected_cycleway(tags)
+
 
 def to_wgs(x: float, y: float) -> list[float]:
     lon, lat = _TO_WGS.transform(x, y)
@@ -168,7 +216,7 @@ def load_inputs():
     # --- Strade OSM
     path, layer = SOURCES["strade"]
     roads = gpd.read_file(path, layer=layer).to_crs(CRS_METRIC)
-    keep = ["highway", "name", "bicycle", "cycleway", "cycleway:both",
+    keep = ["highway", "name", "ref", "bicycle", "cycleway", "cycleway:both",
             "cycleway:left", "cycleway:right", "surface", "smoothness",
             "maxspeed", "oneway", "oneway:bicycle", "access", "segregated",
             "lit", "foot", "osm_id", "tracktype", "width"]
@@ -656,6 +704,13 @@ def main() -> int:
             rec["hw"] = tags["highway"]
         if tags.get("name"):
             rec["n"] = tags["name"]
+        ref = road_ref(tags)
+        if ref:
+            rec["rf"] = ref
+        # Strada a traffico intenso: il frontend la esclude dal percorso finche'
+        # esiste un'alternativa, e quando non esiste lo dichiara all'utente.
+        if is_busy_road(e["kind"], tags):
+            rec["bs"] = 1
         if tags.get("surface"):
             rec["sf"] = tags["surface"]
         # Illuminazione pubblica: serve a dire quanta strada si fara' al buio
@@ -676,6 +731,11 @@ def main() -> int:
         if blocked:
             rec["bk"] = 1
         out_edges.append(rec)
+
+    busy_by_ref: dict[str, float] = defaultdict(float)
+    for rec in out_edges:
+        if rec.get("bs"):
+            busy_by_ref[rec.get("rf") or rec.get("n") or "senza riferimento"] += rec["d"]
 
     comps, adj = connected_components(len(nodes.coords), edges)
     largest = comps[0] if comps else []
@@ -708,6 +768,8 @@ def main() -> int:
                 "g": "geometria [lon,lat][]",
                 "l": "id linea Bicipolitana", "c": "colore linea",
                 "hw": "tag highway OSM", "n": "nome via",
+                "rf": "riferimento amministrativo (SS746, SP423...)",
+                "bs": "1 = strada a traffico intenso senza ciclabile propria",
                 "sf": "tag surface", "sfc": "fattore di velocita' per superficie",
                 "lt": "1 illuminato, 0 non illuminato; assente = non dichiarato",
                 "ow": "senso unico per bici: 1 = a->b, -1 = b->a",
@@ -796,6 +858,16 @@ def main() -> int:
             "bicipolitanaMeters": NEAR_MISS_TOLERANCE_BICIPOLITANA_M,
         },
         "nearMiss": sorted(near_miss, key=lambda x: -x["distance_m"])[:60],
+        "busyRoads": {
+            "note": "strade a traffico intenso marcate bs=1: il router le evita "
+                    "finche' esiste un'alternativa",
+            "edges": sum(1 for e in out_edges if e.get("bs")),
+            "lengthKm": round(
+                sum(e["d"] for e in out_edges if e.get("bs")) / 1000, 2),
+            "byRef": dict(sorted(
+                ((ref, round(km / 1000, 2)) for ref, km in busy_by_ref.items()),
+                key=lambda kv: -kv[1])),
+        },
         "obstacles": {
             "total": len(obstacles),
             "attachedToEdges": matched,

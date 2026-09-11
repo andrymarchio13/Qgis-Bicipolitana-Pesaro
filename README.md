@@ -346,6 +346,35 @@ I profili si distinguono solo per questi coefficienti, tutti in `src/config/inde
 | 🌿 Più tranquillo | 0,60 | 1,15 | 1,6 | 45 s | 15 s |
 | 🛡️ Più sicuro | 0,50 | 1,25 | 2,4 | 70 s | 20 s |
 
+### Statali e provinciali: vietate, non solo scoraggiate
+
+La Statale 746 e la Provinciale 423 non sono un itinerario ciclabile. Finché erano
+soltanto *più care* degli altri archi, bastava che fossero abbastanza più dirette perché
+il calcolo le infilasse comunque: il corridoio fra Villa Ceccolini e Villa Fastiggi
+tornava fuori in quasi ogni percorso verso ovest, e un progetto che propone quella strada
+come percorso in bicicletta non descrive niente che qualcuno farebbe davvero.
+
+La pipeline le marca a monte (`bs=1` in `graph.json`) partendo dal **riferimento
+amministrativo OSM** — `ref=SS746`, `ref=SP423` — prima che dalla classe: è il dato che
+dice davvero quanto traffico ci passa, mentre la classe di una provinciale di collina può
+essere `tertiary` quanto quella di una via di quartiere. Fanno eccezione i tratti con una
+ciclabile propria, fisicamente separata dalla carreggiata; una corsia dipinta a bordo
+strada no, perché lì si pedala comunque a fianco delle auto.
+
+Il router cerca poi il percorso **in due tempi**:
+
+1. le strade marcate sono **vietate**: l’arco non entra proprio nella ricerca, e il
+   percorso o si costruisce senza o non si costruisce;
+2. solo se fra i due punti non esiste nessun’altra strada — succede sui ponti del Foglia
+   e sull’aggancio di qualche frazione — si ritenta permettendole al costo di
+   `VITE_BUSY_ROAD_PENALTY` (12×). Il percorso esiste, ne usa il minimo indispensabile, e
+   l’avviso `traffico` lo dichiara con i riferimenti delle strade toccate.
+
+Sugli otto tragitti di prova di `tests/routing/strade-trafficate.test.ts` non resta un
+metro di SS746 o SP423; il massimo residuo su una qualunque strada a traffico intenso è
+226 m, sull’aggancio di Santa Maria Fabbrecce alla SS16, dove nei dati non esiste
+alternativa.
+
 Il profilo Bicipolitana **non sceglie sempre la Bicipolitana**: se la destinazione è
 lontana dalla rete ufficiale, il costo di un lungo aggiramento supera quello del
 collegamento diretto, e il percorso risulta origine → collegamento ciclabile →
@@ -628,6 +657,7 @@ Tutte facoltative: i default funzionano. Vedi [`.env.example`](.env.example).
 | `VITE_ROUTE_VARIANT_MAX_BUSY_EXCESS` | 300 | metri di strade trafficate che una variante può aggiungere |
 | `VITE_DANGER_BOOST` | 2 | quanto la penalità di pericolosità cresce più che proporzionalmente (0 = lineare) |
 | `VITE_BUSY_ROAD_WARNING_METERS` | 150 | metri su statali/provinciali oltre i quali il percorso lo dichiara |
+| `VITE_BUSY_ROAD_PENALTY` | 12 | quanto costa una statale quando è l’unico collegamento esistente |
 | `VITE_REROUTE_DISTANCE_THRESHOLD` | 45 | metri di scostamento prima del ricalcolo |
 | `VITE_REROUTE_DEBOUNCE_MS` | 4000 | attesa prima di ricalcolare |
 | `VITE_REROUTE_COOLDOWN_MS` | 8000 | attesa minima fra due ricalcoli consecutivi |
