@@ -187,18 +187,30 @@ export const WALK_ONLY_MAX_METERS = num(env.VITE_WALK_ONLY_MAX_METERS, 5000);
 export const WALK_ONLY_MIN_DETOUR = num(env.VITE_WALK_ONLY_MIN_DETOUR, 1.6);
 
 /**
- * Quanta parte del percorso ciclabile deve essere fuori rete perche' abbia
- * senso proporre di andare a piedi.
+ * Quanta parte del percorso ciclabile deve essere fuori rete perche' valga la
+ * proposta a piedi anche senza un giro sproporzionato.
  *
- * Un percorso che si allunga restando sulle ciclabili sta facendo il suo
- * mestiere: evita una statale, gira attorno a un fiume, e non e' il caso di
- * suggerire di lasciare la bicicletta. Il caso da coprire e' un altro — quello
- * in cui la meta' buona del viaggio non e' pedalata sulla rete ma e' raccordo
- * verso una rete che li' non passa.
+ * E' la seconda via alla proposta a piedi: un viaggio fatto per meta' di
+ * raccordi non e' un percorso ciclabile con due code, e' un cammino con in
+ * mezzo qualche centinaio di metri di rete. Li' basta un allungamento molto
+ * piu' piccolo perche' convenga andare a piedi e basta.
  */
 export const WALK_ONLY_MIN_CONNECTOR_SHARE = num(
   env.VITE_WALK_ONLY_MIN_CONNECTOR_SHARE,
   0.5,
+);
+
+/**
+ * Allungamento minimo perche' la proposta a piedi abbia senso, quando il
+ * viaggio e' gia' fatto per lo piu' di raccordi fuori rete.
+ *
+ * Sotto questa soglia il percorso in bicicletta e' praticamente diretto:
+ * qualunque sia la sua composizione, proporre di percorrerlo a piedi
+ * significherebbe solo proporre di metterci tre volte tanto.
+ */
+export const WALK_ONLY_MIN_DETOUR_OFF_NETWORK = num(
+  env.VITE_WALK_ONLY_MIN_DETOUR_OFF_NETWORK,
+  1.15,
 );
 
 /**

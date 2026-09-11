@@ -17,7 +17,7 @@ import {
   type UserReport,
 } from '../services/reports';
 import { RoutingGraphIndex } from '../services/routing/graph';
-import { BicipolitanaRouter, RoutingError } from '../services/routing/router';
+import { BicipolitanaRouter, orderRoutes, RoutingError } from '../services/routing/router';
 import { refineRoutes } from '../services/routing/walk';
 import type {
   GeocodingProvider,
@@ -278,7 +278,31 @@ export const useAppStore = create<AppState>((set, get) => ({
     void refineRoutes(routes).then((refined) => {
       if (token !== refineToken) return;
       const byId = new Map(refined.map((route) => [route.id, route]));
-      set((state) => ({ routes: state.routes.map((route) => byId.get(route.id) ?? route) }));
+      set((state) => {
+        const aggiornati = state.routes.map((route) => byId.get(route.id) ?? route);
+        /*
+         * Sulle strade reali un raccordo in linea d'aria puo' raddoppiare: un
+         * percorso che prima dichiarava un quarto d'ora ne dichiara ora
+         * quaranta minuti. L'ordine calcolato prima della rifinitura non
+         * descrive piu' questi percorsi, e lasciarlo com'era significherebbe
+         * mostrare per primo un giro che nel frattempo e' diventato il peggiore.
+         */
+        const ordinati = orderRoutes(aggiornati);
+        /*
+         * La selezione segue il nuovo ordine solo se era quella automatica —
+         * il primo percorso, che nessuno ha ancora toccato. Se chi guarda ne
+         * ha scelto un altro, quella scelta resta: cambiargli il percorso sotto
+         * gli occhi perche' e' arrivata una risposta dalla rete non e' una cosa
+         * che l'applicazione puo' fare.
+         */
+        const sceltaAutomatica = state.selectedRouteId === state.routes[0]?.id;
+        return {
+          routes: ordinati,
+          selectedRouteId: sceltaAutomatica
+            ? (ordinati[0]?.id ?? state.selectedRouteId)
+            : state.selectedRouteId,
+        };
+      });
     });
   },
 

@@ -29,6 +29,7 @@ import {
   WALK_ONLY_MAX_METERS,
   WALK_ONLY_MIN_CONNECTOR_SHARE,
   WALK_ONLY_MIN_DETOUR,
+  WALK_ONLY_MIN_DETOUR_OFF_NETWORK,
 } from '../../config';
 import type {
   LightingSpan,
@@ -602,6 +603,57 @@ function pathMeters(steps: SearchStep[]): number {
   return meters;
 }
 
+/**
+ * Ordine in cui le proposte vanno mostrate.
+ *
+ * Fra i percorsi pedalati vale la regola di sempre: la Bicipolitana in cima,
+ * perche' e' la proposta che il progetto rivendica, e dietro gli altri per
+ * tempo stimato.
+ *
+ * Il percorso a piedi non appartiene a quel gruppo, e trova il suo posto in
+ * due modi diversi a seconda di cosa lo ha generato.
+ *
+ *   - Se il viaggio in bicicletta e' per lo piu' raccordo fuori rete, va
+ *     davanti a tutti, e non per tempo: proprio sul tempo il confronto sarebbe
+ *     falsato. Quei minuti valgono la velocita' della bicicletta su strade che
+ *     il progetto non contiene, e sono la parte piu' lunga del viaggio; un
+ *     giro che triplica la distanza reale riesce cosi' a dichiarare meno
+ *     minuti di una camminata diretta, e verrebbe mostrato per primo — proprio
+ *     il giro che la proposta a piedi esiste per evitare.
+ *   - Se invece la rete c'e' e semplicemente gira, i minuti sono confrontabili
+ *     e decidono loro: il cammino passa davanti solo se costa meno tempo della
+ *     migliore proposta pedalata, altrimenti resta in fondo all'elenco come
+ *     l'alternativa che e'.
+ *
+ * Serve anche dopo la rifinitura dei raccordi sulle strade reali (`walk.ts`):
+ * li' le lunghezze cambiano — un raccordo in linea d'aria puo' raddoppiare — e
+ * un ordine calcolato prima non descrive piu' i percorsi che si mostrano.
+ */
+export function orderRoutes(routes: Route[]): Route[] {
+  const aPiedi = routes.filter((route) => route.onFoot);
+  const pedalati = routes.filter((route) => !route.onFoot);
+
+  // Il rango e' calcolato una volta per percorso: un confronto che risponde
+  // "prima" a entrambi gli argomenti non e' un ordinamento.
+  const rank = (route: Route): number =>
+    route.profile === 'bicipolitana' && !route.isVariant ? 0 : 1;
+  const ordinati = [...pedalati].sort(
+    (a, b) => rank(a) - rank(b) || a.durationSeconds - b.durationSeconds,
+  );
+
+  if (aPiedi.length === 0) return ordinati;
+  if (ordinati.length === 0) return aPiedi;
+
+  const migliore = ordinati.reduce((a, b) => (a.distanceMeters <= b.distanceMeters ? a : b));
+  const fuoriRete =
+    migliore.distanceMeters > 0 ? migliore.walkingMeters / migliore.distanceMeters : 0;
+  const davanti =
+    fuoriRete >= WALK_ONLY_MIN_CONNECTOR_SHARE ||
+    aPiedi.some((route) => route.durationSeconds < ordinati[0].durationSeconds);
+
+  return davanti ? [...aPiedi, ...ordinati] : [...ordinati, ...aPiedi];
+}
+
 export class BicipolitanaRouter {
   constructor(
     private readonly index: RoutingGraphIndex,
@@ -810,13 +862,21 @@ export class BicipolitanaRouter {
      * proposta in bicicletta resta: accanto si mette quella a piedi, con i
      * metri che separano davvero i due punti, e la scelta la fa chi parte.
      *
-     * Le tre condizioni delimitano quel caso e nessun altro: i due punti
-     * devono essere abbastanza vicini da poterli unire a piedi; il percorso
-     * ciclabile deve allungarsi molto piu' della distanza reale; e quel giro
-     * deve essere fatto soprattutto di raccordi fuori rete. Un percorso che si
-     * allunga restando sulle ciclabili — per evitare una statale, per girare
-     * attorno al Foglia — sta facendo il suo mestiere, e non merita che gli si
-     * proponga accanto di scendere dalla bicicletta.
+     * La prima condizione e' sempre la stessa: i due punti devono essere
+     * abbastanza vicini da poterli unire a piedi. Poi bastano due situazioni
+     * diverse, perche' il giro disastroso ha due cause distinte.
+     *
+     *   - La rete non passa di li': meta' del viaggio e' raccordo fuori rete,
+     *     e allora anche un allungamento modesto basta — quel percorso e' gia'
+     *     un cammino con in mezzo qualche centinaio di metri di ciclabile.
+     *   - La rete c'e' ma gira: fra Villa Ceccolini e Case Bruciate sono due
+     *     chilometri e mezzo, e il percorso ciclabile ne misura dodici, perche'
+     *     le linee esistenti fanno un altro giro. Di raccordi non ce n'e'
+     *     quasi, ma il giro resta un giro.
+     *
+     * Il percorso in bicicletta che si allunga poco — per evitare una statale,
+     * per girare attorno al Foglia — sta facendo il suo mestiere, e sotto
+     * queste soglie non si vede proporre accanto di scendere di sella.
      *
      * Non durante la navigazione: li' si chiede un percorso solo, ed e' il
      * ricalcolo di quello che si sta gia' percorrendo. Cambiare mezzo a chi e'
@@ -825,36 +885,23 @@ export class BicipolitanaRouter {
     if (maxAlternatives > 1) {
       const direct = haversine(origin, destination);
       const migliore = results.reduce((a, b) => (a.distanceMeters <= b.distanceMeters ? a : b));
+      const allungamento = direct > 0 ? migliore.distanceMeters / direct : 0;
       const fuoriRete =
         migliore.distanceMeters > 0 ? migliore.walkingMeters / migliore.distanceMeters : 0;
-      if (
-        direct <= WALK_ONLY_MAX_METERS &&
-        migliore.distanceMeters > direct * WALK_ONLY_MIN_DETOUR &&
-        fuoriRete >= WALK_ONLY_MIN_CONNECTOR_SHARE
-      ) {
+      const giroSproporzionato = allungamento > WALK_ONLY_MIN_DETOUR;
+      const viaggioFuoriRete =
+        fuoriRete >= WALK_ONLY_MIN_CONNECTOR_SHARE &&
+        allungamento > WALK_ONLY_MIN_DETOUR_OFF_NETWORK;
+      if (direct <= WALK_ONLY_MAX_METERS && (giroSproporzionato || viaggioFuoriRete)) {
         const onFoot = walkOnlyRoute(origin, destination, request.destinationLabel ?? null);
         if (onFoot) results.push(onFoot);
       }
     }
 
-    /*
-     * La Bicipolitana resta in cima quando esiste, perche' e' la proposta che
-     * il progetto rivendica; dietro si ordina per tempo stimato. Il rango e'
-     * calcolato una volta per percorso: un confronto che risponde "prima" a
-     * entrambi gli argomenti non e' un ordinamento.
-     *
-     * Il percorso a piedi entra nello stesso rango: nasce solo dove la rete
-     * obbliga a un lungo giro, e li' e' spesso la proposta piu' breve — deve
-     * poterlo dimostrare davanti alle altre, non stare in fondo all'elenco.
-     */
-    const rank = (route: Route): number =>
-      route.onFoot || (route.profile === 'bicipolitana' && !route.isVariant) ? 0 : 1;
-    results.sort((a, b) => rank(a) - rank(b) || a.durationSeconds - b.durationSeconds);
-
     // Il numero massimo di proposte vale anche quando fra queste c'e' quella a
     // piedi: e' una possibilita' in piu' da valutare, non un permesso di
     // allungare l'elenco.
-    return results.slice(0, maxAlternatives);
+    return orderRoutes(results).slice(0, maxAlternatives);
   }
 
   /** Ricalcolo durante la navigazione: mantiene il profilo in uso. */

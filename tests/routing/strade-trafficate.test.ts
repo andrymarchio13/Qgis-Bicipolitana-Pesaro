@@ -280,7 +280,12 @@ describe('qualita’ delle varianti proposte', () => {
   it('nessuna variante allunga il viaggio oltre la soglia dichiarata', () => {
     for (const [nome, origine, destinazione] of COPPIE) {
       const percorsi = router.route({ origin: origine, destination: destinazione });
-      const migliore = Math.min(...percorsi.map((r) => r.distanceMeters));
+      // Il confronto e' fra percorsi pedalati: la proposta a piedi e' la linea
+      // diretta fra i due punti, e misurare una variante ciclabile su quella
+      // vorrebbe dire pretendere che la bicicletta voli.
+      const migliore = Math.min(
+        ...percorsi.filter((r) => !r.onFoot).map((r) => r.distanceMeters),
+      );
       for (const variante of percorsi.filter((r) => r.isVariant)) {
         expect(
           variante.distanceMeters,

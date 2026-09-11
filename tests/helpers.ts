@@ -57,6 +57,8 @@ export const PLACES = {
   viaSolferino: [12.88908, 43.89203] as [number, number],
   /** Viale del Risorgimento, zona stazione — dal grafo OSM. */
   vialeRisorgimento: [12.90845, 43.90691] as [number, number],
+  /** Villa Ceccolini — dal grafo OSM, a una settantina di metri dalla rete. */
+  villaCeccolini: [12.86, 43.883] as [number, number],
   /** Via del Miralfiore, lungo il parco — dal grafo OSM. */
   viaMiralfiore: [12.90422, 43.90323] as [number, number],
   /** Via Pompilio Fastiggi, quartiere Villa Fastiggi — dal grafo OSM. */
@@ -157,4 +159,10 @@ export const PLACES_FUORI_RETE = {
    * fuori rete, distanti poco piu' di un chilometro fra loro.
    */
   borgoSantaMaria: [12.8147, 43.8843] as [number, number],
+  /**
+   * Case Bruciate, verso Sminatori: circa 660 m dalla rete, cioe' dentro il
+   * raggio di aggancio ma lontano dalla soglia dei punti di `PLACES`. E' la
+   * destinazione del percorso che proponeva un giro da un'ora e venti.
+   */
+  caseBruciateNord: [12.833, 43.894] as [number, number],
 };

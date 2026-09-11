@@ -47,11 +47,11 @@ alternative, segue la posizione GPS e ricalcola il percorso quando ci si allonta
 - **Simboli leggibili sulla mappa**: i punti di interesse usano emoji renderizzate come icone
   (MapLibre non disegna emoji dai font di glifi); toccando un gruppo numerato la mappa si apre
   esattamente allo zoom che lo scioglie, e se i punti sono sovrapposti ne mostra l'elenco.
-- **Propone di andare a piedi dove la rete non arriva**: fra due punti entrambi fuori
-  rete il percorso ciclabile può valere il triplo della distanza reale, perché deve
-  agganciare la Bicipolitana per toccarne poche centinaia di metri. In quel caso accanto
-  alla proposta in bicicletta ne compare una a piedi, che unisce direttamente i due punti;
-  quella in bicicletta resta, e la scelta è di chi parte.
+- **Propone di andare a piedi dove la rete obbliga a un giro**: fra due punti vicini il
+  percorso ciclabile può valere il triplo della distanza reale — perché la rete lì non
+  passa, o perché passa ma gira. In quel caso accanto alla proposta in bicicletta ne
+  compare una a piedi, che unisce direttamente i due punti, e quando il confronto le dà
+  ragione viene mostrata per prima; quella in bicicletta resta, e la scelta è di chi parte.
 - **Dichiara i tratti da fare a piedi**: quando origine o destinazione cadono fuori dalla
   rete coperta dai dati, il punto non viene rifiutato — il collegamento fino alla rete
   viene disegnato tratteggiato, conteggiato nel totale e annunciato nelle istruzioni.
@@ -481,15 +481,34 @@ di percorso, di cui 3,2 km di soli raccordi. In quel caso accanto alla proposta 
 bicicletta ne compare una **a piedi**, che unisce direttamente i due punti. Non sostituisce
 l’altra: la scelta resta di chi parte.
 
-Le tre soglie delimitano quel caso e nessun altro: i due punti devono stare entro
-`VITE_WALK_ONLY_MAX_METERS` (5 km), il percorso ciclabile deve allungarsi oltre
-`VITE_WALK_ONLY_MIN_DETOUR` (1,6) volte la distanza reale, e almeno
-`VITE_WALK_ONLY_MIN_CONNECTOR_SHARE` (metà) di quel percorso dev’essere raccordo fuori
-rete. Un percorso che si allunga restando sulle ciclabili — per evitare una statale, per
-girare attorno al Foglia — sta facendo il suo mestiere, e non merita che gli si proponga
-accanto di scendere dalla bicicletta. Durante la navigazione la proposta non compare: lì si
-ricalcola il percorso che si sta già facendo, e cambiare mezzo a chi è in sella perché ha
-sbagliato una svolta non è una risposta.
+La prima condizione è sempre la stessa: i due punti devono stare entro
+`VITE_WALK_ONLY_MAX_METERS` (5 km). Poi bastano due situazioni diverse, perché il giro
+disastroso ha due cause distinte. **La rete non passa di lì**: metà del viaggio è raccordo
+fuori rete (`VITE_WALK_ONLY_MIN_CONNECTOR_SHARE`) e allora basta un allungamento modesto
+(`VITE_WALK_ONLY_MIN_DETOUR_OFF_NETWORK`, 1,15) — quel percorso è già un cammino con in
+mezzo qualche centinaio di metri di ciclabile. **La rete c’è ma gira**: fra Villa Ceccolini
+e Case Bruciate sono 2,5 km e il percorso ciclabile ne misura 11,9, perché le linee fanno
+un altro giro; di raccordi non ce n’è quasi, ma il giro resta un giro, e basta superare
+`VITE_WALK_ONLY_MIN_DETOUR` (1,6 volte la linea d’aria). Sotto queste soglie il percorso in
+bicicletta che si allunga poco — per evitare una statale, per girare attorno al Foglia —
+sta facendo il suo mestiere, e non si vede proporre accanto di scendere di sella. Durante
+la navigazione la proposta non compare: lì si ricalcola il percorso che si sta già
+facendo, e cambiare mezzo a chi è in sella perché ha sbagliato una svolta non è una
+risposta.
+
+**L’ordine delle proposte.** Fra i percorsi pedalati vale la regola di sempre: la
+Bicipolitana in cima, dietro gli altri per tempo stimato. Il cammino non appartiene a quel
+gruppo. Dove metà del viaggio è fuori rete va davanti a tutti, e non per tempo: quei minuti
+valgono la velocità della bicicletta su strade che il progetto non contiene, e un giro che
+triplica la distanza reale riesce così a dichiarare *meno* minuti di una camminata diretta
+— cioè verrebbe mostrato per primo proprio il giro che la proposta a piedi esiste per
+evitare. Dove invece la rete c’è e semplicemente gira, i minuti sono confrontabili e
+decidono loro: il cammino passa davanti solo se costa meno tempo.
+
+L’ordine viene **ricalcolato dopo la rifinitura** dei raccordi sulle strade reali: lì un
+tratto in linea d’aria può raddoppiare, e un percorso che dichiarava un quarto d’ora ne
+dichiara ottanta minuti. La selezione segue il nuovo ordine solo se era quella automatica:
+se chi guarda ha già scelto un percorso, quella scelta resta.
 
 Il **percorso in bicicletta** non ha alcun servizio esterno di riserva, ed è una scelta:
 farlo dipendere da una chiave API e da una rete disponibile smentirebbe proprio la
@@ -682,7 +701,8 @@ Tutte facoltative: i default funzionano. Vedi [`.env.example`](.env.example).
 | `VITE_CONNECTOR_RIDE_THRESHOLD_METERS` | 500 | oltre questa lunghezza il raccordo si pedala invece di percorrerlo a piedi |
 | `VITE_WALK_ONLY_MAX_METERS` | 5000 | oltre questa distanza fra i due punti il percorso a piedi non viene proposto |
 | `VITE_WALK_ONLY_MIN_DETOUR` | 1.6 | quanto il percorso ciclabile deve allungarsi sulla linea d’aria perché valga la proposta a piedi |
-| `VITE_WALK_ONLY_MIN_CONNECTOR_SHARE` | 0.5 | quanta parte di quel percorso dev’essere raccordo fuori rete |
+| `VITE_WALK_ONLY_MIN_CONNECTOR_SHARE` | 0.5 | quota di raccordo fuori rete che da sola giustifica la proposta a piedi |
+| `VITE_WALK_ONLY_MIN_DETOUR_OFF_NETWORK` | 1.15 | allungamento minimo richiesto in quel caso |
 | `VITE_WALK_COST_FACTOR` | 2.2 | quanto pesa un minuto a piedi rispetto a uno pedalato |
 | `VITE_WALK_SAFETY_WEIGHT` | 2.5 | quanto conta la pericolosità della via su cui ci si innesta |
 | `VITE_WALK_ROUTING_MAX_DETOUR` | 2.5 | oltre questo rapporto sulla linea d’aria il giro pedonale è respinto |
