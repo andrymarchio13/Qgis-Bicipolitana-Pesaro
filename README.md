@@ -47,6 +47,11 @@ alternative, segue la posizione GPS e ricalcola il percorso quando ci si allonta
 - **Simboli leggibili sulla mappa**: i punti di interesse usano emoji renderizzate come icone
   (MapLibre non disegna emoji dai font di glifi); toccando un gruppo numerato la mappa si apre
   esattamente allo zoom che lo scioglie, e se i punti sono sovrapposti ne mostra l'elenco.
+- **Propone di andare a piedi dove la rete non arriva**: fra due punti entrambi fuori
+  rete il percorso ciclabile può valere il triplo della distanza reale, perché deve
+  agganciare la Bicipolitana per toccarne poche centinaia di metri. In quel caso accanto
+  alla proposta in bicicletta ne compare una a piedi, che unisce direttamente i due punti;
+  quella in bicicletta resta, e la scelta è di chi parte.
 - **Dichiara i tratti da fare a piedi**: quando origine o destinazione cadono fuori dalla
   rete coperta dai dati, il punto non viene rifiutato — il collegamento fino alla rete
   viene disegnato tratteggiato, conteggiato nel totale e annunciato nelle istruzioni.
@@ -468,6 +473,24 @@ profilo ciclabile più prudente che il servizio espone. Proporre un’ora di cam
 chiede un percorso ciclabile, solo perché i dati del progetto finiscono prima di casa sua,
 non sarebbe una risposta.
 
+**Dove la rete non arriva, si può andare a piedi.** Fra due punti che stanno entrambi
+fuori dalla rete — le frazioni attorno a Pesaro — il calcolo aggancia comunque la
+Bicipolitana, e per toccare poche centinaia di metri di linea può proporre il triplo della
+distanza reale: da Borgo Santa Maria a Case Bruciate sono 1,2 km in linea d’aria e 3,9 km
+di percorso, di cui 3,2 km di soli raccordi. In quel caso accanto alla proposta in
+bicicletta ne compare una **a piedi**, che unisce direttamente i due punti. Non sostituisce
+l’altra: la scelta resta di chi parte.
+
+Le tre soglie delimitano quel caso e nessun altro: i due punti devono stare entro
+`VITE_WALK_ONLY_MAX_METERS` (5 km), il percorso ciclabile deve allungarsi oltre
+`VITE_WALK_ONLY_MIN_DETOUR` (1,6) volte la distanza reale, e almeno
+`VITE_WALK_ONLY_MIN_CONNECTOR_SHARE` (metà) di quel percorso dev’essere raccordo fuori
+rete. Un percorso che si allunga restando sulle ciclabili — per evitare una statale, per
+girare attorno al Foglia — sta facendo il suo mestiere, e non merita che gli si proponga
+accanto di scendere dalla bicicletta. Durante la navigazione la proposta non compare: lì si
+ricalcola il percorso che si sta già facendo, e cambiare mezzo a chi è in sella perché ha
+sbagliato una svolta non è una risposta.
+
 Il **percorso in bicicletta** non ha alcun servizio esterno di riserva, ed è una scelta:
 farlo dipendere da una chiave API e da una rete disponibile smentirebbe proprio la
 funzione che il progetto rivendica come offline. Fuori dai 40 km l’app dichiara che il
@@ -657,6 +680,9 @@ Tutte facoltative: i default funzionano. Vedi [`.env.example`](.env.example).
 | `VITE_SNAP_MAX_DISTANCE_METERS` | 700 | raggio entro cui il punto è considerato sulla rete |
 | `VITE_WALK_SNAP_MAX_DISTANCE_METERS` | 40000 | raggio massimo entro cui si cerca la rete da un punto fuori area |
 | `VITE_CONNECTOR_RIDE_THRESHOLD_METERS` | 500 | oltre questa lunghezza il raccordo si pedala invece di percorrerlo a piedi |
+| `VITE_WALK_ONLY_MAX_METERS` | 5000 | oltre questa distanza fra i due punti il percorso a piedi non viene proposto |
+| `VITE_WALK_ONLY_MIN_DETOUR` | 1.6 | quanto il percorso ciclabile deve allungarsi sulla linea d’aria perché valga la proposta a piedi |
+| `VITE_WALK_ONLY_MIN_CONNECTOR_SHARE` | 0.5 | quanta parte di quel percorso dev’essere raccordo fuori rete |
 | `VITE_WALK_COST_FACTOR` | 2.2 | quanto pesa un minuto a piedi rispetto a uno pedalato |
 | `VITE_WALK_SAFETY_WEIGHT` | 2.5 | quanto conta la pericolosità della via su cui ci si innesta |
 | `VITE_WALK_ROUTING_MAX_DETOUR` | 2.5 | oltre questo rapporto sulla linea d’aria il giro pedonale è respinto |

@@ -55,9 +55,13 @@ export function RouteCard({ route, lines, selected, onSelect, onStart }: RouteCa
               <span
                 className="chip"
                 title={
-                  route.walkingRouted
-                    ? 'Raccordo fra i punti scelti e la rete coperta dai dati, calcolato sulle strade'
-                    : 'Raccordo fra i punti scelti e la rete coperta dai dati, indicato in linea d’aria'
+                  route.onFoot
+                    ? route.walkingRouted
+                      ? 'Percorso interamente a piedi, calcolato sulle strade'
+                      : 'Percorso interamente a piedi, indicato in linea d’aria'
+                    : route.walkingRouted
+                      ? 'Raccordo fra i punti scelti e la rete coperta dai dati, calcolato sulle strade'
+                      : 'Raccordo fra i punti scelti e la rete coperta dai dati, indicato in linea d’aria'
                 }
               >
                 {collegamento.icon} {formatDistance(collegamento.meters)} {collegamento.label}
@@ -81,7 +85,9 @@ export function RouteCard({ route, lines, selected, onSelect, onStart }: RouteCa
           </div>
         ) : (
           <p style={{ fontSize: 13, color: 'var(--ink-500)', margin: '10px 0' }}>
-            Percorso su viabilità ordinaria, senza tratti di Bicipolitana.
+            {route.onFoot
+              ? 'Nessun tratto in bicicletta: qui la rete del progetto non arriva.'
+              : 'Percorso su viabilità ordinaria, senza tratti di Bicipolitana.'}
           </p>
         )}
 

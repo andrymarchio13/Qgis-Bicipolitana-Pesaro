@@ -7,6 +7,7 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { walkOnlyRoute } from '../../src/services/routing/router';
 import { refineWalkingLegs, walkingPath } from '../../src/services/routing/walk';
 import type { Route, RouteSegment } from '../../src/types';
 import { lineLength } from '../../src/utils/geo';
@@ -205,6 +206,42 @@ describe('percorso a piedi su strada', () => {
     expect(dopo.segments[0].routed).toBeUndefined();
     expect(dopo.walkingMeters).toBe(prima.walkingMeters);
     expect(dopo.distanceMeters).toBe(prima.distanceMeters);
+  });
+
+  it('rifinisce anche un percorso interamente a piedi', async () => {
+    /*
+     * Il percorso a piedi non ha una parte pedalata in mezzo: il suo unico
+     * tratto e' insieme il primo e l'ultimo, e l'istruzione che lo descrive
+     * deve seguire la nuova lunghezza senza cambiare testo — non si raggiunge
+     * nessun inizio di ciclabile, si cammina fino a destinazione.
+     */
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        rispostaPedonale([
+          [12.9000, 43.9000],
+          [12.9010, 43.9008],
+          [12.9020, 43.9000],
+        ]),
+      ),
+    );
+
+    const prima = walkOnlyRoute([12.9, 43.9], [12.902, 43.9], 'Case Bruciate') as Route;
+    const dopo = await refineWalkingLegs(prima);
+
+    expect(dopo.segments).toHaveLength(1);
+    expect(dopo.segments[0].routed).toBe(true);
+    expect(dopo.walkingMeters).toBeGreaterThan(prima.walkingMeters);
+    expect(dopo.distanceMeters).toBe(dopo.walkingMeters);
+    expect(lineLength(dopo.geometry)).toBeCloseTo(dopo.distanceMeters, 0);
+
+    const partenza = dopo.instructions[0];
+    expect(partenza.text).toBe(prima.instructions[0].text);
+    expect(partenza.distanceMeters).toBeCloseTo(dopo.distanceMeters, 0);
+
+    const arrivo = dopo.instructions[dopo.instructions.length - 1];
+    expect(arrivo.type).toBe('arrive');
+    expect(arrivo.offsetMeters).toBeCloseTo(dopo.distanceMeters, 0);
   });
 
   it('lascia il percorso invariato se il servizio non risponde', async () => {

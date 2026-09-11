@@ -151,4 +151,10 @@ export const PLACES_FUORI_RETE = {
    * dai dati, quindi oltre il raggio di aggancio diretto.
    */
   caseBruciate: [12.82918, 43.88528] as [number, number],
+  /**
+   * Borgo Santa Maria, frazione a ovest di Pesaro: circa 2,4 km dalla rete
+   * coperta dai dati. Con Case Bruciate forma una coppia di punti entrambi
+   * fuori rete, distanti poco piu' di un chilometro fra loro.
+   */
+  borgoSantaMaria: [12.8147, 43.8843] as [number, number],
 };

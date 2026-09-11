@@ -26,6 +26,9 @@ import {
   WALKING_SPEED_KMH,
   WALK_COLOR,
   WALK_LEG_MIN_METERS,
+  WALK_ONLY_MAX_METERS,
+  WALK_ONLY_MIN_CONNECTOR_SHARE,
+  WALK_ONLY_MIN_DETOUR,
 } from '../../config';
 import type {
   LightingSpan,
@@ -429,6 +432,103 @@ function buildRoute(
 }
 
 /**
+ * Percorso diretto a piedi fra i due punti, senza passare dalla rete.
+ *
+ * Serve dove la Bicipolitana non arriva. Il calcolo aggancia comunque i due
+ * estremi alla rete coperta dai dati, e fra due punti che stanno entrambi
+ * fuori — le frazioni attorno a Pesaro — il giro che ne esce puo' valere il
+ * triplo della distanza reale, per toccare poche centinaia di metri di linea.
+ * Qui si dice l'altra cosa vera: fra quei due punti si va a piedi, e sono
+ * questi metri.
+ *
+ * Il tratto resta in linea d'aria come tutti i collegamenti fuori rete: se il
+ * servizio pedonale opzionale risponde, viene ridisegnato sulle strade dopo il
+ * calcolo (`walk.ts`), esattamente come i raccordi.
+ */
+export function walkOnlyRoute(
+  origin: LngLat,
+  destination: LngLat,
+  destinationLabel: string | null,
+): Route | null {
+  const coordinates: LngLat[] = [origin, destination];
+  const distanceMeters = lineLength(coordinates);
+  if (distanceMeters < WALK_LEG_MIN_METERS) return null;
+  const durationSeconds = (distanceMeters / 1000 / WALKING_SPEED_KMH) * 3600;
+
+  const segment: RouteSegment = {
+    lineId: null,
+    lineName: null,
+    color: WALK_COLOR,
+    kind: 'piedi',
+    transport: 'piedi',
+    distanceMeters,
+    durationSeconds,
+    coordinates,
+    streetNames: [],
+  };
+
+  const instructions: RouteInstruction[] = [
+    {
+      index: 0,
+      type: 'walk-start',
+      text: destinationLabel
+        ? `Vai a piedi fino a ${destinationLabel}`
+        : 'Vai a piedi fino alla destinazione',
+      transport: 'piedi',
+      distanceMeters,
+      durationSeconds,
+      location: origin,
+      lineId: null,
+      color: WALK_COLOR,
+      streetName: null,
+      offsetMeters: 0,
+    },
+    {
+      index: 1,
+      type: 'arrive',
+      text: destinationLabel ? `Sei arrivato: ${destinationLabel}` : 'Sei arrivato a destinazione',
+      distanceMeters: 0,
+      durationSeconds: 0,
+      location: destination,
+      lineId: null,
+      color: WALK_COLOR,
+      streetName: null,
+      offsetMeters: distanceMeters,
+    },
+  ];
+
+  return {
+    id: 'piedi',
+    profile: 'piedi',
+    profileLabel: 'A piedi',
+    profileIcon: '🚶',
+    onFoot: true,
+    distanceMeters: Math.round(distanceMeters),
+    durationSeconds: Math.round(durationSeconds),
+    durationMinutes: Math.max(1, Math.round(durationSeconds / 60)),
+    geometry: coordinates,
+    segments: [segment],
+    instructions,
+    linesUsed: [],
+    bicipolitanaMeters: 0,
+    walkingMeters: Math.round(distanceMeters),
+    bicipolitanaPercentage: 0,
+    /*
+     * Sotto questo percorso non c'e' nessun arco dei dati: nessun ostacolo
+     * dichiarato, nessuna strada trafficata, nessun fondo e nessun lampione di
+     * cui il progetto sappia qualcosa. Lasciare gli elenchi vuoti e' l'unica
+     * risposta onesta; l'illuminazione entra come "non dichiarata", che e'
+     * esattamente cio' che i dati dicono.
+     */
+    warnings: [],
+    obstacleIds: [],
+    surfaces: summarizeSurfaces([{ meters: distanceMeters }]),
+    lighting: [{ fromSeconds: 0, durationSeconds, distanceMeters, lit: null }],
+    durationIsEstimate: true,
+  };
+}
+
+/**
  * Separa i due collegamenti a piedi dalla parte pedalata.
  *
  * Il cammino e la pedalata escono da un'unica ricerca — e' cosi' che il
@@ -702,21 +802,68 @@ export class BicipolitanaRouter {
     }
 
     /*
+     * 3. Andare a piedi, quando la rete obbliga a un giro sproporzionato.
+     *
+     * Fra due punti fuori dalla rete — le frazioni attorno a Pesaro — il
+     * calcolo aggancia comunque la Bicipolitana, e per toccare poche centinaia
+     * di metri di linea puo' proporre il triplo della distanza reale. La
+     * proposta in bicicletta resta: accanto si mette quella a piedi, con i
+     * metri che separano davvero i due punti, e la scelta la fa chi parte.
+     *
+     * Le tre condizioni delimitano quel caso e nessun altro: i due punti
+     * devono essere abbastanza vicini da poterli unire a piedi; il percorso
+     * ciclabile deve allungarsi molto piu' della distanza reale; e quel giro
+     * deve essere fatto soprattutto di raccordi fuori rete. Un percorso che si
+     * allunga restando sulle ciclabili — per evitare una statale, per girare
+     * attorno al Foglia — sta facendo il suo mestiere, e non merita che gli si
+     * proponga accanto di scendere dalla bicicletta.
+     *
+     * Non durante la navigazione: li' si chiede un percorso solo, ed e' il
+     * ricalcolo di quello che si sta gia' percorrendo. Cambiare mezzo a chi e'
+     * in sella perche' ha sbagliato una svolta non e' una risposta.
+     */
+    if (maxAlternatives > 1) {
+      const direct = haversine(origin, destination);
+      const migliore = results.reduce((a, b) => (a.distanceMeters <= b.distanceMeters ? a : b));
+      const fuoriRete =
+        migliore.distanceMeters > 0 ? migliore.walkingMeters / migliore.distanceMeters : 0;
+      if (
+        direct <= WALK_ONLY_MAX_METERS &&
+        migliore.distanceMeters > direct * WALK_ONLY_MIN_DETOUR &&
+        fuoriRete >= WALK_ONLY_MIN_CONNECTOR_SHARE
+      ) {
+        const onFoot = walkOnlyRoute(origin, destination, request.destinationLabel ?? null);
+        if (onFoot) results.push(onFoot);
+      }
+    }
+
+    /*
      * La Bicipolitana resta in cima quando esiste, perche' e' la proposta che
      * il progetto rivendica; dietro si ordina per tempo stimato. Il rango e'
      * calcolato una volta per percorso: un confronto che risponde "prima" a
      * entrambi gli argomenti non e' un ordinamento.
+     *
+     * Il percorso a piedi entra nello stesso rango: nasce solo dove la rete
+     * obbliga a un lungo giro, e li' e' spesso la proposta piu' breve — deve
+     * poterlo dimostrare davanti alle altre, non stare in fondo all'elenco.
      */
     const rank = (route: Route): number =>
-      route.profile === 'bicipolitana' && !route.isVariant ? 0 : 1;
+      route.onFoot || (route.profile === 'bicipolitana' && !route.isVariant) ? 0 : 1;
     results.sort((a, b) => rank(a) - rank(b) || a.durationSeconds - b.durationSeconds);
 
-    return results;
+    // Il numero massimo di proposte vale anche quando fra queste c'e' quella a
+    // piedi: e' una possibilita' in piu' da valutare, non un permesso di
+    // allungare l'elenco.
+    return results.slice(0, maxAlternatives);
   }
 
   /** Ricalcolo durante la navigazione: mantiene il profilo in uso. */
-  reroute(current: LngLat, destination: LngLat, profile: RoutingProfileId,
+  reroute(current: LngLat, destination: LngLat, profile: RoutingProfileId | 'piedi',
     destinationLabel: string | null): Route | null {
+    // Chi sta camminando continua a camminare: il percorso a piedi non passa
+    // dal grafo ciclabile, e ricalcolarlo e' ridisegnare la linea dal punto in
+    // cui ci si trova.
+    if (profile === 'piedi') return walkOnlyRoute(current, destination, destinationLabel);
     try {
       const routes = this.route({
         origin: current,

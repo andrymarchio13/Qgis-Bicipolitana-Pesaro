@@ -165,6 +165,43 @@ export const CONNECTOR_RIDE_THRESHOLD_METERS = num(
 );
 
 /**
+ * Oltre questa distanza fra partenza e arrivo il percorso a piedi non viene
+ * nemmeno proposto.
+ *
+ * La proposta a piedi nasce dove la rete del progetto non arriva; ma oltre una
+ * certa distanza camminare non e' un'alternativa che qualcuno sceglierebbe, e
+ * mostrarla vorrebbe dire riempire l'elenco di percorsi da due ore.
+ */
+export const WALK_ONLY_MAX_METERS = num(env.VITE_WALK_ONLY_MAX_METERS, 5000);
+
+/**
+ * Di quanto il percorso ciclabile deve allungarsi rispetto alla linea d'aria
+ * perche' valga la pena proporre di andare a piedi.
+ *
+ * Fra due punti fuori dalla rete il calcolo aggancia comunque la Bicipolitana,
+ * e il giro che ne esce puo' essere il triplo della distanza reale: un'ora e
+ * mezza di percorso per due punti che distano un chilometro e mezzo. In quel
+ * caso andare a piedi e' la risposta onesta, e va mostrata accanto a quella in
+ * bicicletta invece che al posto suo: la scelta resta di chi pedala.
+ */
+export const WALK_ONLY_MIN_DETOUR = num(env.VITE_WALK_ONLY_MIN_DETOUR, 1.6);
+
+/**
+ * Quanta parte del percorso ciclabile deve essere fuori rete perche' abbia
+ * senso proporre di andare a piedi.
+ *
+ * Un percorso che si allunga restando sulle ciclabili sta facendo il suo
+ * mestiere: evita una statale, gira attorno a un fiume, e non e' il caso di
+ * suggerire di lasciare la bicicletta. Il caso da coprire e' un altro — quello
+ * in cui la meta' buona del viaggio non e' pedalata sulla rete ma e' raccordo
+ * verso una rete che li' non passa.
+ */
+export const WALK_ONLY_MIN_CONNECTOR_SHARE = num(
+  env.VITE_WALK_ONLY_MIN_CONNECTOR_SHARE,
+  0.5,
+);
+
+/**
  * Servizio di calcolo del percorso a piedi usato SOLO per i tratti di
  * collegamento fra il punto scelto e la rete coperta dai dati del progetto.
  *

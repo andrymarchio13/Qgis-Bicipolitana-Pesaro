@@ -387,6 +387,11 @@ export function routeRationale(route: Route): string {
   if (route.isVariant) {
     return 'Un’altra strada per lo stesso viaggio: evita i tratti già proposti sopra.';
   }
+  // Il percorso a piedi non nasce da un criterio di calcolo: nasce dal fatto
+  // che fra questi due punti la rete non passa, e dirlo e' la sua ragione.
+  if (route.onFoot) {
+    return 'Fra questi due punti la rete del progetto obbliga a un lungo giro: a piedi la distanza è quella diretta.';
+  }
   switch (route.profile) {
     case 'fast':
       return 'Pesa solo il tempo stimato: non allunga per restare sulle ciclabili.';
@@ -411,6 +416,16 @@ export function connectorSummary(
 ): { meters: number; icon: string; label: string } | null {
   const connectors = route.segments.filter((segment) => segment.kind === 'piedi');
   if (connectors.length === 0) return null;
+
+  // Il percorso interamente a piedi non ha raccordi: e' tutto cammino, e
+  // chiamarlo "collegamento" lo farebbe sembrare un pezzo di qualcos'altro.
+  if (route.onFoot) {
+    return {
+      meters: connectors.reduce((sum, segment) => sum + segment.distanceMeters, 0),
+      icon: '🚶',
+      label: 'a piedi, fuori dalla rete',
+    };
+  }
 
   const meters = connectors.reduce((sum, segment) => sum + segment.distanceMeters, 0);
   const aPiedi = connectors.some((segment) => (segment.transport ?? 'piedi') === 'piedi');

@@ -230,8 +230,13 @@ export async function refineWalkingLegs(route: Route): Promise<Route> {
   // davvero ridisegnato, altrimenti resta il testo che dichiara la linea d'aria.
   const rifinito = (index: number): RouteSegment | null =>
     segments[index]?.routed === true ? segments[index] : null;
-  const leadingLeg =
-    cyclingStart > 0 ? rifinito(walkLegs.find((leg) => leg.index < cyclingStart)?.index ?? -1) : null;
+  // Un percorso interamente a piedi non ha una parte pedalata in mezzo: il suo
+  // unico tratto sta comunque "prima" della pedalata che non c'e'.
+  const primaDellaPedalata = (index: number): boolean =>
+    cyclingStart === -1 || index < cyclingStart;
+  const leadingLeg = rifinito(
+    walkLegs.find((leg) => primaDellaPedalata(leg.index))?.index ?? -1,
+  );
   const trailingLeg =
     cyclingStart === -1
       ? null
@@ -243,7 +248,13 @@ export async function refineWalkingLegs(route: Route): Promise<Route> {
     if (instruction.type === 'walk-start' && leadingLeg) {
       return {
         ...instruction,
-        text: 'Raggiungi a piedi, seguendo le strade, l’inizio del percorso ciclabile',
+        // Dove non c'e' una parte pedalata il testo resta quello che era: non
+        // si raggiunge nessun "inizio del percorso ciclabile", si cammina fino
+        // a destinazione.
+        text:
+          cyclingStart === -1
+            ? instruction.text
+            : 'Raggiungi a piedi, seguendo le strade, l’inizio del percorso ciclabile',
         distanceMeters: leadingLeg.distanceMeters,
         durationSeconds: leadingLeg.durationSeconds,
       };
