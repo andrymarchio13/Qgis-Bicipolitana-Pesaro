@@ -244,6 +244,33 @@ describe('percorso a piedi su strada', () => {
     expect(arrivo.offsetMeters).toBeCloseTo(dopo.distanceMeters, 0);
   });
 
+  it('al percorso a piedi concede il giro che a un raccordo negherebbe', async () => {
+    /*
+     * Stesso tracciato, quasi tre volte la linea d'aria. Per un raccordo e' il
+     * segno che in mezzo c'e' una barriera, e si tiene la linea d'aria: quel
+     * tratto e' un pezzo di un percorso che comunque esiste. Per il percorso
+     * interamente a piedi no — la linea d'aria sarebbe tutto il percorso, e
+     * mostrarla dritta attraverso i campi significa mostrare una cosa che non
+     * si puo' fare.
+     */
+    const giro: [number, number][] = [
+      [12.9000, 43.9000],
+      [12.9010, 43.9020],
+      [12.9020, 43.9000],
+    ];
+    vi.stubGlobal('fetch', vi.fn(async () => rispostaPedonale(giro)));
+
+    const cammino = await refineWalkingLegs(
+      walkOnlyRoute([12.9, 43.9], [12.902, 43.9], null) as Route,
+    );
+    expect(cammino.segments[0].routed).toBe(true);
+    expect(cammino.distanceMeters).toBeGreaterThan(2.5 * lineLength([giro[0], giro[2]]));
+
+    // Lo stesso giro, chiesto come raccordo, resta respinto.
+    const raccordo = await refineWalkingLegs(percorsoDiProva());
+    expect(raccordo.segments[0].routed).toBeUndefined();
+  });
+
   it('lascia il percorso invariato se il servizio non risponde', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, json: async () => ({}) })));
 

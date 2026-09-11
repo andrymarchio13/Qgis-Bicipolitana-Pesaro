@@ -51,7 +51,14 @@ describe('alternative di percorso', () => {
   it.each(COPPIE)('propone piu di un percorso: %s', (_nome, origin, destination) => {
     const routes = router.route({ origin, destination });
     expect(routes.length).toBeGreaterThan(1);
-    expect(routes.length).toBeLessThanOrEqual(MAX_ROUTE_ALTERNATIVES);
+    /*
+     * Il tetto vale sulle proposte in bicicletta: sono quelle che senza un
+     * limite continuerebbero a moltiplicarsi finche' non finiscono le strade.
+     * Il cammino diretto e' uno solo ed e' l'altro modo di fare lo stesso
+     * viaggio, non un'alternativa in piu' fra cui pescare.
+     */
+    expect(routes.filter((r) => !r.onFoot).length).toBeLessThanOrEqual(MAX_ROUTE_ALTERNATIVES);
+    expect(routes.filter((r) => r.onFoot).length).toBeLessThanOrEqual(1);
   });
 
   it.each(COPPIE)('le alternative sono strade diverse: %s', (_nome, origin, destination) => {

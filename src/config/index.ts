@@ -214,6 +214,31 @@ export const WALK_ONLY_MIN_DETOUR_OFF_NETWORK = num(
 );
 
 /**
+ * Sotto questa distanza fra i due punti il percorso a piedi viene proposto
+ * sempre, senza chiedersi quanto giri quello in bicicletta.
+ *
+ * Su un tratto corto camminare e' un'alternativa che si valuta comunque: tirare
+ * fuori la bicicletta per un chilometro, con la rete che magari passa dall'altra
+ * parte, non e' detto che convenga. La proposta resta una proposta — si ordina
+ * per tempo come le altre, quindi dove pedalare e' davvero piu' rapido il
+ * cammino sta in fondo — ma chi guarda deve poterla vedere.
+ */
+export const WALK_ONLY_ALWAYS_METERS = num(env.VITE_WALK_ONLY_ALWAYS_METERS, 1500);
+
+/**
+ * Quanto puo' allungarsi il percorso interamente a piedi una volta ricalcolato
+ * sulle strade, rispetto alla linea d'aria.
+ *
+ * E' piu' generoso del limite dei raccordi (`WALK_ROUTING_MAX_DETOUR`), e per
+ * un motivo preciso: li' si sta rifinendo un pezzo di un percorso che comunque
+ * esiste, e tenere la linea d'aria costa poco. Qui invece la linea d'aria e'
+ * tutto il percorso, e mostrarla dritta attraverso i campi significa mostrare
+ * una cosa che non si puo' fare. Meglio il giro vero, finche' resta un giro
+ * che qualcuno farebbe davvero.
+ */
+export const WALK_ONLY_MAX_DETOUR = num(env.VITE_WALK_ONLY_MAX_DETOUR, 3);
+
+/**
  * Servizio di calcolo del percorso a piedi usato SOLO per i tratti di
  * collegamento fra il punto scelto e la rete coperta dai dati del progetto.
  *

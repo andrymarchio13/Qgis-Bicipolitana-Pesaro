@@ -26,6 +26,7 @@ import {
   WALKING_SPEED_KMH,
   WALK_COLOR,
   WALK_LEG_MIN_METERS,
+  WALK_ONLY_ALWAYS_METERS,
   WALK_ONLY_MAX_METERS,
   WALK_ONLY_MIN_CONNECTOR_SHARE,
   WALK_ONLY_MIN_DETOUR,
@@ -863,8 +864,11 @@ export class BicipolitanaRouter {
      * metri che separano davvero i due punti, e la scelta la fa chi parte.
      *
      * La prima condizione e' sempre la stessa: i due punti devono essere
-     * abbastanza vicini da poterli unire a piedi. Poi bastano due situazioni
-     * diverse, perche' il giro disastroso ha due cause distinte.
+     * abbastanza vicini da poterli unire a piedi. Su un tratto corto tanto
+     * basta — camminare e' un'alternativa che si valuta comunque, e l'ordine
+     * per tempo la mettera' al posto che le spetta. Oltre quella distanza
+     * servono due situazioni diverse, perche' il giro disastroso ha due cause
+     * distinte.
      *
      *   - La rete non passa di li': meta' del viaggio e' raccordo fuori rete,
      *     e allora anche un allungamento modesto basta — quel percorso e' gia'
@@ -888,20 +892,30 @@ export class BicipolitanaRouter {
       const allungamento = direct > 0 ? migliore.distanceMeters / direct : 0;
       const fuoriRete =
         migliore.distanceMeters > 0 ? migliore.walkingMeters / migliore.distanceMeters : 0;
+      const trattoCorto = direct <= WALK_ONLY_ALWAYS_METERS;
       const giroSproporzionato = allungamento > WALK_ONLY_MIN_DETOUR;
       const viaggioFuoriRete =
         fuoriRete >= WALK_ONLY_MIN_CONNECTOR_SHARE &&
         allungamento > WALK_ONLY_MIN_DETOUR_OFF_NETWORK;
-      if (direct <= WALK_ONLY_MAX_METERS && (giroSproporzionato || viaggioFuoriRete)) {
+      if (
+        direct <= WALK_ONLY_MAX_METERS &&
+        (trattoCorto || giroSproporzionato || viaggioFuoriRete)
+      ) {
         const onFoot = walkOnlyRoute(origin, destination, request.destinationLabel ?? null);
         if (onFoot) results.push(onFoot);
       }
     }
 
-    // Il numero massimo di proposte vale anche quando fra queste c'e' quella a
-    // piedi: e' una possibilita' in piu' da valutare, non un permesso di
-    // allungare l'elenco.
-    return orderRoutes(results).slice(0, maxAlternatives);
+    /*
+     * Il numero massimo vale sulle proposte in bicicletta: sono quelle che,
+     * senza un tetto, continuerebbero a moltiplicarsi finche' non finiscono le
+     * strade. Il cammino e' uno solo ed e' l'altro modo di fare lo stesso
+     * viaggio: tagliarlo via perche' cinque percorsi ciclabili hanno gia'
+     * riempito l'elenco vorrebbe dire nasconderlo proprio dove serve.
+     */
+    const pedalati = results.filter((route) => !route.onFoot);
+    const aPiedi = results.filter((route) => route.onFoot);
+    return orderRoutes([...orderRoutes(pedalati).slice(0, maxAlternatives), ...aPiedi]);
   }
 
   /** Ricalcolo durante la navigazione: mantiene il profilo in uso. */

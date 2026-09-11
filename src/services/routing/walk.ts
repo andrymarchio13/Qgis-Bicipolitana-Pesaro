@@ -18,6 +18,7 @@
 import {
   CYCLING_SPEED_KMH,
   WALKING_SPEED_KMH,
+  WALK_ONLY_MAX_DETOUR,
   WALK_ROUTING_MAX_DETOUR,
   WALK_ROUTING_MIN_METERS,
   WALK_ROUTING_TIMEOUT_MS,
@@ -191,6 +192,13 @@ export async function refineWalkingLegs(route: Route): Promise<Route> {
   );
   if (paths.every((path) => path === null)) return route;
 
+  /*
+   * Il percorso interamente a piedi ha un limite suo, piu' largo: la linea
+   * d'aria non e' un pezzo del percorso, e' tutto il percorso, e mostrarla
+   * dritta attraverso i campi significa mostrare una cosa che non si puo' fare.
+   */
+  const maxDetour = route.onFoot ? WALK_ONLY_MAX_DETOUR : WALK_ROUTING_MAX_DETOUR;
+
   const segments = [...route.segments];
   // Scarto di lunghezza introdotto prima e dopo la parte in bicicletta: serve a
   // rimettere in fase le progressive delle istruzioni.
@@ -209,7 +217,7 @@ export async function refineWalkingLegs(route: Route): Promise<Route> {
      * percorso una camminata interminabile: meglio tenere il collegamento in
      * linea d'aria, che l'interfaccia dichiara come tale.
      */
-    if (next.distanceMeters > segments[index].distanceMeters * WALK_ROUTING_MAX_DETOUR) return;
+    if (next.distanceMeters > segments[index].distanceMeters * maxDetour) return;
     const delta = next.distanceMeters - segments[index].distanceMeters;
     if (cyclingStart === -1 || index < cyclingStart) leadingDelta += delta;
     else trailingDelta += delta;

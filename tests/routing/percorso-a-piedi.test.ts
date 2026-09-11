@@ -88,12 +88,21 @@ describe('proposta a piedi fra punti fuori rete', () => {
 });
 
 describe('quando la proposta a piedi non serve', () => {
-  it('non compare fra due punti serviti dalla rete', () => {
+  it('su un tratto corto compare, ma dietro alla bicicletta', () => {
+    /*
+     * Mezzo chilometro in centro: camminare e' un'alternativa che si valuta
+     * comunque, e va mostrata. Ma qui la rete serve davvero i due punti, il
+     * confronto sul tempo e' attendibile e la bicicletta lo vince: il cammino
+     * resta in fondo, non si prende il posto della proposta principale.
+     */
     const routes = router.route({
       origin: PLACES.piazzaleLiberta,
       destination: PLACES.lungomareTrieste,
     });
-    expect(aPiedi(routes)).toBeUndefined();
+    const piedi = aPiedi(routes);
+    expect(piedi).toBeDefined();
+    expect(routes[0].onFoot).toBeUndefined();
+    expect(routes[routes.length - 1].onFoot).toBe(true);
   });
 
   it('non compare quando i due punti sono troppo lontani per camminare', () => {

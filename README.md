@@ -482,8 +482,11 @@ bicicletta ne compare una **a piedi**, che unisce direttamente i due punti. Non 
 l’altra: la scelta resta di chi parte.
 
 La prima condizione è sempre la stessa: i due punti devono stare entro
-`VITE_WALK_ONLY_MAX_METERS` (5 km). Poi bastano due situazioni diverse, perché il giro
-disastroso ha due cause distinte. **La rete non passa di lì**: metà del viaggio è raccordo
+`VITE_WALK_ONLY_MAX_METERS` (5 km). Sotto `VITE_WALK_ONLY_ALWAYS_METERS` (1,5 km) tanto
+basta: su un tratto corto camminare è un’alternativa che si valuta comunque, e l’ordine
+per tempo la mette al posto che le spetta — in centro resta in fondo, dietro alla
+bicicletta. Oltre quella distanza servono due situazioni diverse, perché il giro disastroso
+ha due cause distinte. **La rete non passa di lì**: metà del viaggio è raccordo
 fuori rete (`VITE_WALK_ONLY_MIN_CONNECTOR_SHARE`) e allora basta un allungamento modesto
 (`VITE_WALK_ONLY_MIN_DETOUR_OFF_NETWORK`, 1,15) — quel percorso è già un cammino con in
 mezzo qualche centinaio di metri di ciclabile. **La rete c’è ma gira**: fra Villa Ceccolini
@@ -504,6 +507,16 @@ triplica la distanza reale riesce così a dichiarare *meno* minuti di una cammin
 — cioè verrebbe mostrato per primo proprio il giro che la proposta a piedi esiste per
 evitare. Dove invece la rete c’è e semplicemente gira, i minuti sono confrontabili e
 decidono loro: il cammino passa davanti solo se costa meno tempo.
+
+**Il cammino segue le strade, non i campi.** Come i raccordi, il percorso a piedi viene
+ridisegnato sulla rete pedonale OSM (`VITE_WALK_ROUTING_URL`): fra Borgo Santa Maria e Case
+Bruciate la linea d’aria è 1,8 km e il tracciato reale 3,4 km lungo Strada della Selva
+Grossa e Strada Case Bruciate. Il limite di plausibilità è suo
+(`VITE_WALK_ONLY_MAX_DETOUR`, 3) ed è più largo di quello dei raccordi
+(`VITE_WALK_ROUTING_MAX_DETOUR`, 2,5), per un motivo preciso: in un raccordo la linea
+d’aria è un pezzo di un percorso che comunque esiste, qui sarebbe tutto il percorso, e
+mostrarla dritta attraverso i campi significa mostrare una cosa che non si può fare. Se il
+servizio non risponde il cammino resta in linea d’aria, dichiarato come tale dalla scheda.
 
 L’ordine viene **ricalcolato dopo la rifinitura** dei raccordi sulle strade reali: lì un
 tratto in linea d’aria può raddoppiare, e un percorso che dichiarava un quarto d’ora ne
@@ -703,6 +716,8 @@ Tutte facoltative: i default funzionano. Vedi [`.env.example`](.env.example).
 | `VITE_WALK_ONLY_MIN_DETOUR` | 1.6 | quanto il percorso ciclabile deve allungarsi sulla linea d’aria perché valga la proposta a piedi |
 | `VITE_WALK_ONLY_MIN_CONNECTOR_SHARE` | 0.5 | quota di raccordo fuori rete che da sola giustifica la proposta a piedi |
 | `VITE_WALK_ONLY_MIN_DETOUR_OFF_NETWORK` | 1.15 | allungamento minimo richiesto in quel caso |
+| `VITE_WALK_ONLY_ALWAYS_METERS` | 1500 | sotto questa distanza il cammino viene proposto sempre |
+| `VITE_WALK_ONLY_MAX_DETOUR` | 3 | quanto può allungarsi il cammino ricalcolato sulle strade |
 | `VITE_WALK_COST_FACTOR` | 2.2 | quanto pesa un minuto a piedi rispetto a uno pedalato |
 | `VITE_WALK_SAFETY_WEIGHT` | 2.5 | quanto conta la pericolosità della via su cui ci si innesta |
 | `VITE_WALK_ROUTING_MAX_DETOUR` | 2.5 | oltre questo rapporto sulla linea d’aria il giro pedonale è respinto |
