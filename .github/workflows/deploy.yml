@@ -15,6 +15,8 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  # Serve allo step che ripulisce i deployment superati.
+  deployments: write
 
 jobs:
   build:
@@ -87,3 +89,23 @@ jobs:
       - name: Deploy su GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5
+
+      - name: Cancella i deployment superati
+        # Ogni pubblicazione lascia un record nella cronologia di Pages, che
+        # altrimenti cresce all'infinito. Qui resta solo quello appena fatto:
+        # il sito online non cambia, è sempre servito dall'ultimo deployment.
+        # Se la pulizia fallisce, la pubblicazione resta comunque valida.
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/deployments?environment=github-pages&per_page=100" \
+            --jq 'sort_by(.created_at) | reverse | .[1:] | .[].id' > superati.txt
+          echo "Deployment da cancellare: $(wc -l < superati.txt)"
+          while read -r id; do
+            # Un deployment attivo non è cancellabile: prima va disattivato.
+            gh api --method POST "repos/$GITHUB_REPOSITORY/deployments/$id/statuses" \
+              -f state=inactive --silent || true
+            gh api --method DELETE "repos/$GITHUB_REPOSITORY/deployments/$id" --silent || true
+            echo "  cancellato $id"
+          done < superati.txt
