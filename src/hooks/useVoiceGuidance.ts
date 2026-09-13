@@ -10,6 +10,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import type { TripSummary } from '../services/tripSummary';
 import { isSpeechSupported, NavigationVoice } from '../services/voice';
 import { announcementFor } from '../services/voiceGuidance';
 import type { Route, RouteInstruction } from '../types';
@@ -19,11 +20,15 @@ const STORAGE_KEY = 'bicipolitana:voce';
 export interface UseVoiceGuidanceOptions {
   route: Route | null;
   instruction: RouteInstruction | null;
+  /** La manovra dopo quella in arrivo: se e' a ridosso si annunciano insieme. */
+  nextInstruction?: RouteInstruction | null;
   distanceToManeuver: number;
   remainingMeters: number;
   arrived: boolean;
   offRoute: boolean;
   rerouting: boolean;
+  /** Il viaggio misurato, per il riepilogo detto all'arrivo. */
+  summary?: TripSummary | null;
   /** true solo mentre la navigazione e' in corso. */
   active: boolean;
 }
@@ -56,11 +61,13 @@ function readPreference(): boolean {
 export function useVoiceGuidance({
   route,
   instruction,
+  nextInstruction = null,
   distanceToManeuver,
   remainingMeters,
   arrived,
   offRoute,
   rerouting,
+  summary = null,
   active,
 }: UseVoiceGuidanceOptions): UseVoiceGuidanceResult {
   const supported = useMemo(() => isSpeechSupported(), []);
@@ -115,6 +122,8 @@ export function useVoiceGuidance({
     const announcement = announcementFor({
       route,
       instruction,
+      nextInstruction,
+      summary,
       distanceToManeuver,
       remainingMeters,
       arrived,
@@ -140,6 +149,8 @@ export function useVoiceGuidance({
     enabled,
     route,
     instruction,
+    nextInstruction,
+    summary,
     distanceToManeuver,
     remainingMeters,
     arrived,

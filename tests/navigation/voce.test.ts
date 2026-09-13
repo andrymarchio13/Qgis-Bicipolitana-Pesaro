@@ -205,4 +205,95 @@ describe('annunci della navigazione', () => {
     );
     expect(annuncio?.text).toBe('Sei arrivato: Baia Flaminia.');
   });
+
+  it('arrotonda la distanza annunciata a una cifra tonda', () => {
+    // Il GPS dice 287 metri, ma nessuno decide su quel numero: si annuncia 300.
+    const annuncio = announcementFor(input({ distanceToManeuver: 287 }));
+    expect(annuncio?.text).toBe('Tra 300 metri, gira a destra su Viale Trieste.');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Avviso lungo, sui tratti che lo reggono
+// ---------------------------------------------------------------------------
+
+/** Un rettilineo di due chilometri fra la partenza e l'unica svolta. */
+const rettilineo = (): Route =>
+  ({
+    id: 'bicipolitana-far',
+    distanceMeters: 2400,
+    instructions: [
+      istruzione({ index: 0, type: 'start', text: 'Parti sulla Linea 1', offsetMeters: 0 }),
+      istruzione({ index: 1, offsetMeters: 2000 }),
+    ],
+  }) as unknown as Route;
+
+describe('avviso molto in anticipo', () => {
+  const lungo = (over: Partial<GuidanceInput> = {}): GuidanceInput =>
+    input({
+      route: rettilineo(),
+      instruction: istruzione({ index: 1, offsetMeters: 2000 }),
+      ...over,
+    });
+
+  it('annuncia la manovra a seicento metri quando il tratto è lungo', () => {
+    const annuncio = announcementFor(lungo({ distanceToManeuver: 550 }));
+    expect(annuncio?.kind).toBe('far');
+    expect(annuncio?.text).toBe('Tra 550 metri, gira a destra su Viale Trieste.');
+  });
+
+  it('tace finché la manovra è oltre l’avviso lungo', () => {
+    expect(announcementFor(lungo({ distanceToManeuver: 900 }))).toBeNull();
+  });
+
+  it('non lo dà su un tratto corto, dove finirebbe sopra l’annuncio precedente', () => {
+    const corto = {
+      ...lungo({ distanceToManeuver: 550 }),
+      // Manovra a 400 m dalla precedente: a 550 m si sta ancora percorrendo
+      // il tratto prima, e l'annuncio arriverebbe due manovre in anticipo.
+      instruction: istruzione({ index: 1, offsetMeters: 400 }),
+    };
+    expect(announcementFor(corto)).toBeNull();
+  });
+
+  it('usa chiavi distinte per i tre tempi dello stesso incrocio', () => {
+    const chiavi = [550, 250, 30].map(
+      (d) => announcementFor(lungo({ distanceToManeuver: d }))?.key,
+    );
+    expect(new Set(chiavi).size).toBe(3);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Manovre incatenate
+// ---------------------------------------------------------------------------
+
+describe('manovre a ridosso l’una dell’altra', () => {
+  const seguente = (offset: number): RouteInstruction =>
+    istruzione({ index: 4, type: 'left', text: 'Svolta a sinistra su Via Rossini', offsetMeters: offset });
+
+  it('dice le due manovre in una frase sola quando sono vicine', () => {
+    const annuncio = announcementFor(
+      input({ distanceToManeuver: 250, nextInstruction: seguente(900) }),
+    );
+    expect(annuncio?.text).toBe(
+      'Tra 250 metri, gira a destra su Viale Trieste, poi svolta a sinistra su Via Rossini.',
+    );
+  });
+
+  it('avverte che la seconda è subito dopo, quando sono la stessa curva', () => {
+    const annuncio = announcementFor(
+      input({ distanceToManeuver: 40, nextInstruction: seguente(830) }),
+    );
+    expect(annuncio?.text).toBe(
+      'Ora, gira a destra su Viale Trieste, poi subito svolta a sinistra su Via Rossini.',
+    );
+  });
+
+  it('non incatena manovre lontane fra loro', () => {
+    const annuncio = announcementFor(
+      input({ distanceToManeuver: 250, nextInstruction: seguente(1400) }),
+    );
+    expect(annuncio?.text).toBe('Tra 250 metri, gira a destra su Viale Trieste.');
+  });
 });

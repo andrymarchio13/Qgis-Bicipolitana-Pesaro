@@ -339,6 +339,22 @@ export const ARRIVAL_THRESHOLD_METERS = num(env.VITE_ARRIVAL_THRESHOLD_METERS, 2
 export const VOICE_PREPARE_METERS = num(env.VITE_VOICE_PREPARE_METERS, 300);
 export const VOICE_NOW_METERS = num(env.VITE_VOICE_NOW_METERS, 60);
 
+/**
+ * Primo avviso, molto in anticipo. Vale solo sui tratti lunghi: su un rettilineo
+ * di un chilometro sapere che la svolta arrivera' fra cinquecento metri evita di
+ * restare a chiedersi se si e' gia' sbagliato. Fra due incroci vicini sarebbe
+ * invece un annuncio sopra l'altro, e per questo si annuncia solo quando il
+ * tratto precedente e' almeno una volta e mezza questa distanza.
+ */
+export const VOICE_FAR_METERS = num(env.VITE_VOICE_FAR_METERS, 600);
+
+/**
+ * Due manovre piu' vicine di cosi' si dicono in una frase sola — «gira a
+ * destra, poi subito a sinistra» — perche' fra l'una e l'altra non ci sarebbe
+ * il tempo materiale di pronunciare due annunci separati.
+ */
+export const VOICE_CHAIN_METERS = num(env.VITE_VOICE_CHAIN_METERS, 120);
+
 /** Precisione GPS oltre la quale la posizione e' considerata inaffidabile. */
 export const GPS_MAX_ACCEPTABLE_ACCURACY_METERS = num(
   env.VITE_GPS_MAX_ACCURACY_METERS,

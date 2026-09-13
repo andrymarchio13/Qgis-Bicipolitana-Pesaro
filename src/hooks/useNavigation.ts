@@ -17,6 +17,7 @@ import {
   REROUTE_DEBOUNCE_MS,
   REROUTE_DISTANCE_THRESHOLD,
 } from '../config';
+import type { TripStats } from '../services/tripSummary';
 import type { NavigationState, Route, RouteInstruction } from '../types';
 import { bearing, projectOnLine } from '../utils/geo';
 import type { UserPosition } from './useLocation';
@@ -45,6 +46,12 @@ export interface UseNavigationResult extends NavigationState {
    * per il fuori-percorso, dove il tracciato non dice piu' dove si va.
    */
   courseDegrees: number | null;
+  /**
+   * Quel che la navigazione ha misurato: da quando e' partita, quanto si e'
+   * percorso e a che velocita'. Serve al riepilogo dell'arrivo, che racconta
+   * il viaggio fatto e non quello preventivato.
+   */
+  trip: TripStats;
   dismissOffRoute: () => void;
 }
 
@@ -82,7 +89,86 @@ export function useNavigation({
 
   const offRouteMeters = progress?.distanceMeters ?? 0;
   const isOffRoute = active && progress !== null && offRouteMeters > REROUTE_DISTANCE_THRESHOLD;
-  const arrived = active && route !== null && remainingMeters <= ARRIVAL_THRESHOLD_METERS;
+  const withinArrival = active && route !== null && remainingMeters <= ARRIVAL_THRESHOLD_METERS;
+  /*
+   * L'arrivo, una volta raggiunto, non si disfa: bastano due punti GPS
+   * imprecisi, o un passo indietro per mettere la bici al muro, e il
+   * riepilogo sparirebbe da sotto gli occhi di chi lo sta leggendo. Si esce
+   * dalla schermata d'arrivo chiudendola, non allontanandosi.
+   */
+  const [arrivedLatched, setArrivedLatched] = useState(false);
+  const arrived = active && (withinArrival || arrivedLatched);
+
+  useEffect(() => {
+    if (!active) setArrivedLatched(false);
+    else if (withinArrival) setArrivedLatched(true);
+  }, [active, withinArrival]);
+
+  /*
+   * ---------------------------------------------------------------------
+   * Misura del viaggio
+   *
+   * Il tempo e' quello dell'orologio, non una stima: comprende i semafori e
+   * le soste, ed e' l'unico dato del riepilogo che descrive il viaggio vero.
+   * La progressiva viene tenuta al suo massimo perche' il GPS la fa oscillare
+   * all'indietro di qualche metro, e un viaggio non si accorcia.
+   */
+  const startedAt = useRef<number | null>(null);
+  const maxTraveled = useRef(0);
+  const maxSpeed = useRef<number | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+  if (active && traveled > maxTraveled.current) maxTraveled.current = traveled;
+  if (active && position?.speed != null && Number.isFinite(position.speed)) {
+    const kmh = position.speed * 3.6;
+    if (maxSpeed.current === null || kmh > maxSpeed.current) maxSpeed.current = kmh;
+  }
+  /*
+   * I massimi stanno in riferimenti, che di per se' non fanno rendere. Qui
+   * vengono letti in due valori normali: cosi' il riepilogo si aggiorna a ogni
+   * punto GPS — e soprattutto e' fresco nell'istante dell'arrivo, che e' quello
+   * in cui viene letto ad alta voce.
+   */
+  const traveledPeak = maxTraveled.current;
+  const speedPeak = maxSpeed.current;
+
+  // Ogni navigazione e' un viaggio a se': i numeri del precedente non devono
+  // sopravvivergli.
+  useEffect(() => {
+    if (!active) return;
+    startedAt.current = Date.now();
+    maxTraveled.current = 0;
+    maxSpeed.current = null;
+    setElapsedSeconds(0);
+  }, [active]);
+
+  useEffect(() => {
+    // All'arrivo il cronometro si ferma: da li' in poi il riepilogo e' un
+    // numero fisso, non una cifra che continua a salire mentre lo si legge.
+    if (!active || arrived) return;
+    const timer = window.setInterval(() => {
+      if (startedAt.current === null) return;
+      setElapsedSeconds((Date.now() - startedAt.current) / 1000);
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [active, arrived]);
+
+  useEffect(() => {
+    if (!active || !arrived || startedAt.current === null) return;
+    // L'ultimo battito del cronometro puo' essere vecchio di un secondo:
+    // l'istante dell'arrivo si legge una volta sola, qui.
+    setElapsedSeconds((Date.now() - startedAt.current) / 1000);
+  }, [active, arrived]);
+
+  const trip = useMemo<TripStats>(
+    () => ({
+      startedAt: startedAt.current,
+      elapsedSeconds,
+      traveledMeters: traveledPeak,
+      maxSpeedKmh: speedPeak,
+    }),
+    [elapsedSeconds, traveledPeak, speedPeak],
+  );
 
   // Individua l'istruzione corrente dalla progressiva percorsa.
   const stepIndex = useMemo(() => {
@@ -190,6 +276,7 @@ export function useNavigation({
     distanceToManeuver,
     snappedPosition: progress ? (progress.point as [number, number]) : null,
     courseDegrees,
+    trip,
     dismissOffRoute,
   };
 }

@@ -241,6 +241,7 @@ export function App(): JSX.Element {
         position={location.position}
         lines={data?.linesById ?? new Map()}
         gpsMessage={location.message}
+        destinationLabel={destination?.label ?? null}
         onExit={() => setNavigating(false)}
       />
     );

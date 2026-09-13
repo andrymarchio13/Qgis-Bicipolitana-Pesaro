@@ -71,11 +71,26 @@ alternative, segue la posizione GPS e ricalcola il percorso quando ci si allonta
   letta dal GPS e da fermo si ferma — anche per non tenere sveglia la mappa a un semaforo.
   Chi ha chiesto meno animazioni al sistema riceve la stessa icona, immobile.
 - **Legge le indicazioni ad alta voce**, come un navigatore: ogni manovra viene annunciata
-  due volte, in anticipo (300 m) e al momento di farla (60 m), piu' partenza, arrivo,
-  fuori-percorso e ricalcolo. Usa la sintesi vocale del dispositivo, preferendo una voce
+  **prima** di doverla fare, in tre tempi — un avviso lungo a 600 m (solo sui tratti che lo
+  reggono, per non parlare sopra l'annuncio precedente), la preparazione a 300 m e il
+  «Ora, gira a destra» a 60 m — piu' partenza, arrivo, fuori-percorso e ricalcolo. Due
+  manovre a ridosso l'una dell'altra si dicono in una frase sola («gira a destra, poi
+  subito a sinistra»), perche' fra le due non ci sarebbe il tempo di pronunciare due
+  annunci. Le distanze annunciate sono arrotondate a cifre tonde: il GPS dice 287 metri, ma
+  nessuno decide su quel numero. Usa la sintesi vocale del dispositivo, preferendo una voce
   **italiana maschile** fra quelle installate; se non ce n'e' una, usa la migliore voce
   italiana disponibile e lo dichiara invece di fingere. Si zittisce con un tocco e la scelta
   resta memorizzata. Nessun audio scaricato, nessuna chiave, nessun testo fuori dal telefono.
+- **Festeggia l'arrivo e racconta il viaggio**: raggiunta la destinazione (25 m), la
+  navigazione si chiude con una schermata dedicata — sigillo animato, spunta che si
+  disegna — e il **riepilogo di quel che si e' percorso**: distanza, tempo reale, media,
+  quota di Bicipolitana, linee percorse, punta massima e confronto con la stima data prima
+  di partire. Distanza e tempo sono **misurati** durante la navigazione, non preventivati; e
+  se la navigazione non ha coperto l'intero percorso — avviata a meta' strada, o conclusa
+  dopo un ricalcolo — il riepilogo racconta solo il tratto navigato e lo dichiara, invece di
+  attribuire al viaggio una composizione che non ha verificato. Lo stesso riepilogo viene
+  letto ad alta voce. Chi ha chiesto meno animazioni al sistema riceve la stessa schermata,
+  ferma.
 - **Dice che tempo fa adesso a Pesaro**: in alto a sinistra sulla mappa, simbolo e
   temperatura; toccando si aprono percepita, vento (in km/h e punto della rosa dei venti,
   con una nota su quanto si fara' sentire pedalando) e pioggia dell'ultima ora. E' scritta
@@ -205,7 +220,7 @@ src/
   components/            Map, Search, Routing, Lines, Navigation, UI
   pages/                 Home, Linee, Dettaglio linea, Servizi, Info, Privacy
   services/              routing/, geocoding/, data.ts, itinerary.ts,
-                         voice.ts, voiceGuidance.ts
+                         voice.ts, voiceGuidance.ts, tripSummary.ts
   hooks/                 useLocation, useNavigation, useGeocoding, useWakeLock,
                          useVoiceGuidance
   store/                 stato globale (Zustand)
@@ -755,8 +770,10 @@ Tutte facoltative: i default funzionano. Vedi [`.env.example`](.env.example).
 | `VITE_REROUTE_DISTANCE_THRESHOLD` | 45 | metri di scostamento prima del ricalcolo |
 | `VITE_REROUTE_DEBOUNCE_MS` | 4000 | attesa prima di ricalcolare |
 | `VITE_REROUTE_COOLDOWN_MS` | 8000 | attesa minima fra due ricalcoli consecutivi |
+| `VITE_VOICE_FAR_METERS` | 600 | primo avviso, dato solo sui tratti lunghi |
 | `VITE_VOICE_PREPARE_METERS` | 300 | distanza a cui la voce annuncia la manovra in anticipo |
 | `VITE_VOICE_NOW_METERS` | 60 | distanza a cui la voce annuncia la manovra da fare ora |
+| `VITE_VOICE_CHAIN_METERS` | 120 | sotto questa distanza due manovre si annunciano in una frase sola |
 | `VITE_WALK_ROUTING_URL` | Valhalla OSM | rete pedonale per i tratti a piedi; vuoto = solo offline |
 | `VITE_WALK_ROUTING_TIMEOUT_MS` | 6000 | oltre questa attesa si tiene il tratto in linea d’aria |
 | `VITE_WALK_ROUTING_MIN_METERS` | 40 | sotto questa soglia il tratto non vale una chiamata |
@@ -789,10 +806,12 @@ npm test
   mostri mai `undefined` o `NaN`;
 - `tests/geocoding/` — ricerca nei dati locali del progetto: corrispondenze parziali,
   accenti e maiuscole, ordinamento dei risultati;
-- `tests/navigation/` — guida vocale e segno della posizione: scelta della voce italiana
-  maschile fra quelle installate, distanze scritte per essere pronunciate, annunci dati due
-  volte e mai ripetuti, ciclista animato che smette di chiedere fotogrammi da fermo, e
-  velocita' ricavata dallo spostamento quando il dispositivo non la dichiara.
+- `tests/navigation/` — guida vocale, riepilogo dell'arrivo e segno della posizione: scelta
+  della voce italiana maschile fra quelle installate, distanze scritte per essere pronunciate
+  e arrotondate a cifre tonde, annunci dati in tre tempi e mai ripetuti, manovre vicine dette
+  in una frase sola, riepilogo di fine viaggio che tace su quel che non ha misurato, ciclista
+  animato che smette di chiedere fotogrammi da fermo, e velocita' ricavata dallo spostamento
+  quando il dispositivo non la dichiara.
 - `tests/meteo/` — lettura del meteo e della luce: codici WMO tradotti secondo lo standard e
   codici fuori tabella dichiarati invece di essere interpretati, rosa dei venti che chiude il
   cerchio, valori mancanti lasciati vuoti e non stimati, risposte incomplete o in errore che

@@ -779,6 +779,384 @@ a {
 }
 
 /* --------------------------------------------------------------------- */
+/* Arrivo: sigillo animato e riepilogo del viaggio                        */
+/* --------------------------------------------------------------------- */
+
+/*
+ * Copre l'intera schermata di navigazione, banner e piede compresi: il viaggio
+ * è finito, e indicazioni che restassero visibili direbbero il contrario.
+ * Scorre, perché su uno schermo basso il riepilogo è più alto della finestra e
+ * il pulsante per tornare alla mappa non deve mai finire fuori portata.
+ */
+.arrival {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: calc(28px + env(safe-area-inset-top)) 20px calc(24px + env(safe-area-inset-bottom));
+  overflow-y: auto;
+  text-align: center;
+  color: #fff;
+  background: radial-gradient(120% 80% at 50% 0%, var(--brand-700), var(--brand-900) 70%);
+  animation: arrival-enter 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Alone che respira dietro al sigillo: dà profondità senza disegnare nulla. */
+.arrival__glow {
+  position: absolute;
+  top: -18%;
+  left: 50%;
+  width: min(620px, 150%);
+  aspect-ratio: 1;
+  transform: translateX(-50%);
+  pointer-events: none;
+  background: radial-gradient(circle, rgb(76 191 144 / 0.45), transparent 62%);
+  animation: arrival-glow 4.5s ease-in-out infinite;
+}
+
+.arrival__seal {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 132px;
+  height: 132px;
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+
+.arrival__ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid rgb(255 255 255 / 0.55);
+  /* Due onde sole: un'increspatura che non smette più diventa un'attesa. */
+  animation: arrival-ring 1.9s cubic-bezier(0.22, 1, 0.36, 1) 2 both;
+}
+
+.arrival__ring--2 {
+  animation-delay: 420ms;
+}
+
+.arrival__disc {
+  display: grid;
+  place-items: center;
+  width: 104px;
+  height: 104px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 18px 40px rgb(6 48 31 / 0.45);
+  animation: arrival-pop 620ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.arrival__check {
+  width: 64px;
+  height: 64px;
+  fill: none;
+  stroke: var(--brand-600);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/*
+ * Il cerchio si chiude, poi la spunta si scrive: è l'ordine in cui l'occhio
+ * legge un sigillo, e riempie di senso il mezzo secondo in cui la voce sta
+ * dicendo la stessa cosa.
+ */
+.arrival__check-circle {
+  stroke-width: 2.5;
+  stroke: var(--brand-400);
+  stroke-dasharray: 145;
+  stroke-dashoffset: 145;
+  animation: arrival-draw 560ms ease-out 180ms both;
+}
+
+.arrival__check-mark {
+  stroke-dasharray: 42;
+  stroke-dashoffset: 42;
+  animation: arrival-draw 420ms cubic-bezier(0.65, 0, 0.35, 1) 520ms both;
+}
+
+.arrival__title {
+  margin: 4px 0 0;
+  font-size: 30px;
+  letter-spacing: -0.02em;
+  animation: arrival-rise 520ms cubic-bezier(0.16, 1, 0.3, 1) 420ms both;
+}
+
+.arrival__place {
+  margin: 0;
+  max-width: 34ch;
+  font-size: 15px;
+  color: rgb(255 255 255 / 0.82);
+  animation: arrival-rise 520ms cubic-bezier(0.16, 1, 0.3, 1) 500ms both;
+}
+
+.arrival__stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+  max-width: 440px;
+  margin-top: 8px;
+}
+
+.arrival__tile,
+.arrival__row,
+.arrival__lines,
+.arrival__detail,
+.arrival__close {
+  /*
+   * Entrata a scalare: l'ordine lo dichiara ogni elemento con --i, così il
+   * ritardo non va rincorso a mano quando una riga compare o sparisce.
+   */
+  animation: arrival-rise 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(560ms + var(--i, 0) * 70ms);
+}
+
+.arrival__tile {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 10px;
+  border-radius: var(--radius);
+  background: rgb(255 255 255 / 0.12);
+  border: 1px solid rgb(255 255 255 / 0.16);
+}
+
+.arrival__tile b {
+  font-size: 24px;
+  letter-spacing: -0.02em;
+}
+
+.arrival__tile span {
+  font-size: 12px;
+  color: rgb(255 255 255 / 0.78);
+}
+
+.arrival__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  max-width: 440px;
+}
+
+.arrival__row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 0;
+  text-align: left;
+  font-size: 13px;
+  line-height: 1.45;
+  color: rgb(255 255 255 / 0.88);
+}
+
+.arrival__lines {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 440px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: rgb(255 255 255 / 0.1);
+}
+
+.arrival__lines-label {
+  font-size: 12px;
+  color: rgb(255 255 255 / 0.78);
+}
+
+.arrival__lines-badges,
+.arrival__line {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.arrival__arrow {
+  color: rgb(255 255 255 / 0.6);
+}
+
+.arrival__detail {
+  width: 100%;
+  max-width: 440px;
+  text-align: left;
+  font-size: 13px;
+}
+
+.arrival__detail > summary {
+  cursor: pointer;
+  padding: 8px 0;
+  color: rgb(255 255 255 / 0.85);
+}
+
+.arrival__legs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 30vh;
+  overflow-y: auto;
+}
+
+.arrival__legs li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 0;
+  border-bottom: 1px solid rgb(255 255 255 / 0.14);
+}
+
+.arrival__leg-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.arrival__leg-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.arrival__leg-distance {
+  color: rgb(255 255 255 / 0.72);
+  font-variant-numeric: tabular-nums;
+}
+
+.arrival__close {
+  width: 100%;
+  max-width: 440px;
+  margin-top: auto;
+  background: #fff;
+  color: var(--brand-800);
+  border-color: #fff;
+}
+
+.arrival__note {
+  margin: 0;
+  max-width: 44ch;
+  font-size: 11px;
+  color: rgb(255 255 255 / 0.62);
+}
+
+@keyframes arrival-enter {
+  from {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes arrival-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes arrival-ring {
+  from {
+    opacity: 0.7;
+    transform: scale(0.62);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.45);
+  }
+}
+
+@keyframes arrival-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes arrival-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes arrival-glow {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: translateX(-50%) scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: translateX(-50%) scale(1.08);
+  }
+}
+
+/*
+ * Chi ha chiesto meno movimento vede comunque tutto il riepilogo, insieme: la
+ * festa dell'arrivo non vale un capogiro.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .arrival,
+  .arrival__glow,
+  .arrival__disc,
+  .arrival__check-circle,
+  .arrival__check-mark,
+  .arrival__title,
+  .arrival__place,
+  .arrival__tile,
+  .arrival__row,
+  .arrival__lines,
+  .arrival__detail,
+  .arrival__close {
+    animation: none;
+    opacity: 1;
+    transform: none;
+    stroke-dashoffset: 0;
+  }
+
+  .arrival__ring {
+    display: none;
+  }
+}
+
+@media (min-width: 720px) {
+  .arrival__stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    max-width: 620px;
+  }
+
+  .arrival__rows,
+  .arrival__lines,
+  .arrival__detail,
+  .arrival__close,
+  .arrival__note {
+    max-width: 620px;
+  }
+}
+
+/* --------------------------------------------------------------------- */
 /* Bottom sheet (mobile)                                                  */
 /* --------------------------------------------------------------------- */
 

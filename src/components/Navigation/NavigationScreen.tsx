@@ -4,7 +4,10 @@
  * Mostra soltanto informazioni certe: manovra corrente, distanza residua e
  * tempo residuo stimato. Non annuncia svolte non deducibili dai dati.
  */
+import { useMemo } from 'react';
+
 import { formatInstruction, maneuverIcon } from '../../services/routing/instructions';
+import { buildTripSummary } from '../../services/tripSummary';
 import type { Line, Route, RouteInstruction } from '../../types';
 import { formatDistance, formatDuration } from '../../utils/geo';
 import type { UserPosition } from '../../hooks/useLocation';
@@ -13,6 +16,7 @@ import { useVoiceGuidance } from '../../hooks/useVoiceGuidance';
 import { MapView } from '../Map/MapView';
 import { LineBadge, Notice } from '../UI';
 import { WeatherBadge } from '../Weather/WeatherBadge';
+import { ArrivalSummary } from './ArrivalSummary';
 
 export interface NavigationScreenProps {
   route: Route;
@@ -20,6 +24,8 @@ export interface NavigationScreenProps {
   position: UserPosition | null;
   lines: Map<string, Line>;
   gpsMessage: string | null;
+  /** Nome della destinazione scelta, mostrato nel riepilogo dell'arrivo. */
+  destinationLabel?: string | null;
   onExit: () => void;
 }
 
@@ -29,16 +35,37 @@ export function NavigationScreen({
   position,
   lines,
   gpsMessage,
+  destinationLabel = null,
   onExit,
 }: NavigationScreenProps): JSX.Element {
   const instruction = navigation.nextInstruction ?? navigation.currentInstruction;
+  /*
+   * La manovra dopo quella in arrivo serve solo alla voce: quando le due sono
+   * a pochi metri l'una dall'altra vanno dette insieme, perche' fra l'una e
+   * l'altra non ci sarebbe il tempo di pronunciare due annunci.
+   */
+  const followingInstruction = instruction
+    ? (route.instructions[instruction.index + 1] ?? null)
+    : null;
   const activeLineId = navigation.currentInstruction?.lineId ?? null;
   const activeLine = activeLineId ? lines.get(activeLineId) : undefined;
   const bannerColor = activeLine?.color ?? 'var(--brand-800)';
 
+  /*
+   * Il riepilogo del viaggio si costruisce mentre si pedala, non all'arrivo:
+   * l'annuncio vocale dell'arrivo lo legge nello stesso istante in cui la
+   * schermata lo mostra, e devono dire la stessa cosa.
+   */
+  const summary = useMemo(
+    () => buildTripSummary(route, navigation.trip),
+    [route, navigation.trip],
+  );
+
   const voice = useVoiceGuidance({
     route,
     instruction,
+    nextInstruction: followingInstruction,
+    summary,
     distanceToManeuver: navigation.distanceToManeuver,
     remainingMeters: navigation.remainingMeters,
     arrived: navigation.arrived,
@@ -173,6 +200,16 @@ export function NavigationScreen({
         */}
         <WeatherBadge placement="nav" />
       </div>
+
+      {navigation.arrived ? (
+        <ArrivalSummary
+          route={route}
+          summary={summary}
+          lines={lines}
+          destinationLabel={destinationLabel ?? route.destinationLabel ?? null}
+          onClose={onExit}
+        />
+      ) : null}
 
       <div className="nav-screen__footer">
         <div className="nav-screen__stat">
